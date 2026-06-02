@@ -1,6 +1,7 @@
 ---
-volumes:
-  - name: EPHEMERAL
-    provisioning:
-      diskSelector:
-        match: "disk.model.startsWith('SAMSUNG MZ1LB960HAJQ-00007')"
+apiVersion: v1alpha1
+kind: VolumeConfig
+name: EPHEMERAL
+provisioning:
+  diskSelector:
+    match: disk.model == "SAMSUNG MZ1LB960HAJQ-00007"
