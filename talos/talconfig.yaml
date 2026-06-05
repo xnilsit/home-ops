@@ -21,7 +21,7 @@ cniConfig:
 
 nodes:
   - hostname: "kube-srv-01"
-    ipAddress: "192.168.1.106"
+    ipAddress: "192.168.1.101"
     installDisk: "/dev/disk/by-uuid/fb166d78-5416-4ee2-9fd3-0e9b305f1025"
     machineSpec:
       secureboot: false
@@ -32,7 +32,7 @@ nodes:
           hardwareAddr: "a8:b8:e0:07:81:bb"
         dhcp: false
         addresses:
-          - "192.168.1.106/23"
+          - "192.168.1.101/23"
         routes:
           - gateway: "192.168.0.1"
             network: 0.0.0.0/0
@@ -41,6 +41,48 @@ nodes:
           ip: "192.168.1.101"
     patches:
       - "@./patches/kube-srv-01/ephemeral.yaml"
+  - hostname: "kube-srv-02"
+    ipAddress: "192.168.1.102"
+    installDisk: "/dev/disk/by-id/usb-USB_SanDisk_3.2Gen1_00015021040826015216-0:0"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/3fa423e105b38d5eb9f87e98f8a631eda84d61ee2ed00b3c49c5b45f3ce0eec8
+    controlPlane: true
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "38:05:25:39:01:82"
+        dhcp: false
+        addresses:
+          - "192.168.1.102/23"
+        routes:
+          - gateway: "192.168.0.1"
+            network: 0.0.0.0/0
+        mtu: 1500
+        vip:
+          ip: "192.168.1.101"
+    patches:
+      - "@./patches/kube-srv-02/ephemeral.yaml"
+  - hostname: "kube-srv-03"
+    ipAddress: "192.168.1.103"
+    installDisk: "/dev/disk/by-uuid/ea4683c8-8cf0-443b-92ac-14a4be885b78"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/874b87313b2d7d328a7245fdf070f18258b02962b7a78ba22d8822db64600cd9
+    controlPlane: true
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "a8:b8:e0:06:ce:98"
+        dhcp: false
+        addresses:
+          - "192.168.1.103/23"
+        routes:
+          - gateway: "192.168.0.1"
+            network: 0.0.0.0/0
+        mtu: 1500
+        vip:
+          ip: "192.168.1.101"
+    patches:
+      - "@./patches/kube-srv-03/ephemeral.yaml"
 
 # Global patches
 patches:
