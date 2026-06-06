@@ -40,7 +40,7 @@ nodes:
         vip:
           ip: "192.168.1.101"
     patches:
-      - "@./patches/kube-srv-01/ephemeral.yaml"
+      - "@./patches/kube-srv-01/volumes.yaml"
   - hostname: "kube-srv-02"
     ipAddress: "192.168.1.102"
     installDisk: "/dev/disk/by-id/usb-USB_SanDisk_3.2Gen1_00015021040826015216-0:0"
@@ -61,7 +61,7 @@ nodes:
         vip:
           ip: "192.168.1.101"
     patches:
-      - "@./patches/kube-srv-02/ephemeral.yaml"
+      - "@./patches/kube-srv-02/volumes.yaml"
   - hostname: "kube-srv-03"
     ipAddress: "192.168.1.103"
     installDisk: "/dev/disk/by-uuid/ea4683c8-8cf0-443b-92ac-14a4be885b78"
@@ -82,7 +82,7 @@ nodes:
         vip:
           ip: "192.168.1.101"
     patches:
-      - "@./patches/kube-srv-03/ephemeral.yaml"
+      - "@./patches/kube-srv-03/volumes.yaml"
 
 # Global patches
 patches:

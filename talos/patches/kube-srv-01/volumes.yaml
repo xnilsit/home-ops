@@ -1,0 +1,26 @@
+---
+apiVersion: v1alpha1
+kind: VolumeConfig
+name: EPHEMERAL
+provisioning:
+  diskSelector:
+    match: disk.model == "SAMSUNG MZ1LB960HAJQ-00007"
+  minSize: 300GiB
+  grow: true
+---
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: osd-01
+provisioning:
+  diskSelector:
+    match: disk.model == "SAMSUNG MZ7LM1T9"
+  minSize: 1900GB
+---
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: local-path
+provisioning:
+  diskSelector:
+    match: disk.model == "WD_BLACK SN770 1TB"
+  minSize: 800GB
+  grow: true
