@@ -4,5 +4,4 @@ kind: Kustomization
 namespace: storage
 
 resources:
-  - namespace.yaml
   - ./ks.yaml
