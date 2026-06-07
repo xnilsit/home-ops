@@ -1,4 +1,25 @@
 ---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cluster-meta
+  namespace: flux-system
+spec:
+  # Flux repositories under this need flux-system hardcoded as namespace for Renovate lookups
+  targetNamespace: flux-system
+  interval: 30m
+  path: ./kubernetes/flux/meta
+  prune: true
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -7,6 +28,8 @@ metadata:
 spec:
   decryption:
     provider: sops
+    secretRef:
+      name: sops-age
   deletionPolicy: WaitForTermination
   interval: 1h
   path: ./kubernetes/apps
@@ -16,6 +39,14 @@ spec:
     name: flux-system
     namespace: flux-system
   wait: false
+  postBuild:
+    substituteFrom:
+      - name: cluster-settings
+        kind: ConfigMap
+        optional: true
+      - name: cluster-secrets
+        kind: Secret
+        optional: true
   patches:
     - # Add Kustomization defaults for all child Kustomizations
       patch: |-
@@ -34,6 +65,18 @@ spec:
                 metadata:
                   name: _
                 spec:
+                  decryption:
+                    provider: sops
+                    secretRef:
+                      name: sops-age
+                  postBuild:
+                    substituteFrom:
+                      - name: cluster-settings
+                        kind: ConfigMap
+                        optional: true
+                      - name: cluster-secrets
+                        kind: Secret
+                        optional: true
                   install:
                     crds: CreateReplace
                     strategy:
