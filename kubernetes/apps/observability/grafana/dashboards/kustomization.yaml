@@ -5,3 +5,12 @@ kind: Kustomization
 resources:
   - ./dotdc-dashboards.yaml
   - ./etcd-dashboard.yaml
+patches:
+  - patch: |
+      - op: add
+        path: /spec/instanceSelector
+        value:
+          matchLabels:
+            dashboards: grafana
+    target:
+      kind: GrafanaDashboard
