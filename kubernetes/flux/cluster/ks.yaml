@@ -57,6 +57,16 @@ spec:
         spec:
           decryption:
             provider: sops
+            secretRef:
+              name: sops-age
+          postBuild:
+            substituteFrom:
+              - name: cluster-settings
+                kind: ConfigMap
+                optional: true
+              - name: cluster-secrets
+                kind: Secret
+                optional: true
           deletionPolicy: WaitForTermination
           patches:
             - patch: |-
@@ -65,18 +75,6 @@ spec:
                 metadata:
                   name: _
                 spec:
-                  decryption:
-                    provider: sops
-                    secretRef:
-                      name: sops-age
-                  postBuild:
-                    substituteFrom:
-                      - name: cluster-settings
-                        kind: ConfigMap
-                        optional: true
-                      - name: cluster-secrets
-                        kind: Secret
-                        optional: true
                   install:
                     crds: CreateReplace
                     strategy:
