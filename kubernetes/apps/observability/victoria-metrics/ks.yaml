@@ -14,8 +14,6 @@ spec:
   dependsOn:
     - name: vm-operator
       namespace: flux-system
-    - name: envoy-gateway-config
-      namespace: flux-system
   prune: true
   sourceRef:
     kind: GitRepository

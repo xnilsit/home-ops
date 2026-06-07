@@ -10,9 +10,6 @@ spec:
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
-  dependsOn:
-    - name: envoy-gateway-config
-      namespace: flux-system
   path: ./kubernetes/apps/observability/victoria-logs/app
   prune: true
   sourceRef:
