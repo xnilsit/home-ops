@@ -58,6 +58,8 @@ spec:
             namespace: network
 
     cephClusterSpec:
+      cephVersion:
+        image: quay.io.registry.senbax.cloud/ceph/ceph:v20.2.1
       dashboard:
         enabled: true
         urlPrefix: /
