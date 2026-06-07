@@ -89,8 +89,7 @@ apps-secrets:
     just log info "Applying secrets for apps"
     for secret in \
         "{{ source_directory() }}/github-deploy-key.sops.yaml" \
-        "{{ source_directory() }}/sops-age.sops.yaml" \
-        "{{ kubernetes_dir }}/components/sops/cluster-secrets.sops.yaml"
+        "{{ source_directory() }}/sops-age.sops.yaml"
     do
         name="$(basename "$secret" .sops.yaml)"
         if sops exec-file "$secret" \
