@@ -1,0 +1,163 @@
+---
+# Ported from traefik-config/ingress.
+apiVersion: v1
+kind: List
+items:
+  # ── envoy-external — these ran without forward-auth under traefik too ───────
+  - <<: &route {apiVersion: gateway.networking.k8s.io/v1, kind: HTTPRoute}
+    metadata: {name: beszel}
+    spec:
+      hostnames:
+        - "${SECRET_DOMAIN}"
+        - "www.${SECRET_DOMAIN}"
+      parentRefs: &external
+        - {name: envoy-external, namespace: network, sectionName: https}
+      rules:
+        - {matches: &root [{path: {type: PathPrefix, value: /}}], backendRefs: [{<<: &ref {group: gateway.envoyproxy.io, kind: Backend}, name: beszel}]}
+  - <<: *route
+    metadata: {name: containernursery}
+    spec:
+      hostnames:
+        - "draw.${SECRET_DOMAIN}"
+        - "bin.${SECRET_DOMAIN}"
+        - "url.${SECRET_DOMAIN}"
+        - "searx.${SECRET_DOMAIN}"
+      parentRefs: *external
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: containernursery}]}
+  - <<: *route
+    metadata: {name: guacamole}
+    spec:
+      hostnames:
+        - "remote.${SECRET_DOMAIN}"
+      parentRefs: *external
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: guacamole}]}
+  - <<: *route
+    metadata: {name: home-assistant}
+    spec:
+      hostnames:
+        - "ha.${SECRET_DOMAIN}"
+      parentRefs: *external
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: home-assistant}]}
+  - <<: *route
+    metadata: {name: pbs}
+    spec:
+      hostnames:
+        - "pbs.${SECRET_DOMAIN}"
+      parentRefs: *external
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: pbs}]}
+  - <<: *route
+    metadata: {name: pve}
+    spec:
+      hostnames:
+        - "pve.${SECRET_DOMAIN}"
+      parentRefs: *external
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: pve}]}
+  - <<: *route
+    metadata: {name: paperless}
+    spec:
+      hostnames:
+        - "paperless.${SECRET_DOMAIN_ALT}"
+      parentRefs: *external
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: paperless}]}
+  # S3 API only — the /rustfs GUI that traefik served on port 9001 is dropped.
+  - <<: *route
+    metadata: {name: rustfs}
+    spec:
+      hostnames:
+        - "s3.${SECRET_DOMAIN}"
+      parentRefs: *external
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: rustfs}]}
+  - <<: *route
+    metadata: {name: solar}
+    spec:
+      hostnames:
+        - "solar.${SECRET_DOMAIN_ALT}"
+      parentRefs: *external
+      rules:
+        # Replaces the solar-to-dashboard redirectRegex middleware. Exact
+        # matches outrank prefix ones, so only the bare host is redirected. The
+        # query rides along in replaceFullPath — Gateway API has no field for
+        # redirect query params and Envoy's path_redirect takes it verbatim.
+        - name: dashboard-redirect
+          matches:
+            - {path: {type: Exact, value: /}}
+          filters:
+            - type: RequestRedirect
+              requestRedirect:
+                statusCode: 301
+                path: {type: ReplaceFullPath, replaceFullPath: "/stats/public-dashboards/7549ee6cafba41f8930ffa88c541e7cd?orgId=1&refresh=30s"}
+        - {name: proxy, matches: *root, backendRefs: [{<<: *ref, name: solar}],}
+
+  # ── envoy-internal — everything that sat behind traefik-forward-auth ────────
+  # home-ops has no auth provider yet, so these are LAN-only: envoy-internal is
+  # 192.168.1.150 and cloudflare-dns runs with --gateway-name=envoy-external, so
+  # nothing here is published publicly. Flip the parentRef back to *external
+  # once a SecurityPolicy with oidc/extAuth exists.
+  - <<: *route
+    metadata: {name: code}
+    spec:
+      hostnames:
+        - "code.${SECRET_DOMAIN}"
+      parentRefs: &internal
+        - {name: envoy-internal, namespace: network, sectionName: https}
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: code}]}
+  - <<: *route
+    metadata: {name: duplicacy}
+    spec:
+      hostnames:
+        - "backup.${SECRET_DOMAIN}"
+      parentRefs: *internal
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: duplicacy}]}
+  - <<: *route
+    metadata: {name: oni}
+    spec:
+      hostnames:
+        - "oni.${SECRET_DOMAIN}"
+      parentRefs: *internal
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: oni}]}
+  - <<: *route
+    metadata:
+      name: openspeedtest
+      # traefik ran ost without the circuitbreaker middleware — sustained
+      # multi-second transfers trip latency-based ejection. Keep it exempt.
+      labels: {external-services.home-ops/no-circuit-breaker: "true"}
+    spec:
+      hostnames:
+        - "ost.${SECRET_DOMAIN}"
+      parentRefs: *internal
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: openspeedtest}]}
+  - <<: *route
+    metadata: {name: scrutiny}
+    spec:
+      hostnames:
+        - "scrutiny.${SECRET_DOMAIN}"
+      parentRefs: *internal
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: scrutiny}]}
+  - <<: *route
+    metadata: {name: unbalanced}
+    spec:
+      hostnames:
+        - "unbalanced.${SECRET_DOMAIN}"
+      parentRefs: *internal
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: unbalanced}]}
+  - <<: *route
+    metadata: {name: unraid}
+    spec:
+      hostnames:
+        - "unraid.${SECRET_DOMAIN}"
+      parentRefs: *internal
+      rules:
+        - {matches: *root, backendRefs: [{<<: *ref, name: unraid}]}

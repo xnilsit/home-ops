@@ -13,6 +13,8 @@ spec:
       imageRegistry: mirror.gcr.io
     config:
       envoyGateway:
+        extensionApis:
+          enableBackend: true # required for the Backend CRs used by external-services
         provider:
           type: Kubernetes
           kubernetes:

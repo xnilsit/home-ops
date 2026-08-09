@@ -67,9 +67,15 @@ spec:
         namespaces:
           from: All
       tls:
+        # Both certs live on the same listener so Envoy picks one by SNI while
+        # HTTPRoutes stay attached to a single `https` section. A dedicated
+        # listener would be bypassed by the tunnel, which pins SNI to
+        # external.${SECRET_DOMAIN} for every hostname it forwards.
         certificateRefs:
           - kind: Secret
             name: "${SECRET_DOMAIN/./-}-production-tls"
+          - kind: Secret
+            name: "${SECRET_DOMAIN_ALT/./-}-production-tls"
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway

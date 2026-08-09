@@ -1,0 +1,21 @@
+---
+# Stand-in for the traefik circuitbreaker middleware. Traefik tripped on
+# NetworkErrorRatio/latency; the Envoy equivalent is passive outlier detection
+# plus a short connect timeout, so a powered-down LAN box fails fast instead of
+# hanging. mergeType keeps the gateway-wide compression/retry policy from
+# envoy-gateway/app/envoy.yaml in effect for these routes.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: external-services
+spec:
+  mergeType: StrategicMerge
+  targetSelectors:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      matchLabels: {app.kubernetes.io/part-of: external-services}
+      matchExpressions:
+        - {key: external-services.home-ops/no-circuit-breaker, operator: DoesNotExist}
+  healthCheck:
+    passive: {interval: 5s, baseEjectionTime: 30s, consecutive5XxErrors: 5, consecutiveGatewayErrors: 3, maxEjectionPercent: 100, alwaysEjectOneEndpoint: true}
+  timeout: {tcp: {connectTimeout: 3s}}

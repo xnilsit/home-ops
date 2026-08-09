@@ -32,6 +32,7 @@ spec:
     txtOwnerId: default
     domainFilters:
       - "${SECRET_DOMAIN}"
+      - "${SECRET_DOMAIN_ALT}"
     serviceMonitor:
       enabled: true
     podAnnotations:

@@ -1,0 +1,64 @@
+---
+# Replaces the ExternalName Services in traefik-config/hosts. Envoy Gateway
+# builds upstreams from EndpointSlices and ignores ExternalName Services, so
+# each LAN target needs a Backend — one per port rather than one per host.
+apiVersion: v1
+kind: List
+items:
+  # ── unraid ──────────────────────────────────────────────────────────────────
+  - <<: &backend {apiVersion: gateway.envoyproxy.io/v1alpha1, kind: Backend}
+    metadata: {name: beszel}
+    spec: {endpoints: [{ip: {address: &unraid 192.168.0.250, port: 18090}}]}
+  - <<: *backend
+    metadata: {name: code}
+    spec: {endpoints: [{ip: {address: *unraid, port: 13000}}]}
+  - <<: *backend
+    metadata: {name: containernursery}
+    spec: {endpoints: [{ip: {address: *unraid, port: 12080}}]}
+  - <<: *backend
+    metadata: {name: duplicacy}
+    spec: {endpoints: [{ip: {address: *unraid, port: 13875}}]}
+  - <<: *backend
+    metadata: {name: guacamole}
+    spec: {endpoints: [{ip: {address: *unraid, port: 8880}}]}
+  - <<: *backend
+    metadata: {name: openspeedtest}
+    spec: {endpoints: [{ip: {address: *unraid, port: 3001}}]}
+  - <<: *backend
+    metadata: {name: paperless}
+    spec: {endpoints: [{ip: {address: *unraid, port: 18000}}]}
+  - <<: *backend
+    metadata: {name: rustfs}
+    spec: {endpoints: [{ip: {address: *unraid, port: 9000}}]}
+  - <<: *backend
+    metadata: {name: scrutiny}
+    spec: {endpoints: [{ip: {address: *unraid, port: 18080}}]}
+  - <<: *backend
+    metadata: {name: unbalanced}
+    spec: {endpoints: [{ip: {address: *unraid, port: 7090}}]}
+  - <<: *backend
+    metadata: {name: unraid}
+    spec: {endpoints: [{ip: {address: *unraid, port: 80}}]}
+  # ── proxmox — self-signed certs, replaces ServersTransport skipverify-https ──
+  - <<: *backend
+    metadata: {name: pbs} # same host as unraid
+    spec:
+      endpoints:
+        - {ip: {address: *unraid, port: 8007}}
+      tls: &skipverify {insecureSkipVerify: true}
+  - <<: *backend
+    metadata: {name: pve}
+    spec:
+      endpoints:
+        - {ip: {address: 192.168.1.5, port: 8006}}
+      tls: *skipverify
+  # ── standalone hosts ────────────────────────────────────────────────────────
+  - <<: *backend
+    metadata: {name: home-assistant}
+    spec: {endpoints: [{ip: {address: 192.168.1.30, port: 8123}}]}
+  - <<: *backend
+    metadata: {name: oni}
+    spec: {endpoints: [{ip: {address: 192.168.0.200, port: 5000}}]}
+  - <<: *backend
+    metadata: {name: solar} # was ubnt-docker-unraid
+    spec: {endpoints: [{ip: {address: 192.168.1.111, port: 3000}}]}

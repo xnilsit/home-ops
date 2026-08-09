@@ -16,3 +16,21 @@ spec:
   secretName: "${SECRET_DOMAIN/./-}-production-tls"
   usages:
     - digital signature
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "${SECRET_DOMAIN_ALT/./-}-production"
+spec:
+  dnsNames:
+    - "${SECRET_DOMAIN_ALT}"
+    - "*.${SECRET_DOMAIN_ALT}"
+  duration: 160h
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  privateKey:
+    algorithm: ECDSA
+  secretName: "${SECRET_DOMAIN_ALT/./-}-production-tls"
+  usages:
+    - digital signature

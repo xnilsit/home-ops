@@ -76,6 +76,20 @@ spec:
                   http2Origin: true
                   originServerName: external.${SECRET_DOMAIN}
                 service: https://envoy-external.{{ .Release.Namespace }}.svc.cluster.local:443
+              # the wildcard above does not cover the apex, which beszel serves
+              - hostname: "${SECRET_DOMAIN}"
+                originRequest:
+                  http2Origin: true
+                  originServerName: external.${SECRET_DOMAIN}
+                service: https://envoy-external.{{ .Release.Namespace }}.svc.cluster.local:443
+              # originServerName stays on the primary domain: the gateway serves
+              # both certs off one listener, so SNI only picks the certificate
+              # while routing happens on the Host header
+              - hostname: "*.${SECRET_DOMAIN_ALT}"
+                originRequest:
+                  http2Origin: true
+                  originServerName: external.${SECRET_DOMAIN}
+                service: https://envoy-external.{{ .Release.Namespace }}.svc.cluster.local:443
               - service: http_status:404
     persistence:
       config-file:
