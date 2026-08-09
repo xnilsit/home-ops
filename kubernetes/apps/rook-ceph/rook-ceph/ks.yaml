@@ -10,6 +10,14 @@ spec:
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
+  # Gate readiness on the operator HelmRelease, not just on the manifests being
+  # applied. rook-ceph-csi-drivers writes a Driver CR that a pre-v1.20 operator
+  # still reconciles, so it must not run until the chart upgrade has finished.
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: rook-ceph-operator
+      namespace: rook-ceph
   path: ./kubernetes/apps/rook-ceph/rook-ceph/app
   prune: true
   sourceRef:
@@ -17,7 +25,7 @@ spec:
     name: flux-system
   wait: false
   interval: 30m
-  timeout: 5m
+  timeout: 15m # must cover the HelmRelease timeout
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
 apiVersion: kustomize.toolkit.fluxcd.io/v1
