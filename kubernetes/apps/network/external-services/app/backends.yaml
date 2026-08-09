@@ -28,9 +28,6 @@ items:
     metadata: {name: paperless}
     spec: {endpoints: [{ip: {address: *unraid, port: 18000}}]}
   - <<: *backend
-    metadata: {name: rustfs}
-    spec: {endpoints: [{ip: {address: *unraid, port: 9000}}]}
-  - <<: *backend
     metadata: {name: scrutiny}
     spec: {endpoints: [{ip: {address: *unraid, port: 18080}}]}
   - <<: *backend

@@ -65,15 +65,6 @@ items:
       parentRefs: *external
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: paperless}]}
-  # S3 API only — the /rustfs GUI that traefik served on port 9001 is dropped.
-  - <<: *route
-    metadata: {name: rustfs}
-    spec:
-      hostnames:
-        - "s3.${SECRET_DOMAIN}"
-      parentRefs: *external
-      rules:
-        - {matches: *root, backendRefs: [{<<: *ref, name: rustfs}]}
   - <<: *route
     metadata: {name: solar}
     spec:
