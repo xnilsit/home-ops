@@ -45,6 +45,7 @@ spec:
       excludeFilter: "kubernetes.pod_name:~'foundryvtt-.*'"
     extraArgs:
       "kubernetesCollector.decolorizeFields": _msg # Continuwuity logs ANSI color codes by default, other apps might too
+      "remoteWrite.queues": 4 # Default (16, from CPU count) means 48 writers across the DaemonSet, which floods the single server when it drains a backlog
     resources:
       limits:
         memory: 256Mi
