@@ -1,0 +1,27 @@
+---
+apiVersion: v1alpha1
+kind: LinkConfig
+name: enp2s0
+up: true
+---
+apiVersion: v1alpha1
+kind: LinkConfig
+name: enp3s0
+up: true
+---
+apiVersion: v1alpha1
+kind: EthernetConfig
+name: enp2s0
+wakeOnLan:
+  - magic
+---
+apiVersion: v1alpha1
+kind: EthernetConfig
+name: enp3s0
+wakeOnLan:
+  - magic
+---
+machine:
+  sysctls:
+    net.ipv6.conf.enp2s0.disable_ipv6: "1"
+    net.ipv6.conf.enp3s0.disable_ipv6: "1"

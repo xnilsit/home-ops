@@ -41,6 +41,7 @@ nodes:
           ip: "192.168.1.100"
     patches:
       - "@./patches/kube-srv-01/volumes.yaml"
+      - "@./patches/kube-srv-01/ethernet.yaml"
   - hostname: "kube-srv-02"
     ipAddress: "192.168.1.102"
     installDisk: "/dev/disk/by-id/usb-USB_SanDisk_3.2Gen1_00015021040826015216-0:0"
@@ -62,6 +63,7 @@ nodes:
           ip: "192.168.1.100"
     patches:
       - "@./patches/kube-srv-02/volumes.yaml"
+      - "@./patches/kube-srv-02/ethernet.yaml"
   - hostname: "kube-srv-03"
     ipAddress: "192.168.1.103"
     installDisk: "/dev/disk/by-id/usb-Mass_Storage_Device_121220160204-0:0"
@@ -83,6 +85,7 @@ nodes:
           ip: "192.168.1.100"
     patches:
       - "@./patches/kube-srv-03/volumes.yaml"
+      - "@./patches/kube-srv-03/ethernet.yaml"
 
 # Global patches
 patches:
