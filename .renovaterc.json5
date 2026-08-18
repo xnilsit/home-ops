@@ -7,6 +7,8 @@
     "github>home-operations/renovate-presets//apps/talosFactory.json5#7.0.0",
   ],
   schedule: ["every weekend"],
+  // ghcr.io / quay.io carry no releaseTimestamp, which parks them forever
+  minimumReleaseAgeBehaviour: "timestamp-optional",
   lockFileMaintenance: {
     enabled: true,
     schedule: ["every weekend"],
@@ -65,7 +67,6 @@
       description: "Auto-merge minor and patch updates",
       matchUpdateTypes: ["minor", "patch"],
       automerge: true,
-      minimumReleaseAge: "3 days",
     },
     {
       description: "Auto-merge Mise Tools",
