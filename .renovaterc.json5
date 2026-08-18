@@ -12,6 +12,9 @@
     schedule: ["every weekend"],
   },
   packageRules: [
+    // ---------------------------------------------------------------------
+    // Groups: things that share a version and must move in lockstep
+    // ---------------------------------------------------------------------
     {
       description: "Flux Operator Group",
       groupName: "flux-operator",
@@ -21,6 +24,48 @@
         commitMessageTopic: "{{{groupName}}} group",
       },
       minimumGroupSize: 2,
+    },
+    {
+      description: "Talos Group: talenv.yaml, talconfig schematics and the TalosUpgrade CR",
+      groupName: "talos",
+      matchPackageNames: ["ghcr.io/siderolabs/installer", "/^factory.talos.dev//"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
+    {
+      description: "Kubernetes Group: talenv.yaml, the KubernetesUpgrade CR and the kubectl CLI",
+      groupName: "kubernetes",
+      matchPackageNames: ["ghcr.io/siderolabs/kubelet"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
+    {
+      description: "Kubernetes Group: kubectl is pinned to the cluster version",
+      groupName: "kubernetes",
+      matchManagers: ["mise"],
+      matchDepNames: ["kubectl"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
+    {
+      description: "Rook Ceph Group: operator chart, cluster chart and operator image",
+      groupName: "rook-ceph",
+      matchPackageNames: ["/^ghcr.io/rook//"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
+    // ---------------------------------------------------------------------
+    // Auto-merge
+    // ---------------------------------------------------------------------
+    {
+      description: "Auto-merge minor and patch updates",
+      matchUpdateTypes: ["minor", "patch"],
+      automerge: true,
+      minimumReleaseAge: "3 days",
     },
     {
       description: "Auto-merge Mise Tools",
@@ -47,6 +92,32 @@
       automergeType: "branch",
       ignoreTests: true,
     },
+    // ---------------------------------------------------------------------
+    // Never auto-merge: storage and cluster upgrades stay hands-on
+    // ---------------------------------------------------------------------
+    {
+      description: "Never auto-merge Rook / Ceph, csi-drivers manifests are vendored",
+      matchPackageNames: ["/rook/", "/ceph/"],
+      automerge: false,
+    },
+    {
+      description: "Never auto-merge Talos / Kubernetes, they roll out via tuppr",
+      matchPackageNames: [
+        "ghcr.io/siderolabs/installer",
+        "ghcr.io/siderolabs/kubelet",
+        "/^factory.talos.dev//",
+      ],
+      automerge: false,
+    },
+    {
+      description: "Never auto-merge kubectl, it is pinned to the cluster version",
+      matchManagers: ["mise"],
+      matchDepNames: ["kubectl"],
+      automerge: false,
+    },
+    // ---------------------------------------------------------------------
+    // Labels
+    // ---------------------------------------------------------------------
     {
       matchUpdateTypes: ["major"],
       addLabels: ["type/major"],
