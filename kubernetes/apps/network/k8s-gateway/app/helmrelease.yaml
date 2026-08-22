@@ -10,7 +10,7 @@ spec:
   interval: 1h
   values:
     fullnameOverride: k8s-gateway
-    domain: "${SECRET_DOMAIN}"
+    domain: "${SECRET_DOMAIN} ${SECRET_DOMAIN_ALT}"
     ttl: 1
     replicaCount: 3
     topologySpreadConstraints:

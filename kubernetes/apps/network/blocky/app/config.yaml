@@ -10,6 +10,11 @@ upstreams:
       - tcp+udp:k8s-gateway.network.svc.cluster.local
 bootstrapDns:
   - tcp+udp:10.43.0.10
+conditional:
+  fallbackUpstream: false
+  mapping:
+    localdomain: 192.168.0.1
+    .: 192.168.0.1
 blocking:
   denylists:
     ads:
