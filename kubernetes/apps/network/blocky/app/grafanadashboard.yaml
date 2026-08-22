@@ -12,6 +12,6 @@ spec:
   datasources:
     - datasourceName: prometheus
       inputName: DS_PROMETHEUS
-    - datasourceName: http://blocky-http.network.svc.cluster.local:4000
+    - datasourceName: https://blocky.${SECRET_DOMAIN}
       inputName: VAR_BLOCKY_URL
   url: https://grafana.com/api/dashboards/13768/revisions/8/download
