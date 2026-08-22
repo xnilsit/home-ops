@@ -1,0 +1,48 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/0xERR0R/blocky/v0.34.0/docs/config.schema.json
+upstreams:
+  init:
+    strategy: failOnError
+  strategy: strict
+  timeout: 5s
+  groups:
+    default:
+      - tcp+udp:k8s-gateway.network.svc.cluster.local
+bootstrapDns:
+  - tcp+udp:10.43.0.10
+blocking:
+  denylists:
+    ads:
+      - https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/pro.txt
+  clientGroupsBlock:
+    default:
+      - ads
+  blockType: zeroIp
+  blockTTL: 1m
+  loading:
+    refreshPeriod: 24h
+    strategy: fast
+    downloads:
+      timeout: 60s
+      attempts: 5
+      cooldown: 10s
+caching:
+  minTime: 5m
+  maxTime: 30m
+  prefetching: true
+redis:
+  address: dragonfly.database.svc.cluster.local:6379
+  password: file:/run/secrets/dragonfly/password
+  database: 0
+  required: false
+  connectionAttempts: 10
+  connectionCooldown: 3s
+prometheus:
+  enable: true
+  path: /metrics
+ports:
+  dns: 53
+  http: 4000
+log:
+  level: info
+  format: text

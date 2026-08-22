@@ -1,0 +1,84 @@
+---
+apiVersion: dragonflydb.io/v1alpha1
+kind: Dragonfly
+metadata:
+  name: dragonfly
+spec:
+  # renovate: datasource=docker depName=ghcr.io/dragonflydb/dragonfly
+  image: ghcr.io/dragonflydb/dragonfly:v1.40.1
+  replicas: 3
+  networkPolicyEnabled: false
+  authentication:
+    passwordFromSecret:
+      name: dragonfly-auth
+      key: password
+  podMetadata:
+    annotations:
+      kubectl.kubernetes.io/default-container: dragonfly
+  env:
+    - name: MAX_MEMORY
+      valueFrom:
+        resourceFieldRef:
+          resource: limits.memory
+          divisor: 1Mi
+  args:
+    - --maxmemory=$(MAX_MEMORY)Mi
+    - --proactor_threads=2
+    - --cluster_mode=emulated
+    - --dbfilename=dump
+  resources:
+    requests:
+      cpu: 100m
+    limits:
+      memory: 1Gi
+  snapshot:
+    cron: 0 * * * *
+    enableOnMasterOnly: false
+    persistentVolumeClaimSpec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: local-path
+      resources:
+        requests:
+          storage: 4Gi
+  additionalContainers:
+    - name: snapshot-archiver
+      image: mirror.gcr.io/library/busybox:1.37.0
+      command:
+        - /bin/sh
+        - -c
+        - |
+          while true; do
+            sleep 60
+            test "$(date +%M)" = "10" || continue
+            mkdir -p "/dragonfly/snapshots/hourly/$(date +%H)"
+            cp -f /dragonfly/snapshots/dump-*.dfs "/dragonfly/snapshots/hourly/$(date +%H)/" 2>/dev/null || true
+            sleep 60
+          done
+      volumeMounts:
+        - name: df
+          mountPath: /dragonfly/snapshots
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - "ALL"
+      resources:
+        requests:
+          cpu: 5m
+        limits:
+          memory: 32Mi
+  pdb:
+    maxUnavailable: 1
+  serviceSpec:
+    type: ClusterIP
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app: dragonfly

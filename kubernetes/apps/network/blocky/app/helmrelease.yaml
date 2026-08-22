@@ -1,0 +1,113 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: blocky
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: blocky
+  interval: 1h
+  values:
+    controllers:
+      blocky:
+        type: daemonset
+        strategy: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: 1
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: ghcr.io/0xerr0r/blocky
+              tag: v0.34.0
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  exec:
+                    command:
+                      - "/app/blocky"
+                      - "healthcheck"
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {add: ["NET_BIND_SERVICE"], drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 25m
+                memory: 128Mi
+              limits:
+                memory: 512Mi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 100
+    service:
+      http:
+        controller: blocky
+        primary: true
+        ports:
+          http:
+            port: &httpPort 4000
+            primary: true
+      dns:
+        controller: blocky
+        primary: false
+        type: LoadBalancer
+        externalTrafficPolicy: Local
+        annotations:
+          lbipam.cilium.io/ips: "192.168.1.53"
+        ports:
+          dns-tcp:
+            port: 53
+            protocol: TCP
+            primary: true
+          dns-udp:
+            port: 53
+            protocol: UDP
+    serviceMonitor:
+      http:
+        service:
+          identifier: http
+        endpoints:
+          - port: http
+    persistence:
+      config:
+        type: configMap
+        name: blocky-config
+        globalMounts:
+          - path: /app/config.yml
+            subPath: config.yml
+            readOnly: true
+      dragonfly-auth:
+        type: secret
+        name: blocky-dragonfly-auth
+        globalMounts:
+          - path: /run/secrets/dragonfly
+            readOnly: true
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+    route:
+      app:
+        hostnames:
+          - "blocky.${SECRET_DOMAIN}"
+        parentRefs:
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: http
+                port: *httpPort

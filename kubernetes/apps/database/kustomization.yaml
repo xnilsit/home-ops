@@ -1,13 +1,9 @@
 ---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ./blocky/ks.yaml
-  - ./cloudflare-dns/ks.yaml
-  - ./cloudflare-tunnel/ks.yaml
-  - ./envoy-gateway/ks.yaml
-  - ./external-services/ks.yaml
-  - ./k8s-gateway/ks.yaml
+  - ./dragonfly/ks.yaml
 components:
   - ../../flux/components/namespace
 patches:
@@ -15,6 +11,6 @@ patches:
     patch: |
       - op: add
         path: /metadata/name
-        value: network
+        value: database
     target:
       kind: Namespace
