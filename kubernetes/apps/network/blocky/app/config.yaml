@@ -13,10 +13,13 @@ bootstrapDns:
 blocking:
   denylists:
     ads:
-      - https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/pro.txt
+      - https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/pro.txt
+    tif:
+      - https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/tif.txt
   clientGroupsBlock:
     default:
       - ads
+      - tif
   blockType: zeroIp
   blockTTL: 1m
   loading:
