@@ -277,7 +277,7 @@
         "query": "SELECT DISTINCT client_name FROM dns_hourly_by_client WHERE bucket > now() - INTERVAL '7 days' AND client_name <> '' ORDER BY 1;",
         "multi": true,
         "includeAll": true,
-        "allValue": "%",
+        "allValue": "'%'",
         "refresh": 2,
         "sort": 1,
         "current": {},
