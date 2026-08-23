@@ -12,6 +12,7 @@ spec:
   values:
     controllers:
       blocky-ui:
+        replicas: 2
         strategy: RollingUpdate
         annotations:
           reloader.stakater.com/auto: "true"
@@ -21,7 +22,11 @@ spec:
               repository: ghcr.io/gabeduartem/blocky-ui
               tag: 2.0.0
             env:
-              BLOCKY_API_URL: http://blocky.network.svc.cluster.local:4000
+              # Must be browser-reachable, not the in-cluster Service: parts of
+              # the UI call the blocky API from the client. Resolves in-cluster
+              # too (k8s-gateway -> envoy-internal), so it works server-side as
+              # well. Same reasoning as VAR_BLOCKY_URL on the blocky dashboard.
+              BLOCKY_API_URL: https://blocky.${SECRET_DOMAIN}
               QUERY_LOG_TYPE: timescale
               INSTANCE_NAME: home
               PORT: &port 3000
@@ -58,6 +63,17 @@ spec:
               limits:
                 memory: 512Mi
     defaultPodOptions:
+      # ScheduleAnyway rather than DoNotSchedule: spreading is preferable but
+      # this is not critical-path like blocky, so it should still schedule
+      # during a drain.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: blocky-ui
+              app.kubernetes.io/instance: blocky-ui
       securityContext:
         runAsNonRoot: true
         # Must be numeric. The image declares `USER nextjs`, a name, and the
