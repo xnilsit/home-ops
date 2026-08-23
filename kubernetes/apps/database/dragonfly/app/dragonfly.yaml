@@ -43,7 +43,7 @@ spec:
           storage: 4Gi
   additionalContainers:
     - name: snapshot-archiver
-      image: mirror.gcr.io/library/busybox:1.37.0
+      image: mirror.gcr.io/library/busybox:1.38.0
       command:
         - /bin/sh
         - -c
