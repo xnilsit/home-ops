@@ -8,3 +8,8 @@ metadata:
 data:
   CLUSTER_DOMAIN: &domain nilsit.de
   PERSONAL_DOMAIN: *domain
+  # Pinned so CoreDNS can forward the internal domains to k8s-gateway by IP.
+  # forward(1) upstreams must be addresses - a Service FQDN cannot be resolved
+  # at Corefile parse time. Referenced by both k8s-gateway's service.clusterIP
+  # and the CoreDNS forward stanzas, so the two cannot drift apart.
+  K8S_GATEWAY_IP: 10.43.241.101
