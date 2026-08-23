@@ -43,10 +43,10 @@ spec:
               capabilities: {add: ["NET_BIND_SERVICE"], drop: ["ALL"]}
             resources:
               requests:
-                cpu: 25m
-                memory: 128Mi
+                cpu: 50m
+                memory: 256Mi
               limits:
-                memory: 512Mi
+                memory: 1Gi
     defaultPodOptions:
       securityContext:
         runAsNonRoot: true
