@@ -38,6 +38,20 @@ spec:
               fallthrough in-addr.arpa ip6.arpa
           - name: autopath
             parameters: "@kubernetes"
+          # Split-horizon: without these, pods resolve internal hostnames via
+          # /etc/resolv.conf and get the public Cloudflare answer, while the LAN
+          # resolves them to envoy-internal. Any app calling another by its
+          # public hostname then fails - a route on envoy-internal is not
+          # reachable from Cloudflare (523). k8s-gateway answers authoritatively
+          # for these domains and falls through for everything else.
+          #
+          # forward takes a single FROM zone, hence one stanza per domain.
+          # k8s-gateway runs 3 replicas spread across nodes, so this is not a
+          # single point of failure.
+          - name: forward
+            parameters: ${SECRET_DOMAIN} ${K8S_GATEWAY_IP}
+          - name: forward
+            parameters: ${SECRET_DOMAIN_ALT} ${K8S_GATEWAY_IP}
           - name: forward
             parameters: . /etc/resolv.conf
           - name: cache

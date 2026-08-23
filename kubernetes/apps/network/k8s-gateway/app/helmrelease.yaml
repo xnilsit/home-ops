@@ -23,6 +23,11 @@ spec:
             app.kubernetes.io/instance: k8s-gateway
     service:
       type: ClusterIP
+      # Pinned because CoreDNS forwards the internal domains here by address;
+      # a recreated Service picking a new IP would silently break pod
+      # resolution of internal hostnames. Same value as today, so this is a
+      # no-op against the live Service.
+      clusterIP: ${K8S_GATEWAY_IP}
       port: 53
       useTcp: true
     fallthrough:
