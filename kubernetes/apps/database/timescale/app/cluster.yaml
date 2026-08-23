@@ -1,0 +1,76 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: timescale
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:18-minimal-trixie
+  primaryUpdateMethod: switchover
+
+  # local-path is node-local and WaitForFirstConsumer. CNPG replicates at the
+  # PostgreSQL layer, so 3 instances give 3 independent copies via streaming
+  # replication - no need for Ceph to replicate underneath. Default pod
+  # anti-affinity puts one instance per node on this 3-node cluster.
+  #
+  # Consequence: a PVC cannot move. If a node is lost permanently its PVC is
+  # stranded and must be deleted by hand before CNPG re-provisions elsewhere.
+  # local-path also does not support volume expansion - resizing means replacing
+  # instances one at a time.
+  storage:
+    size: 20Gi
+    storageClass: local-path
+
+  # Lets the CNPG-generated `timescale-app` secret carry the reflector
+  # annotation, so consumers in other namespaces can mirror the connection URI
+  # without a hand-authored SOPS copy. Harmless on the other generated objects -
+  # reflector only acts on Secrets and ConfigMaps.
+  inheritedMetadata:
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+
+  postgresql:
+    # shared_preload_libraries is a CNPG-blocked GUC, hence the dedicated field.
+    # Resolved out of the extension image volume via dynamic_library_path.
+    shared_preload_libraries:
+      - "timescaledb"
+    extensions:
+      # ONE entry: the image carries timescaledb AND timescaledb_toolkit in a
+      # flat /share/extension + /lib layout, and their filenames do not collide,
+      # so CNPG's default extension_control_path/dynamic_library_path resolve
+      # both. No path overrides needed.
+      - name: timescale
+        image:
+          reference: ghcr.io/xnilsit/timescaledb-cnpg:2.29.2-18-trixie
+    parameters:
+      timescaledb.telemetry_level: "off"
+      # Must cover every policy job: retention + columnstore + one per
+      # continuous aggregate + CAGG compression. Too low and compression,
+      # retention and CAGG refreshes SILENTLY never run while the disk fills.
+      timescaledb.max_background_workers: "16"
+      max_worker_processes: "32"
+      max_locks_per_transaction: "128"
+      shared_buffers: 512MB
+      effective_cache_size: 1536MB
+      work_mem: 32MB
+      maintenance_work_mem: 256MB
+      wal_compression: "on"
+
+  bootstrap:
+    initdb:
+      database: blocky
+      owner: blocky
+
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: timescale-store
+
+  resources:
+    limits:
+      memory: 3Gi
+    requests:
+      cpu: 200m
+      memory: 1Gi

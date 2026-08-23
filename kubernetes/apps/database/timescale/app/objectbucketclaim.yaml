@@ -1,0 +1,14 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/objectbucket.io/objectbucketclaim_v1alpha1.json
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: timescale-backup
+spec:
+  # Explicit bucketName, NOT generateBucketName: the OBC writes credentials to a
+  # Secret but BUCKET_NAME/BUCKET_HOST/BUCKET_PORT to a same-named ConfigMap.
+  # Barman's s3Credentials are SecretKeySelectors, so they can reach the
+  # credentials but not the bucket name - destinationPath must be a literal,
+  # which a random generated suffix would make impossible.
+  bucketName: timescale-backup
+  storageClassName: ceph-bucket

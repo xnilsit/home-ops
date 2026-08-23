@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Order matters on first reconcile: the bucket must exist before the Cluster
+  # starts archiving, since barman-cloud >= 3.16 no longer auto-creates it.
+  - ./objectbucketclaim.yaml
+  - ./objectstore.yaml
+  - ./cluster.yaml
+  - ./database.yaml
+  - ./scheduledbackup.yaml
+  - ./podmonitor.yaml

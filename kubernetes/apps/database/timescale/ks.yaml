@@ -1,0 +1,70 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app timescale
+  namespace: flux-system
+spec:
+  targetNamespace: database
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/database/timescale/app
+  dependsOn:
+    # The Cluster references the barman plugin, which must be running first
+    - name: barman-cloud-plugin
+      namespace: flux-system
+    # The ObjectBucketClaim needs the ceph-bucket StorageClass, which the
+    # cluster chart creates along with the CephObjectStore
+    - name: rook-ceph-cluster
+      namespace: flux-system
+  healthChecks:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      name: *app
+      namespace: database
+  healthCheckExprs:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      failed: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'False')
+      current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  interval: 1h
+  # Three instances bootstrap serially, and the first one has to pull the
+  # operand plus the extension image volume
+  timeout: 20m
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app timescale-bootstrap
+  namespace: flux-system
+spec:
+  targetNamespace: database
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/database/timescale/bootstrap
+  dependsOn:
+    - name: timescale
+      namespace: flux-system
+  # A Job's pod spec is immutable. Editing bootstrap.sql changes the generated
+  # ConfigMap's name-suffix hash and therefore the Job, so Flux has to replace
+  # it rather than patch it. Scoped to its own Kustomization on purpose - force
+  # must never apply to the Cluster.
+  force: true
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # wait: true makes this Kustomization Ready only once the Job has completed,
+  # which is what lets blocky depend on the schema existing.
+  wait: true
+  interval: 1h
+  timeout: 10m
