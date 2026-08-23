@@ -47,7 +47,7 @@
           },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT $__timeGroupAlias(bucket, $__interval),\n       client_name AS metric,\n       sum(queries) AS queries\nFROM dns_hourly_by_client\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])\nGROUP BY 1, 2\nORDER BY 1",
+          "rawSql": "SELECT $__timeGroupAlias(bucket, $__interval),\n       client_name AS metric,\n       sum(queries) AS queries\nFROM dns_10m_by_client\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])\nGROUP BY 1, 2\nORDER BY 1",
           "editorMode": "code"
         }
       ],
@@ -87,7 +87,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT 100.0 * sum(blocked) / NULLIF(sum(queries), 0) AS \"blocked %\"\nFROM dns_hourly_by_client\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])",
+          "rawSql": "SELECT 100.0 * sum(blocked) / NULLIF(sum(queries), 0) AS \"blocked %\"\nFROM dns_10m_by_client\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])",
           "editorMode": "code"
         }
       ],
@@ -139,7 +139,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT client_name AS \"client\",\n       sum(queries) AS \"queries\",\n       sum(blocked) AS \"blocked\",\n       round(100.0 * sum(blocked) / NULLIF(sum(queries), 0), 1) AS \"blocked %\",\n       sum(cached) AS \"cached\",\n       sum(nxdomain) AS \"nxdomain\",\n       round(sum(sum_ms)::numeric / NULLIF(sum(n_ms), 0), 1) AS \"avg ms\",\n       max(max_ms) AS \"max ms\"\nFROM dns_hourly_by_client\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])\nGROUP BY client_name\nORDER BY 2 DESC",
+          "rawSql": "SELECT client_name AS \"client\",\n       sum(queries) AS \"queries\",\n       sum(blocked) AS \"blocked\",\n       round(100.0 * sum(blocked) / NULLIF(sum(queries), 0), 1) AS \"blocked %\",\n       sum(cached) AS \"cached\",\n       sum(nxdomain) AS \"nxdomain\",\n       round(sum(sum_ms)::numeric / NULLIF(sum(n_ms), 0), 1) AS \"avg ms\",\n       max(max_ms) AS \"max ms\"\nFROM dns_10m_by_client\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])\nGROUP BY client_name\nORDER BY 2 DESC",
           "editorMode": "code"
         }
       ],
@@ -178,7 +178,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT effective_tldp AS metric, sum(queries) AS value\nFROM dns_hourly_by_domain\nWHERE $__timeFilter(bucket)\nGROUP BY effective_tldp\nORDER BY value DESC\nLIMIT 20",
+          "rawSql": "SELECT effective_tldp AS metric, sum(queries) AS value\nFROM dns_10m_by_domain\nWHERE $__timeFilter(bucket)\nGROUP BY effective_tldp\nORDER BY value DESC\nLIMIT 20",
           "editorMode": "code"
         }
       ],
@@ -215,7 +215,7 @@
           },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT $__timeGroupAlias(bucket, $__interval),\n       sum(blocked)  AS \"blocked\",\n       sum(cached)   AS \"cached\",\n       sum(resolved) AS \"resolved\"\nFROM dns_hourly_by_client\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT $__timeGroupAlias(bucket, $__interval),\n       sum(blocked)  AS \"blocked\",\n       sum(cached)   AS \"cached\",\n       sum(resolved) AS \"resolved\"\nFROM dns_10m_by_client\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])\nGROUP BY 1\nORDER BY 1",
           "editorMode": "code"
         }
       ],
@@ -253,7 +253,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT client_name AS \"client\",\n       effective_tldp AS \"domain\",\n       sum(queries) AS \"queries\",\n       sum(blocked) AS \"blocked\"\nFROM dns_hourly_client_domain\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])\nGROUP BY client_name, effective_tldp\nHAVING sum(queries) > 10\nORDER BY 3 DESC\nLIMIT 200",
+          "rawSql": "SELECT client_name AS \"client\",\n       effective_tldp AS \"domain\",\n       sum(queries) AS \"queries\",\n       sum(blocked) AS \"blocked\"\nFROM dns_10m_client_domain\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])\nGROUP BY client_name, effective_tldp\nHAVING sum(queries) > 10\nORDER BY 3 DESC\nLIMIT 200",
           "editorMode": "code"
         }
       ],
@@ -274,7 +274,7 @@
           "type": "grafana-postgresql-datasource",
           "uid": "${DS_BLOCKY-POSTGRESQL}"
         },
-        "query": "SELECT DISTINCT client_name FROM dns_hourly_by_client WHERE bucket > now() - INTERVAL '7 days' AND client_name <> '' ORDER BY 1;",
+        "query": "SELECT DISTINCT client_name FROM dns_10m_by_client WHERE bucket > now() - INTERVAL '7 days' AND client_name <> '' ORDER BY 1;",
         "multi": true,
         "includeAll": true,
         "allValue": "'%'",
