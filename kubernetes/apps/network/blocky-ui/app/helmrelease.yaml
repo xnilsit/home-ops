@@ -1,0 +1,100 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: blocky-ui
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: blocky-ui
+  interval: 1h
+  values:
+    controllers:
+      blocky-ui:
+        strategy: RollingUpdate
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: ghcr.io/gabeduartem/blocky-ui
+              tag: 2.0.0
+            env:
+              BLOCKY_API_URL: http://blocky.network.svc.cluster.local:4000
+              QUERY_LOG_TYPE: timescale
+              INSTANCE_NAME: home
+              PORT: &port 3000
+              # The RO secret's `uri` key is a ready-made DSN. Deliberately not
+              # envFrom, which would expose the keys under their own names
+              # (username/password) rather than the one the app reads.
+              QUERY_LOG_TARGET:
+                valueFrom:
+                  secretKeyRef:
+                    name: blocky-ui-timescale-ro
+                    key: uri
+            probes:
+              # The image exposes no health endpoint - / is all there is
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: *port
+                  initialDelaySeconds: 10
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+                memory: 128Mi
+              limits:
+                memory: 512Mi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        # Must be numeric. The image declares `USER nextjs`, a name, and the
+        # kubelet cannot verify a non-numeric user against runAsNonRoot - the
+        # pod fails with "has non-numeric user (nextjs), cannot verify user is
+        # non-root".
+        runAsUser: 1001
+        runAsGroup: 1001
+    service:
+      app:
+        controller: blocky-ui
+        ports:
+          http:
+            port: *port
+            primary: true
+    persistence:
+      # Next.js standalone: the single page is force-dynamic so there should be
+      # no ISR cache writes, but these are cheap insurance for readOnlyRootFilesystem.
+      cache:
+        type: emptyDir
+        globalMounts:
+          - path: /app/.next/cache
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+    route:
+      app:
+        hostnames:
+          - "blocky-ui.${SECRET_DOMAIN}"
+        parentRefs:
+          # envoy-internal ONLY: blocky-ui has no authentication of any kind and
+          # exposes the full DNS query log plus blocking controls.
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port

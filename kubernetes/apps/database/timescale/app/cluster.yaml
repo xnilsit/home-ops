@@ -62,6 +62,20 @@ spec:
       database: blocky
       owner: blocky
 
+  managed:
+    roles:
+      # Read-only consumer for the Grafana datasource and blocky-ui. Neither
+      # writes: blocky-ui ships drizzle-kit only as a devDependency and its SQL
+      # layer is select-only, so it never touches blocky's schema. Matters most
+      # for Grafana, which has anonymous auth enabled.
+      # The SELECT grants live in bootstrap.sql - only the role is declared here.
+      - name: blocky_ro
+        ensure: present
+        login: true
+        inherit: true
+        passwordSecret:
+          name: timescale-blocky-ro
+
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true

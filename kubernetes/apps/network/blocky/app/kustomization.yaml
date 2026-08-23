@@ -4,13 +4,22 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ./grafanadashboard.yaml
+  - ./grafanadashboard-querylog.yaml
+  - ./grafanadashboard-client-analysis.yaml
   - ./helmrelease.yaml
   - ./ocirepository.yaml
+  - ./secret.yaml
 components:
   - ../../../../components/dragonfly-shared
 configMapGenerator:
   - name: blocky-config
     files:
       - config.yml=./config.yaml
+  - name: blocky-client-analysis
+    files:
+      - dashboard.json=./dashboard-client-analysis.json
+    options:
+      annotations:
+        kustomize.toolkit.fluxcd.io/substitute: disabled
 generatorOptions:
   disableNameSuffixHash: true
