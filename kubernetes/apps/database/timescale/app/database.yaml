@@ -1,0 +1,27 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/database_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: blocky
+spec:
+  # Same name/owner as bootstrap.initdb, so CREATE DATABASE is skipped and
+  # ALTER OWNER is a no-op. This CR exists to manage `extensions` declaratively:
+  # postInitApplicationSQL fires once at bootstrap and never re-runs, so adding
+  # an extension later would need manual SQL.
+  #
+  # If the operator refuses to adopt the initdb-created database, the fallback is
+  # to move these three CREATE EXTENSION calls into
+  # spec.bootstrap.initdb.postInitApplicationSQL and drop this file.
+  name: blocky
+  owner: blocky
+  cluster:
+    name: timescale
+  extensions:
+    # trusted = true in its control file, so the database owner can install it
+    # without superuser.
+    - name: timescaledb
+    # No shared_preload_libraries entry and no dependency on timescaledb.
+    - name: timescaledb_toolkit
+    # Trigram index support for substring search on question_name.
+    - name: pg_trgm

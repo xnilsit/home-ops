@@ -1,0 +1,27 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/monitoring.coreos.com/podmonitor_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: timescale
+spec:
+  # Hand-written rather than spec.monitoring.enablePodMonitor, which is
+  # deprecated since CNPG 1.27.1.
+  #
+  # Known trap: scraping this way drops the namespace/pod labels from
+  # cnpg_pg_database_xid_age and friends, which breaks those panels on the
+  # stock CNPG Grafana dashboard. Relabelings below put them back.
+  selector:
+    matchLabels:
+      cnpg.io/cluster: timescale
+  podMetricsEndpoints:
+    - port: metrics
+      relabelings:
+        - sourceLabels:
+            - "__meta_kubernetes_namespace"
+          targetLabel: namespace
+          action: replace
+        - sourceLabels:
+            - "__meta_kubernetes_pod_name"
+          targetLabel: pod
+          action: replace
