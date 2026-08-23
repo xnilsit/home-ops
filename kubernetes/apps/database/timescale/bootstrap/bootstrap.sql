@@ -74,15 +74,23 @@ CREATE INDEX IF NOT EXISTS le_qname_trgm ON log_entries USING gin (question_name
 -- if_not_exists => TRUE would silently no-op over one created here without
 -- correcting it - so there is exactly one owner of that setting.
 
+-- A continuous aggregate's bucket width cannot be ALTERed, and
+-- CREATE ... IF NOT EXISTS would silently skip an existing view - so the
+-- 1-hour aggregates this replaces have to be dropped outright. Inert once
+-- they are gone. CASCADE also removes their refresh and columnstore policies.
+DROP MATERIALIZED VIEW IF EXISTS dns_hourly_by_client CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS dns_hourly_by_domain CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS dns_hourly_client_domain CASCADE;
+
 -- materialized_only = false is set explicitly at every level: it defaults to
 -- TRUE since Timescale 2.13, and a TRUE level is a barrier that costs
 -- everything above it the real-time tail.
 --
 -- Carry sum_ms and n_ms rather than avg(): an average cannot be rolled up into
 -- a daily aggregate.
-CREATE MATERIALIZED VIEW IF NOT EXISTS dns_hourly_by_client
+CREATE MATERIALIZED VIEW IF NOT EXISTS dns_10m_by_client
 WITH (timescaledb.continuous, timescaledb.materialized_only = false) AS
-SELECT time_bucket(INTERVAL '1 hour', request_ts) AS bucket,
+SELECT time_bucket(INTERVAL '10 minutes', request_ts) AS bucket,
        client_name,
        count(*)                                                          AS queries,
        count(*) FILTER (WHERE response_type = 'BLOCKED')                 AS blocked,
@@ -99,19 +107,21 @@ WITH NO DATA;
 -- start_offset must stay well inside the raw retention window: if a refresh
 -- covers chunks already dropped, the refresh recomputes them as empty and
 -- DELETES the aggregate rows. 3 days against 90 is safe.
--- end_offset must exceed blocky's 30s flushInterval plus slack.
-SELECT add_continuous_aggregate_policy('dns_hourly_by_client',
+-- end_offset is two buckets rather than one, so a refresh only ever
+-- materialises complete buckets. Freshness does not depend on it -
+-- materialized_only = false computes the unmaterialised tail on read.
+SELECT add_continuous_aggregate_policy('dns_10m_by_client',
     start_offset      => INTERVAL '3 days',
-    end_offset        => INTERVAL '10 minutes',
+    end_offset        => INTERVAL '20 minutes',
     schedule_interval => INTERVAL '10 minutes',
     if_not_exists     => TRUE);
 
 -- eTLD+1 rollup. This is the column no log store can compute - it is the
 -- public-suffix-correct registrable domain, and the reason the query log lives
 -- in SQL rather than in VictoriaLogs.
-CREATE MATERIALIZED VIEW IF NOT EXISTS dns_hourly_by_domain
+CREATE MATERIALIZED VIEW IF NOT EXISTS dns_10m_by_domain
 WITH (timescaledb.continuous, timescaledb.materialized_only = false) AS
-SELECT time_bucket(INTERVAL '1 hour', request_ts) AS bucket,
+SELECT time_bucket(INTERVAL '10 minutes', request_ts) AS bucket,
        effective_tldp,
        response_type,
        count(*) AS queries
@@ -119,18 +129,18 @@ FROM log_entries
 GROUP BY bucket, effective_tldp, response_type
 WITH NO DATA;
 
-SELECT add_continuous_aggregate_policy('dns_hourly_by_domain',
+SELECT add_continuous_aggregate_policy('dns_10m_by_domain',
     start_offset      => INTERVAL '3 days',
-    end_offset        => INTERVAL '10 minutes',
+    end_offset        => INTERVAL '20 minutes',
     schedule_interval => INTERVAL '10 minutes',
     if_not_exists     => TRUE);
 
 -- Per-client, per-domain pairing for the "which client talks to which company"
 -- view, plus HLL sketches so distinct-domain counts roll up over arbitrary
 -- windows without rescanning raw data.
-CREATE MATERIALIZED VIEW IF NOT EXISTS dns_hourly_client_domain
+CREATE MATERIALIZED VIEW IF NOT EXISTS dns_10m_client_domain
 WITH (timescaledb.continuous, timescaledb.materialized_only = false) AS
-SELECT time_bucket(INTERVAL '1 hour', request_ts) AS bucket,
+SELECT time_bucket(INTERVAL '10 minutes', request_ts) AS bucket,
        client_name,
        effective_tldp,
        count(*)                              AS queries,
@@ -139,27 +149,27 @@ FROM log_entries
 GROUP BY bucket, client_name, effective_tldp
 WITH NO DATA;
 
-SELECT add_continuous_aggregate_policy('dns_hourly_client_domain',
+SELECT add_continuous_aggregate_policy('dns_10m_client_domain',
     start_offset      => INTERVAL '3 days',
-    end_offset        => INTERVAL '10 minutes',
+    end_offset        => INTERVAL '20 minutes',
     schedule_interval => INTERVAL '10 minutes',
     if_not_exists     => TRUE);
 
 -- The hourly aggregates are hypertables themselves, so compress them too.
 -- Needs an existing refresh policy first, hence the ordering above.
-ALTER MATERIALIZED VIEW dns_hourly_by_client SET (
+ALTER MATERIALIZED VIEW dns_10m_by_client SET (
     timescaledb.enable_columnstore = true,
     timescaledb.segmentby          = 'client_name',
     timescaledb.orderby            = 'bucket DESC'
 );
-CALL add_columnstore_policy('dns_hourly_by_client', after => INTERVAL '30 days', if_not_exists => TRUE);
+CALL add_columnstore_policy('dns_10m_by_client', after => INTERVAL '30 days', if_not_exists => TRUE);
 
-ALTER MATERIALIZED VIEW dns_hourly_client_domain SET (
+ALTER MATERIALIZED VIEW dns_10m_client_domain SET (
     timescaledb.enable_columnstore = true,
     timescaledb.segmentby          = 'client_name',
     timescaledb.orderby            = 'bucket DESC'
 );
-CALL add_columnstore_policy('dns_hourly_client_domain', after => INTERVAL '30 days', if_not_exists => TRUE);
+CALL add_columnstore_policy('dns_10m_client_domain', after => INTERVAL '30 days', if_not_exists => TRUE);
 
 -- Read-only grants for the Grafana datasource and blocky-ui. The role itself is
 -- declared on the Cluster (spec.managed.roles) so CNPG owns its password; only
