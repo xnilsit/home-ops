@@ -82,4 +82,8 @@ spec:
     name: flux-system
   wait: true
   interval: 30m
-  timeout: 5m
+  # Pool-creating changes (e.g. adding a CephObjectStore, which creates 7 pools)
+  # produce a transient HEALTH_WARN while the PG autoscaler rebalances. That
+  # outlasted the previous 5m and failed this Kustomization, which stalls
+  # everything gated on it - grafana dependsOn rook-ceph-cluster.
+  timeout: 15m

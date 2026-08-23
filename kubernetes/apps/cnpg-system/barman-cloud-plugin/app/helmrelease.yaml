@@ -1,0 +1,25 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: barman-cloud-plugin
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: barman-cloud-plugin
+  # Keep the upstream release name so the Deployment is `plugin-barman-cloud`,
+  # matching CNPG's docs and troubleshooting steps. The Service stays
+  # `barman-cloud` regardless (service.name), which is what the server
+  # certificate binds - do not override it.
+  releaseName: plugin-barman-cloud
+  interval: 1h
+  values:
+    crds:
+      create: true
+    resources:
+      limits:
+        memory: 256Mi
+      requests:
+        cpu: 25m
+        memory: 64Mi

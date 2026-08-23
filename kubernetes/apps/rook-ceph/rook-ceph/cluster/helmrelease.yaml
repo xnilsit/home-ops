@@ -205,4 +205,39 @@ spec:
         - "discard"
 
     cephFileSystems: []
-    cephObjectStores: []
+
+    cephObjectStores:
+      - name: ceph-objectstore
+        spec:
+          # Replicated 3, not the chart default EC 2+1: with failureDomain host
+          # and only 3 hosts, EC 2+1 has as many chunks as failure domains, so a
+          # host loss leaves the pool degraded with nowhere to backfill.
+          metadataPool:
+            failureDomain: host
+            replicated:
+              size: 3
+          dataPool:
+            failureDomain: host
+            replicated:
+              size: 3
+            parameters:
+              bulk: "true"
+          preservePoolsOnDelete: true
+          gateway:
+            port: 80
+            instances: 2
+            priorityClassName: system-cluster-critical
+            resources:
+              limits:
+                memory: 2Gi
+              requests:
+                cpu: 100m
+                memory: 1Gi
+        storageClass:
+          enabled: true
+          name: ceph-bucket
+          # Retain: with Delete, removing an OBC destroys the bucket contents
+          reclaimPolicy: Retain
+          volumeBindingMode: Immediate
+          parameters:
+            region: us-east-1
