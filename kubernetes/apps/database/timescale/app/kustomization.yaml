@@ -7,7 +7,11 @@ resources:
   # starts archiving, since barman-cloud >= 3.16 no longer auto-creates it.
   - ./objectbucketclaim.yaml
   - ./objectstore.yaml
+  # Must precede cluster.yaml: managed.roles cannot create blocky_ro
+  # without its password secret.
+  - ./secret.sops.yaml
   - ./cluster.yaml
   - ./database.yaml
   - ./scheduledbackup.yaml
   - ./podmonitor.yaml
+  - ./prometheusrule.yaml

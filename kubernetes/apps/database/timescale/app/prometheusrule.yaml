@@ -1,0 +1,87 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: timescale-rules
+spec:
+  groups:
+    # Neither local-path nor CNPG enforces the PVC size: local-path hands out a
+    # hostPath on the shared /var/mnt/local-path volume and `capacity` is
+    # metadata only, and CNPG sets no Postgres-level limit. A pod can therefore
+    # grow past its declared 20Gi with no error, event or condition, until the
+    # whole 931Gi volume hits ENOSPC. These alerts are the only signal.
+    - name: local-path-capacity
+      rules:
+        - alert: LocalPathVolumeFillingUp
+          annotations:
+            summary: >-
+              local-path volume on {{ $labels.instance }} is {{ $value | humanizePercentage }} full -
+              PVC sizes are not enforced, so this is the only real limit
+          expr: |-
+            1 - (
+              node_filesystem_avail_bytes{mountpoint="/var/mnt/local-path"}
+              / node_filesystem_size_bytes{mountpoint="/var/mnt/local-path"}
+            ) > 0.75
+          for: 15m
+          labels:
+            severity: warning
+
+        - alert: LocalPathVolumeAlmostFull
+          annotations:
+            summary: >-
+              local-path volume on {{ $labels.instance }} is {{ $value | humanizePercentage }} full
+          expr: |-
+            1 - (
+              node_filesystem_avail_bytes{mountpoint="/var/mnt/local-path"}
+              / node_filesystem_size_bytes{mountpoint="/var/mnt/local-path"}
+            ) > 0.90
+          for: 5m
+          labels:
+            severity: critical
+
+        # Catches a slow leak long before the percentage thresholds would, which
+        # matters because the volume is large enough that 75% is a long way off.
+        - alert: LocalPathVolumeWillFill
+          annotations:
+            summary: >-
+              local-path volume on {{ $labels.instance }} is projected to fill within 7 days
+          expr: |-
+            predict_linear(
+              node_filesystem_avail_bytes{mountpoint="/var/mnt/local-path"}[6h], 7 * 24 * 3600
+            ) < 0
+          for: 1h
+          labels:
+            severity: warning
+
+    - name: blocky-querylog-growth
+      rules:
+        # Expected steady state for a household DNS log is single-digit GB:
+        # 90-day retention with columnar compression after 2 days. Passing the
+        # declared 20Gi means retention or compression has stopped working -
+        # most likely the Timescale background workers, which fail silently.
+        - alert: BlockyQueryLogOversized
+          annotations:
+            summary: >-
+              blocky query log is {{ $value | humanize1024 }}B on {{ $labels.pod }},
+              past its declared 20Gi - check the Timescale retention and columnstore jobs
+              (timescaledb_information.job_stats)
+          expr: |-
+            max by (pod) (cnpg_pg_database_size_bytes{namespace="database", datname="blocky"})
+              > 20 * 1024^3
+          for: 30m
+          labels:
+            severity: warning
+
+        - alert: BlockyQueryLogGrowingFast
+          annotations:
+            summary: >-
+              blocky query log on {{ $labels.pod }} is growing at
+              {{ $value | humanize1024 }}B/day
+          expr: |-
+            max by (pod) (
+              deriv(cnpg_pg_database_size_bytes{namespace="database", datname="blocky"}[6h])
+            ) * 86400 > 5 * 1024^3
+          for: 2h
+          labels:
+            severity: warning
