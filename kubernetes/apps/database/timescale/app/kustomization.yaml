@@ -11,3 +11,4 @@ resources:
   - ./database.yaml
   - ./scheduledbackup.yaml
   - ./podmonitor.yaml
+  - ./prometheusrule.yaml
