@@ -9,6 +9,8 @@
   schedule: ["every weekend"],
   // ghcr.io / quay.io carry no releaseTimestamp, which parks them forever
   minimumReleaseAgeBehaviour: "timestamp-optional",
+  // override :automergeBranch from the preset, flux-local only reports on PRs
+  automergeType: "pr",
   lockFileMaintenance: {
     enabled: true,
     schedule: ["every weekend"],
@@ -64,34 +66,22 @@
     // Auto-merge
     // ---------------------------------------------------------------------
     {
-      description: "Auto-merge minor and patch updates",
-      matchUpdateTypes: ["minor", "patch"],
+      description: "Auto-merge patch updates",
+      matchUpdateTypes: ["patch"],
       automerge: true,
     },
     {
-      description: "Auto-merge Mise Tools",
-      matchManagers: ["mise"],
+      description: "Auto-merge minor updates, zer0ver 0.x minors can break at any time",
+      matchUpdateTypes: ["minor"],
+      matchCurrentVersion: "!/^v?0\\./",
       automerge: true,
-      automergeType: "branch",
-      matchUpdateTypes: ["minor", "patch"],
-      ignoreTests: true,
     },
     {
       description: "Auto-merge GitHub Actions",
       matchManagers: ["github-actions"],
       automerge: true,
-      automergeType: "branch",
       matchUpdateTypes: ["minor", "patch", "digest"],
       minimumReleaseAge: "3 days",
-      ignoreTests: true,
-    },
-    {
-      description: "Auto-merge Renovate Presents",
-      matchManagers: ["renovate-config"],
-      matchUpdateTypes: ["minor", "patch"],
-      automerge: true,
-      automergeType: "branch",
-      ignoreTests: true,
     },
     // ---------------------------------------------------------------------
     // Never auto-merge: storage and cluster upgrades stay hands-on
