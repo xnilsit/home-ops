@@ -19,6 +19,16 @@ spec:
     # cluster chart creates along with the CephObjectStore
     - name: rook-ceph-cluster
       namespace: flux-system
+  postBuild:
+    substitute:
+      # The operand image is the only part of this stack with an OS, so it is
+      # where security patching actually matters. It lives here rather than
+      # inline on imageName because Renovate's annotated manager captures the
+      # whole bare token after `: ` - on a combined `repo:tag` string it would
+      # capture the repository too and never resolve a version.
+      #
+      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql
+      PG_IMAGE_TAG: 18.6-minimal-trixie
   healthChecks:
     - apiVersion: postgresql.cnpg.io/v1
       kind: Cluster
