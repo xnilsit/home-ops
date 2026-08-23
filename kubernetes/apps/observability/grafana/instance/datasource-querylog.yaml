@@ -1,0 +1,43 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/grafana.integreatly.org/grafanadatasource_v1beta1.json
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: blocky-querylog
+  annotations:
+    # ${password} below is a grafana-operator placeholder resolved from
+    # valuesFrom, not a Flux variable. Without this, postBuild substitution
+    # blanks it before the operator ever sees it.
+    kustomize.toolkit.fluxcd.io/substitute: disabled
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  allowCrossNamespaceImport: true
+  valuesFrom:
+    - targetPath: secureJsonData.password
+      valueFrom:
+        secretKeyRef:
+          name: grafana-timescale-ro
+          key: password
+  datasource:
+    name: blocky-querylog
+    type: grafana-postgresql-datasource
+    access: proxy
+    url: timescale-rw.database.svc.cluster.local:5432
+    user: blocky_ro
+    database: blocky
+    jsonData:
+      sslmode: require
+      # Makes $__timeGroup emit time_bucket() instead of floor-arithmetic
+      timescaledb: true
+      # Floors $__interval; blocky flushes the query log every 30s, so anything
+      # finer is noise. Also avoids a divide-by-zero panic in $__timeGroup with
+      # a fill argument and a sub-second interval.
+      timeInterval: 1m
+      # Grafana defaults to 100 open connections, which is absurd here
+      maxOpenConns: 5
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+    secureJsonData:
+      password: ${password}

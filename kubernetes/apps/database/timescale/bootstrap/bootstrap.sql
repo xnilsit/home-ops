@@ -160,3 +160,14 @@ ALTER MATERIALIZED VIEW dns_hourly_client_domain SET (
     timescaledb.orderby            = 'bucket DESC'
 );
 CALL add_columnstore_policy('dns_hourly_client_domain', after => INTERVAL '30 days', if_not_exists => TRUE);
+
+-- Read-only grants for the Grafana datasource and blocky-ui. The role itself is
+-- declared on the Cluster (spec.managed.roles) so CNPG owns its password; only
+-- the privileges live here, because the Job connects as the database owner.
+--
+-- If this errors with "role blocky_ro does not exist" the Job simply retries -
+-- managed.roles reconciles moments after the Cluster reports Ready.
+GRANT CONNECT ON DATABASE blocky TO blocky_ro;
+GRANT USAGE ON SCHEMA public TO blocky_ro;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO blocky_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO blocky_ro;

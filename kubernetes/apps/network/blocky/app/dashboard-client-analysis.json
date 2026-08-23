@@ -1,0 +1,288 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_BLOCKY-POSTGRESQL",
+      "label": "blocky-querylog",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "title": "Blocky - Client Analysis",
+  "uid": "blocky-client-analysis",
+  "tags": [
+    "blocky",
+    "dns",
+    "timescaledb"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 42,
+  "editable": true,
+  "refresh": "5m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Queries per client",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_BLOCKY-POSTGRESQL}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 16,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_BLOCKY-POSTGRESQL}"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(bucket, $__interval),\n       client_name AS metric,\n       sum(queries) AS queries\nFROM dns_hourly_by_client\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])\nGROUP BY 1, 2\nORDER BY 1",
+          "editorMode": "code"
+        }
+      ],
+      "description": "From the hourly continuous aggregate, so this stays fast across the full 90-day retention.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "stacking": {
+              "mode": "normal"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Blocked share",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_BLOCKY-POSTGRESQL}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_BLOCKY-POSTGRESQL}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT 100.0 * sum(blocked) / NULLIF(sum(queries), 0) AS \"blocked %\"\nFROM dns_hourly_by_client\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 45
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Per-client totals",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_BLOCKY-POSTGRESQL}"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_BLOCKY-POSTGRESQL}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT client_name AS \"client\",\n       sum(queries) AS \"queries\",\n       sum(blocked) AS \"blocked\",\n       round(100.0 * sum(blocked) / NULLIF(sum(queries), 0), 1) AS \"blocked %\",\n       sum(cached) AS \"cached\",\n       sum(nxdomain) AS \"nxdomain\",\n       round(sum(sum_ms)::numeric / NULLIF(sum(n_ms), 0), 1) AS \"avg ms\",\n       max(max_ms) AS \"max ms\"\nFROM dns_hourly_by_client\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])\nGROUP BY client_name\nORDER BY 2 DESC",
+          "editorMode": "code"
+        }
+      ],
+      "description": "avg ms is derived from sum_ms/n_ms - the aggregate deliberately stores both rather than an average, because averages cannot be rolled up.",
+      "options": {
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Top registrable domains (eTLD+1)",
+      "type": "barchart",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_BLOCKY-POSTGRESQL}"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_BLOCKY-POSTGRESQL}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT effective_tldp AS metric, sum(queries) AS value\nFROM dns_hourly_by_domain\nWHERE $__timeFilter(bucket)\nGROUP BY effective_tldp\nORDER BY value DESC\nLIMIT 20",
+          "editorMode": "code"
+        }
+      ],
+      "description": "effective_tldp is public-suffix correct (co.uk, github.io). Computed by blocky's DB writer - no log store can derive this.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "orientation": "horizontal"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Blocked vs resolved",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_BLOCKY-POSTGRESQL}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 19
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_BLOCKY-POSTGRESQL}"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(bucket, $__interval),\n       sum(blocked)  AS \"blocked\",\n       sum(cached)   AS \"cached\",\n       sum(resolved) AS \"resolved\"\nFROM dns_hourly_by_client\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])\nGROUP BY 1\nORDER BY 1",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "Client to domain",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_BLOCKY-POSTGRESQL}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 19
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_BLOCKY-POSTGRESQL}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT client_name AS \"client\",\n       effective_tldp AS \"domain\",\n       sum(queries) AS \"queries\",\n       sum(blocked) AS \"blocked\"\nFROM dns_hourly_client_domain\nWHERE $__timeFilter(bucket) AND client_name LIKE ANY (ARRAY[${client:sqlstring}])\nGROUP BY client_name, effective_tldp\nHAVING sum(queries) > 10\nORDER BY 3 DESC\nLIMIT 200",
+          "editorMode": "code"
+        }
+      ],
+      "description": "The per-client, per-domain pairing that Prometheus structurally cannot answer - blocky_response_total carries no client label.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "client",
+        "label": "Client",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${DS_BLOCKY-POSTGRESQL}"
+        },
+        "query": "SELECT DISTINCT client_name FROM dns_hourly_by_client WHERE bucket > now() - INTERVAL '7 days' AND client_name <> '' ORDER BY 1;",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "%",
+        "refresh": 2,
+        "sort": 1,
+        "current": {},
+        "options": []
+      }
+    ]
+  }
+}

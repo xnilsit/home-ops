@@ -45,9 +45,36 @@ redis:
   required: false
   connectionAttempts: 10
   connectionCooldown: 3s
+clientLookup:
+  upstream: tcp+udp:192.168.0.1
+  # clients:
+  #   my-device: ["192.168.1.40"]
 prometheus:
   enable: true
   path: /metrics
+statistics:
+  enable: true
+queryLog:
+  type: timescale
+  target: file:/run/secrets/timescale/uri
+  # MUST stay > 0: with type timescale there is no guard on 0, and blocky would
+  # install add_retention_policy(drop_after => INTERVAL '0 days')
+  logRetentionDays: 90
+  flushInterval: 30s
+  creationAttempts: 5
+  creationCooldown: 5s
+  fields:
+    - clientIP
+    - clientName
+    - responseReason
+    - responseAnswer
+    - question
+    - duration
+  ignore:
+    sudn: true
+    domains:
+      - "*.in-addr.arpa"
+      - "*.ip6.arpa"
 ports:
   dns: 53
   http: 4000

@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/grafana.integreatly.org/grafanadashboard_v1beta1.json
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: blocky-querylog
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasources:
+    - datasourceName: blocky-querylog
+      inputName: DS_BLOCKY-POSTGRESQL
+  # Community "Blocky-Postgres" dashboard. Queries raw log_entries, but its
+  # variable queries are already bounded by $__timeFilter, so they do not scan
+  # the full retention window on load.
+  url: https://grafana.com/api/dashboards/17996/revisions/15/download

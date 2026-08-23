@@ -113,6 +113,15 @@ spec:
         globalMounts:
           - path: /run/secrets/dragonfly
             readOnly: true
+      # queryLog.target reads the DSN out of this file rather than inlining it,
+      # since config.yml is a plain ConfigMap. Mirrored from CNPG's generated
+      # timescale-app secret by reflector.
+      timescale-auth:
+        type: secret
+        name: blocky-timescale-auth
+        globalMounts:
+          - path: /run/secrets/timescale
+            readOnly: true
       tmp:
         type: emptyDir
         globalMounts:
