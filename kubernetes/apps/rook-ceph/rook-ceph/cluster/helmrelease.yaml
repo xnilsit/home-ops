@@ -80,11 +80,16 @@ spec:
           #
           # Steady state: 32x7 metadata + 256 data + 32 blockpool + 1 mgr,
           # at size 3 across 3 OSDs = ~513 PGs/OSD, up from a measured 217.
-          # The guard sits above that with room for transient splits; both
-          # defaults (250 guard, 100 target) would block this outright.
+          # Both defaults (250 guard, 100 target) would block this outright.
+          #
+          # The target sits above the landing point on purpose so the autoscaler
+          # is not permanently trying to shrink, and the guard above that with
+          # room for the transient 625 to merge back down without tripping a
+          # warning. A high target was only dangerous while the bulk data pool
+          # was unbounded; pg_num_max now bounds it.
           # Each PG costs OSD memory - watch osd_memory_target under pressure.
-          mon_max_pg_per_osd: "700" # quote
-          mon_target_pg_per_osd: "400" # quote
+          mon_max_pg_per_osd: "800" # quote
+          mon_target_pg_per_osd: "600" # quote
           # Cant enable due to `Module 'diskprediction_local' has failed: No module named 'sklearn.svm.classes'`
           # device_failure_prediction_mode: local # requires mgr module
         mgr:
@@ -230,13 +235,20 @@ spec:
             replicated:
               size: 3
             parameters:
-              # Rook creates the RGW metadata pools at pg_num 8 and there is no
-              # per-pool override - this applies to all six (rgw.control,
-              # rgw.meta, rgw.log, rgw.buckets.index, rgw.buckets.non-ec,
-              # rgw.otp). pg_num_min pins the floor so the autoscaler cannot
-              # shrink near-empty metadata pools back down and undo this.
+              # Applies to all six metadata pools (rgw.control, rgw.meta,
+              # rgw.log, rgw.buckets.index, rgw.buckets.non-ec, rgw.otp) plus
+              # .rgw.root - CephObjectStore has no per-pool override.
+              #
+              # pg_num_min does NOT work here. Rook re-asserts pg_num_min: 8 on
+              # these pools immediately after applying our parameters, on every
+              # reconcile (it has rgwRadosPoolPgNum = "8" baked in), which then
+              # let the autoscaler merge pg_num 32 straight back down to 8.
+              # Turning the autoscaler off is what makes 32 stick: pg_num_min
+              # only guides the autoscaler, so Rook clobbering it stops
+              # mattering. Trade-off is that these pools no longer autoscale, so
+              # future growth needs an explicit pg_num change here.
               pg_num: "32"
-              pg_num_min: "32"
+              pg_autoscale_mode: "off"
           dataPool:
             failureDomain: host
             replicated:
