@@ -14,6 +14,12 @@ spec:
   dependsOn:
     - name: dragonfly
       namespace: flux-system
+    # queryLog.type: timescale writes to log_entries, which timescale-bootstrap
+    # pre-creates with a 1-day chunk interval. That Kustomization is Ready only
+    # once its Job has completed, so blocky never reconciles against a missing
+    # or wrongly-partitioned table. Blocky's own create_hypertable() then no-ops.
+    - name: timescale-bootstrap
+      namespace: flux-system
   postBuild:
     substitute:
       APP: *app
