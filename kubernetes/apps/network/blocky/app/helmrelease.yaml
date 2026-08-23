@@ -81,7 +81,7 @@ spec:
         controller: blocky
         primary: false
         type: LoadBalancer
-        externalTrafficPolicy: Local
+        externalTrafficPolicy: Cluster
         annotations:
           lbipam.cilium.io/ips: "192.168.1.53"
         ports:
