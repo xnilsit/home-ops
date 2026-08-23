@@ -72,15 +72,24 @@ spec:
           bdev_enable_discard: "true" # quote
           bdev_async_discard_threads: "1" # quote
           osd_class_update_on_start: "false" # quote
-          # The RGW metadata pools are pinned at 32 PGs each (see
-          # cephObjectStores below), which on 3 OSDs lands around 361-385 PGs
-          # per OSD, up from a measured 217. Both defaults would block that:
-          # the hard guard is 250, and the autoscaler targets 100 so it would
-          # keep trying to shrink the pinned pools. The target is set above the
-          # landing point so the autoscaler is not permanently fighting it.
+          # PG budget on 3 OSDs. Every pool is pinned at both ends - metadata
+          # via pg_num_min, the RGW data pool via pg_num_max - so the autoscaler
+          # has nothing left to move and the target below is effectively
+          # advisory. That matters: leaving the data pool unbounded with bulk
+          # set took it to 512 PGs and tripped "too many PGs per OSD".
+          #
+          # Steady state: 32x7 metadata + 256 data + 32 blockpool + 1 mgr,
+          # at size 3 across 3 OSDs = ~513 PGs/OSD, up from a measured 217.
+          # Both defaults (250 guard, 100 target) would block this outright.
+          #
+          # The target sits above the landing point on purpose so the autoscaler
+          # is not permanently trying to shrink, and the guard above that with
+          # room for the transient 625 to merge back down without tripping a
+          # warning. A high target was only dangerous while the bulk data pool
+          # was unbounded; pg_num_max now bounds it.
           # Each PG costs OSD memory - watch osd_memory_target under pressure.
-          mon_max_pg_per_osd: "600" # quote
-          mon_target_pg_per_osd: "400" # quote
+          mon_max_pg_per_osd: "800" # quote
+          mon_target_pg_per_osd: "600" # quote
           # Cant enable due to `Module 'diskprediction_local' has failed: No module named 'sklearn.svm.classes'`
           # device_failure_prediction_mode: local # requires mgr module
         mgr:
@@ -226,19 +235,34 @@ spec:
             replicated:
               size: 3
             parameters:
-              # Rook creates the RGW metadata pools at pg_num 8 and there is no
-              # per-pool override - this applies to all six (rgw.control,
-              # rgw.meta, rgw.log, rgw.buckets.index, rgw.buckets.non-ec,
-              # rgw.otp). pg_num_min pins the floor so the autoscaler cannot
-              # shrink near-empty metadata pools back down and undo this.
+              # Applies to all six metadata pools (rgw.control, rgw.meta,
+              # rgw.log, rgw.buckets.index, rgw.buckets.non-ec, rgw.otp) plus
+              # .rgw.root - CephObjectStore has no per-pool override.
+              #
+              # pg_num_min does NOT work here. Rook re-asserts pg_num_min: 8 on
+              # these pools immediately after applying our parameters, on every
+              # reconcile (it has rgwRadosPoolPgNum = "8" baked in), which then
+              # let the autoscaler merge pg_num 32 straight back down to 8.
+              # Turning the autoscaler off is what makes 32 stick: pg_num_min
+              # only guides the autoscaler, so Rook clobbering it stops
+              # mattering. Trade-off is that these pools no longer autoscale, so
+              # future growth needs an explicit pg_num change here.
               pg_num: "32"
-              pg_num_min: "32"
+              pg_autoscale_mode: "off"
           dataPool:
             failureDomain: host
             replicated:
               size: 3
             parameters:
+              # bulk tells the autoscaler to assume this pool will grow large, so
+              # it jumps straight to the full target instead of ramping. Combined
+              # with mon_target_pg_per_osd it took this pool to 512 PGs (1536
+              # PG-replicas) for a few MB of backups and tripped
+              # "too many PGs per OSD". pg_num_max bounds it; pg_num brings it
+              # back down, since pg_num_max alone only caps future growth.
               bulk: "true"
+              pg_num: "256"
+              pg_num_max: "256"
           preservePoolsOnDelete: true
           gateway:
             port: 80
