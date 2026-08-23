@@ -12,10 +12,12 @@ spec:
   values:
     controllers:
       blocky:
-        type: daemonset
+        type: deployment
+        replicas: 3
         strategy: RollingUpdate
         rollingUpdate:
           maxUnavailable: 1
+          maxSurge: 0
         annotations:
           reloader.stakater.com/auto: "true"
         containers:
@@ -48,6 +50,21 @@ spec:
               limits:
                 memory: 1Gi
     defaultPodOptions:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels: &podLabels
+              app.kubernetes.io/name: blocky
+              app.kubernetes.io/instance: blocky
+              app.kubernetes.io/controller: blocky
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels: *podLabels
       securityContext:
         runAsNonRoot: true
         runAsUser: 100
