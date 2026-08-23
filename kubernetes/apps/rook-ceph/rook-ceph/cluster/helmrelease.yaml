@@ -72,14 +72,18 @@ spec:
           bdev_enable_discard: "true" # quote
           bdev_async_discard_threads: "1" # quote
           osd_class_update_on_start: "false" # quote
-          # The RGW metadata pools are pinned at 32 PGs each (see
-          # cephObjectStores below), which on 3 OSDs lands around 361-385 PGs
-          # per OSD, up from a measured 217. Both defaults would block that:
-          # the hard guard is 250, and the autoscaler targets 100 so it would
-          # keep trying to shrink the pinned pools. The target is set above the
-          # landing point so the autoscaler is not permanently fighting it.
+          # PG budget on 3 OSDs. Every pool is pinned at both ends - metadata
+          # via pg_num_min, the RGW data pool via pg_num_max - so the autoscaler
+          # has nothing left to move and the target below is effectively
+          # advisory. That matters: leaving the data pool unbounded with bulk
+          # set took it to 512 PGs and tripped "too many PGs per OSD".
+          #
+          # Steady state: 32x7 metadata + 256 data + 32 blockpool + 1 mgr,
+          # at size 3 across 3 OSDs = ~513 PGs/OSD, up from a measured 217.
+          # The guard sits above that with room for transient splits; both
+          # defaults (250 guard, 100 target) would block this outright.
           # Each PG costs OSD memory - watch osd_memory_target under pressure.
-          mon_max_pg_per_osd: "600" # quote
+          mon_max_pg_per_osd: "700" # quote
           mon_target_pg_per_osd: "400" # quote
           # Cant enable due to `Module 'diskprediction_local' has failed: No module named 'sklearn.svm.classes'`
           # device_failure_prediction_mode: local # requires mgr module
@@ -238,7 +242,15 @@ spec:
             replicated:
               size: 3
             parameters:
+              # bulk tells the autoscaler to assume this pool will grow large, so
+              # it jumps straight to the full target instead of ramping. Combined
+              # with mon_target_pg_per_osd it took this pool to 512 PGs (1536
+              # PG-replicas) for a few MB of backups and tripped
+              # "too many PGs per OSD". pg_num_max bounds it; pg_num brings it
+              # back down, since pg_num_max alone only caps future growth.
               bulk: "true"
+              pg_num: "256"
+              pg_num_max: "256"
           preservePoolsOnDelete: true
           gateway:
             port: 80
