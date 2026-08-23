@@ -63,6 +63,21 @@ spec:
               limits:
                 memory: 512Mi
     defaultPodOptions:
+      # blocky-ui exposes a single BLOCKY_API_URL used by both its server-side
+      # tRPC handlers and the browser, so the name has to resolve the same in
+      # both places. It does not: CoreDNS forwards `.` to /etc/resolv.conf, so
+      # pods get the public Cloudflare answer and the server-side call fails
+      # with 523 (origin unreachable - the route is envoy-internal only), while
+      # the LAN resolves it correctly to the internal gateway.
+      #
+      # Pinning it here keeps the blast radius to this pod. The cluster-wide fix
+      # would be a CoreDNS forward of the internal domains to k8s-gateway.
+      # IP is the envoy-internal LB address, set in
+      # kubernetes/apps/network/envoy-gateway/app/envoy.yaml.
+      hostAliases:
+        - ip: 192.168.1.150
+          hostnames:
+            - "blocky.${SECRET_DOMAIN}"
       # ScheduleAnyway rather than DoNotSchedule: spreading is preferable but
       # this is not critical-path like blocky, so it should still schedule
       # during a drain.
