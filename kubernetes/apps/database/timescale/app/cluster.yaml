@@ -6,7 +6,10 @@ metadata:
   name: timescale
 spec:
   instances: 3
-  imageName: ghcr.io/cloudnative-pg/postgresql:18-minimal-trixie
+  # Tag comes from PG_IMAGE_TAG in ks.yaml so Renovate can bump it; `18-*` alone
+  # never changes string, so nothing would ever open a PR and the kubelet's
+  # IfNotPresent would keep serving whatever was first pulled.
+  imageName: ghcr.io/cloudnative-pg/postgresql:${PG_IMAGE_TAG}
   primaryUpdateMethod: switchover
 
   # local-path is node-local and WaitForFirstConsumer. CNPG replicates at the
