@@ -1,0 +1,132 @@
+---
+# NOT MANAGED BY FLUX - see ./objectbucketclaim.yaml. Run with `just kube bench-rgw`.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/job-batch-v1.json
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rgw-benchmark
+  namespace: rook-ceph
+spec:
+  # A failed benchmark must not silently re-run: a retry would re-upload the
+  # whole working set and the second run's numbers would be measured against a
+  # cluster still digesting the first.
+  backoffLimit: 0
+  # Three 3m runs plus the prepare phase for each. Generous, but bounded - this
+  # is the only thing that stops a wedged run loading the OSDs indefinitely.
+  activeDeadlineSeconds: 2700
+  # Safe here precisely because Flux does not own this Job. Under Flux, a
+  # garbage-collected Job would be recreated on the next reconcile and re-run.
+  ttlSecondsAfterFinished: 86400
+  template:
+    spec:
+      restartPolicy: Never
+      # Deliberately no priorityClassName. At the default 0 the benchmark sits
+      # below cluster-platform and cluster-infra, so it is the first thing
+      # evicted if it drives a node into memory pressure - which is exactly the
+      # right outcome for a load generator running against production storage.
+      securityContext:
+        runAsNonRoot: true
+        # nobody in the alpine base the warp image is built on
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: warp
+          image: mirror.gcr.io/minio/warp:v1.3.1
+          # The image entrypoint is /warp, which takes a single subcommand. warp
+          # has no notion of a size sweep, so the loop lives here - the image is
+          # alpine-based, so it has a shell to run it with.
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              set -eu
+
+              # The OBC publishes host and port as separate ConfigMap keys and
+              # warp wants one host:port string.
+              export WARP_HOST="${BUCKET_HOST}:${BUCKET_PORT}"
+
+              # 64KiB exercises the RGW index and per-request overhead, 16MiB
+              # the OSD data path and multipart, 1MiB sits in between. Object
+              # counts fall as size rises to keep each working set inside a few
+              # GiB before 3x replication - the sweep is meant to find where
+              # throughput falls off, not to fill the pool.
+              run() {
+                echo
+                echo "############################################################"
+                echo "# warp mixed - obj.size=$1 objects=$2"
+                echo "############################################################"
+                /warp mixed \
+                  --bucket="${BUCKET_NAME}" \
+                  --obj.size="$1" \
+                  --objects="$2" \
+                  --concurrent=12 \
+                  --duration=3m \
+                  --analyze.v \
+                  --no-color \
+                  --benchdata="/tmp/warp-$1"
+              }
+
+              run 64KiB 10000
+              run 1MiB  4000
+              run 16MiB 500
+
+              echo
+              echo "sweep complete"
+          env:
+            # warp picks these up on its own - keeping the credentials out of
+            # argv, where the whole cluster could read them off the pod spec.
+            - name: WARP_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: rgw-benchmark
+                  key: AWS_ACCESS_KEY_ID
+            - name: WARP_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: rgw-benchmark
+                  key: AWS_SECRET_ACCESS_KEY
+            # The OBC writes the bucket name and endpoint to a same-named
+            # ConfigMap rather than to the Secret.
+            - name: BUCKET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: rgw-benchmark
+                  key: BUCKET_NAME
+            - name: BUCKET_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: rgw-benchmark
+                  key: BUCKET_HOST
+            - name: BUCKET_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: rgw-benchmark
+                  key: BUCKET_PORT
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - "ALL"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              # 12 concurrent 16MiB objects are generated and held in memory,
+              # so the ceiling has to clear that with room to spare or the
+              # benchmark measures its own OOM kills.
+              memory: 2Gi
+      volumes:
+        # warp always writes its raw profile data to --benchdata; with the root
+        # filesystem read-only and the working directory /, it needs somewhere
+        # to put it. Discarded with the pod - `kubectl cp` it out before the
+        # TTL expires if you want to run `warp analyze` on it later.
+        - name: tmp
+          emptyDir: {}

@@ -1,0 +1,23 @@
+---
+# NOT MANAGED BY FLUX. No kustomization.yaml under kubernetes/apps references
+# this directory, so cluster-apps never sees it. Apply it by hand with
+# `just kube bench-rgw`. A benchmark is not desired state - if Flux owned it,
+# every reconcile would be a decision about whether to hammer production Ceph.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/objectbucket.io/objectbucketclaim_v1alpha1.json
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: rgw-benchmark
+  # Explicit namespace, unlike the Flux-managed manifests in this repo: there is
+  # no Kustomization targetNamespace to supply it. The Secret and ConfigMap the
+  # provisioner generates land here too, and the Job has to be alongside them.
+  namespace: rook-ceph
+spec:
+  # Explicit bucketName rather than generateBucketName. warp deletes the entire
+  # contents of whatever bucket it is pointed at, so the bucket it uses must be
+  # a stable, obviously-named, benchmark-only one that is never confused with
+  # timescale-backup. Reusing one bucket across runs also means repeated
+  # benchmarks do not leave a trail of retained buckets behind - the
+  # ceph-bucket StorageClass is reclaimPolicy: Retain.
+  bucketName: rgw-benchmark
+  storageClassName: ceph-bucket

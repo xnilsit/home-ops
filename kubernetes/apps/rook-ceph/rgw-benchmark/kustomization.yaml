@@ -1,0 +1,12 @@
+---
+# Deliberately NOT referenced from ../kustomization.yaml, so Flux's cluster-apps
+# Kustomization never walks into this directory. This file exists so the
+# manifests can be validated with `kustomize build` and applied in one shot if
+# the bucket already exists; the normal entry point is `just kube bench-rgw`,
+# which applies the OBC first and waits for it to bind before creating the Job.
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ./objectbucketclaim.yaml
+  - ./job.yaml
