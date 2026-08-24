@@ -42,8 +42,7 @@ bench-rgw-logs:
 bench-rgw-clean:
     kubectl --namespace rook-ceph delete --ignore-not-found job/rgw-benchmark
     kubectl --namespace rook-ceph delete --ignore-not-found objectbucketclaim/rgw-benchmark
-    # ceph-bucket is reclaimPolicy: Retain, so dropping the claim leaves the
-    # bucket behind. warp empties it on a clean exit, so this is normally an
-    # empty bucket - not purged automatically, because purging is exactly the
-    # operation that must never fire at the wrong bucket by accident.
-    just log warn "Bucket rgw-benchmark is retained in RGW - purge with: kubectl -n rook-ceph exec deploy/rook-ceph-tools -- radosgw-admin bucket rm --bucket=rgw-benchmark --purge-objects"
+    # ceph-bucket-delete is reclaimPolicy: Delete, so dropping the claim purges
+    # the bucket in RGW too. Safe here and nowhere else: the claim is pinned to
+    # bucketName rgw-benchmark, which holds nothing but warp's scratch data.
+    just log info "Bucket rgw-benchmark purged with the claim"

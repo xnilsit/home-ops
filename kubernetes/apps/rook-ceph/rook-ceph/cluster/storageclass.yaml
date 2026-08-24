@@ -1,0 +1,41 @@
+---
+# Two bucket StorageClasses for the one CephObjectStore, differing only in
+# reclaimPolicy. The rook-ceph-cluster chart renders at most one StorageClass
+# per entry in cephObjectStores, so these are written by hand and
+# storageClass.enabled is false in helmrelease.yaml.
+#
+# reclaimPolicy is baked into the ObjectBucket at provision time, so an existing
+# bucket keeps the policy it was created with - moving an OBC to the other class
+# after it is Bound does nothing. Pick the class when the claim is created.
+#
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ceph-bucket-retain
+# Deleting the OBC leaves the bucket and its objects in RGW. The default choice
+# for anything holding data worth keeping: a deleted claim - by a bad
+# `flux prune`, a renamed app, a fat-fingered `kubectl delete` - costs a manual
+# cleanup instead of the data.
+reclaimPolicy: Retain
+provisioner: rook-ceph.ceph.rook.io/bucket
+volumeBindingMode: Immediate
+parameters:
+  objectStoreName: ceph-objectstore
+  objectStoreNamespace: rook-ceph
+  region: us-east-1
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ceph-bucket-delete
+# Deleting the OBC purges the bucket and every object in it. Only for buckets
+# whose contents are reproducible - scratch space, benchmark data, caches.
+reclaimPolicy: Delete
+provisioner: rook-ceph.ceph.rook.io/bucket
+volumeBindingMode: Immediate
+parameters:
+  objectStoreName: ceph-objectstore
+  objectStoreNamespace: rook-ceph
+  region: us-east-1

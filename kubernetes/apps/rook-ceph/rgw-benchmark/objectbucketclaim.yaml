@@ -16,8 +16,10 @@ spec:
   # Explicit bucketName rather than generateBucketName. warp deletes the entire
   # contents of whatever bucket it is pointed at, so the bucket it uses must be
   # a stable, obviously-named, benchmark-only one that is never confused with
-  # timescale-backup. Reusing one bucket across runs also means repeated
-  # benchmarks do not leave a trail of retained buckets behind - the
-  # ceph-bucket StorageClass is reclaimPolicy: Retain.
+  # timescale-backup.
   bucketName: rgw-benchmark
-  storageClassName: ceph-bucket
+  # -delete, not -retain: benchmark data is pure scratch, so
+  # `just kube bench-rgw-clean` should take the bucket with the claim rather
+  # than leaving one behind for a manual radosgw-admin purge. Safe only because
+  # bucketName above pins this claim to a bucket that holds nothing else.
+  storageClassName: ceph-bucket-delete

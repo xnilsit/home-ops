@@ -274,11 +274,9 @@ spec:
               requests:
                 cpu: 100m
                 memory: 1Gi
+        # Disabled: the chart renders at most one StorageClass per object store,
+        # and this store needs two (ceph-bucket-retain / ceph-bucket-delete).
+        # Both live in ./storageclass.yaml so the reclaimPolicy difference - the
+        # only thing separating them - is visible side by side.
         storageClass:
-          enabled: true
-          name: ceph-bucket
-          # Retain: with Delete, removing an OBC destroys the bucket contents
-          reclaimPolicy: Retain
-          volumeBindingMode: Immediate
-          parameters:
-            region: us-east-1
+          enabled: false

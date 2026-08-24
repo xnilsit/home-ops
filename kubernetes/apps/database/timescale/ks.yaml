@@ -15,8 +15,8 @@ spec:
     # The Cluster references the barman plugin, which must be running first
     - name: barman-cloud-plugin
       namespace: flux-system
-    # The ObjectBucketClaim needs the ceph-bucket StorageClass, which the
-    # cluster chart creates along with the CephObjectStore
+    # The ObjectBucketClaim needs the ceph-bucket-retain StorageClass, which
+    # that Kustomization applies alongside the CephObjectStore
     - name: rook-ceph-cluster
       namespace: flux-system
     - name: priority-classes
