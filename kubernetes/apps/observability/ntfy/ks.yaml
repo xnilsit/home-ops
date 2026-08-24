@@ -19,6 +19,9 @@ spec:
     # would not exist yet
     - name: prometheus-operator-crds
       namespace: flux-system
+    # priorityClassName: cluster-platform
+    - name: priority-classes
+      namespace: flux-system
   postBuild:
     substitute:
       APP: *app

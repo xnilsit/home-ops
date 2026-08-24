@@ -79,6 +79,25 @@ spec:
 
     vmalert:
       enabled: true
+      spec:
+        # 10s, not the 300s DefaultTolerationSeconds injects - that default is
+        # the bulk of the ~6min before a lost node's pod is rescheduled.
+        tolerations: &fastReschedule
+          - key: node.kubernetes.io/not-ready
+            operator: Exists
+            effect: NoExecute
+            tolerationSeconds: 10
+          - key: node.kubernetes.io/unreachable
+            operator: Exists
+            effect: NoExecute
+            tolerationSeconds: 10
+      route:
+        enabled: true
+        parentRefs:
+          - name: envoy-internal
+            namespace: network
+        hostnames:
+          - "vmalert.${CLUSTER_DOMAIN}"
 
     grafana:
       enabled: false
@@ -92,6 +111,10 @@ spec:
           search.minStalenessInterval: 5m
         replicaCount: 1
         retentionPeriod: "6w"
+        # Speeds up eviction only. The RWO ceph-block PVC still has to detach
+        # from the dead node first, and k8s 1.36 has no force-detach timeout -
+        # that needs the node.kubernetes.io/out-of-service taint or node delete.
+        tolerations: *fastReschedule
         storage:
           accessModes:
             - ReadWriteOnce
