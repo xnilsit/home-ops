@@ -1,6 +1,7 @@
 ---
 # VENDORED - do not hand-edit. self-node-remediation v0.13.0
-# Upstream ships only an OLM bundle, so this is kustomize build config/default with cert-manager webhook certs, namespace node-remediation, image pinned.
+# Upstream ships only an OLM bundle, so this is kustomize build config/default
+# with cert-manager webhook certs, namespace node-remediation, image pinned.
 # Regenerate by re-running that build against the upstream tag.
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -805,12 +806,12 @@ spec:
           command:
             - /manager
           env:
+            - name: SELF_NODE_REMEDIATION_IMAGE
+              value: quay.io/medik8s/self-node-remediation-operator:v0.13.0
             - name: MY_NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            - name: SELF_NODE_REMEDIATION_IMAGE
-              value: ${IMG}
             - name: DEPLOYMENT_NAMESPACE
               valueFrom:
                 fieldRef:
