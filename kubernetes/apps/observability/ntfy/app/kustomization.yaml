@@ -10,3 +10,20 @@ components:
   # Mirrors database/pg-shared-ntfy in as ntfy-pg-shared, whose `uri` key
   # becomes NTFY_DATABASE_URL
   - ../../../../components/postgres-shared
+configMapGenerator:
+  # Generated here rather than as an app-template `configMaps` entry because
+  # that path runs the data through Helm's `tpl`, which would evaluate the
+  # template's own {{ }} expressions.
+  - name: ntfy-templates
+    files:
+      - alertmanager.yml=./alertmanager-template.yml
+    options:
+      annotations:
+        # The file is Go templating, not Flux substitution. No ${...} today, but
+        # Go templates conventionally use $ for variables, so keep envsubst out.
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+generatorOptions:
+  # The HelmRelease mounts this ConfigMap by name, so the name has to be stable.
+  # Consequence: edits change it in place without rolling the pod, which is what
+  # the configmap reloader annotation on the controller is for.
+  disableNameSuffixHash: true
