@@ -1,0 +1,29 @@
+---
+apiVersion: self-node-remediation.medik8s.io/v1alpha1
+kind: SelfNodeRemediationConfig
+metadata:
+  name: self-node-remediation-config
+spec:
+  # Talos has no shell in PID 1's mount namespace, so SNR's software-reboot
+  # fallback (nsenter into /bin/bash, echo b > /proc/sysrq-trigger) cannot work.
+  # The hardware watchdog is the only fencing path here - leaving this true
+  # would let a watchdog failure look like a successful reboot.
+  isSoftwareRebootEnabled: false
+  # iTCO_wdt, present and unclaimed on all three nodes.
+  watchdogFilePath: /dev/watchdog
+  # safeTimeToAssumeNodeRebootedSeconds is deliberately unset: SNR computes the
+  # minimum from the api/peer timeouts plus the watchdog timeout, and rejects
+  # anything lower.
+---
+apiVersion: self-node-remediation.medik8s.io/v1alpha1
+kind: SelfNodeRemediationTemplate
+metadata:
+  name: self-node-remediation-outofservice-template
+spec:
+  template:
+    spec:
+      # Applies node.kubernetes.io/out-of-service, which is what force-detaches
+      # the RWO ceph-block volumes. ResourceDeletion would delete the pods but
+      # leave the VolumeAttachment, which is the thing that actually blocks
+      # rescheduling.
+      remediationStrategy: OutOfServiceTaint

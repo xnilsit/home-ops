@@ -1,0 +1,24 @@
+---
+apiVersion: remediation.medik8s.io/v1alpha1
+kind: NodeHealthCheck
+metadata:
+  name: node-healthcheck
+spec:
+  # Empty selector: all three nodes are control-plane, so there is no worker
+  # pool to scope this to.
+  selector: {}
+  # 51% of 3 nodes requires 2 healthy, so one lost node is remediated and two
+  # are not - which is the guardrail against fencing on a network partition.
+  minHealthy: "51%"
+  unhealthyConditions:
+    - type: Ready
+      status: "False"
+      duration: 900s
+    - type: Ready
+      status: Unknown
+      duration: 900s
+  remediationTemplate:
+    apiVersion: self-node-remediation.medik8s.io/v1alpha1
+    kind: SelfNodeRemediationTemplate
+    name: self-node-remediation-outofservice-template
+    namespace: node-remediation
