@@ -46,11 +46,14 @@ spec:
             resources:
               requests:
                 cpu: 50m
-                memory: 256Mi
+                memory: 512Mi
               limits:
                 cpu: 1
                 memory: 1Gi
     defaultPodOptions:
+      # Blocky is the LAN's only resolver, so it outranks ordinary workloads
+      # for scheduling and is evicted last under node pressure.
+      priorityClassName: cluster-infra
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname

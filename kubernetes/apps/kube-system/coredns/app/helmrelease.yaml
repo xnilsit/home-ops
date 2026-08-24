@@ -19,6 +19,14 @@ spec:
       name: kube-dns
       clusterIP: "10.43.0.10"
     replicaCount: 2
+    # Deliberately the built-in class rather than cluster-infra (which blocky
+    # and k8s-gateway use). The bootstrap helmfile installs coredns from these
+    # same values before Flux exists, so cluster-infra would not be created
+    # yet - the pods would be rejected and the bootstrap would hang before
+    # Flux could ever reconcile the PriorityClass. system-cluster-critical
+    # ships with the control plane and outranks cluster-infra anyway, which is
+    # the correct ordering for cluster DNS.
+    priorityClassName: system-cluster-critical
     servers:
       - zones:
           - zone: .

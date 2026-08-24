@@ -1,0 +1,22 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app priority-classes
+  namespace: flux-system
+spec:
+  targetNamespace: kube-system
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/kube-system/priority-classes/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # Other Kustomizations dependsOn this one, so it has to report Ready only
+  # once the PriorityClasses actually exist.
+  wait: true
+  interval: 1h
+  timeout: 5m

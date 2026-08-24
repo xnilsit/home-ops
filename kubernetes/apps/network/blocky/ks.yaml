@@ -14,6 +14,10 @@ spec:
   dependsOn:
     - name: dragonfly
       namespace: flux-system
+    # defaultPodOptions.priorityClassName references cluster-infra; pods are
+    # rejected outright while that PriorityClass is missing.
+    - name: priority-classes
+      namespace: flux-system
     # queryLog.type: timescale writes to log_entries, which timescale-bootstrap
     # pre-creates with a 1-day chunk interval. That Kustomization is Ready only
     # once its Job has completed, so blocky never reconciles against a missing

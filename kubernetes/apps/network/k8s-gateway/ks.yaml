@@ -7,6 +7,11 @@ metadata:
 spec:
   interval: 1h
   path: ./kubernetes/apps/network/k8s-gateway/app
+  dependsOn:
+    # priorityClassName references cluster-infra; pods are rejected outright
+    # while that PriorityClass is missing.
+    - name: priority-classes
+      namespace: flux-system
   postBuild:
     substituteFrom:
       - name: cluster-secrets

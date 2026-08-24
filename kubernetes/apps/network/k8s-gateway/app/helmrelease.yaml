@@ -13,6 +13,9 @@ spec:
     domain: "${SECRET_DOMAIN} ${SECRET_DOMAIN_ALT}"
     ttl: 1
     replicaCount: 3
+    # CoreDNS forwards the internal domains here, so in-cluster resolution of
+    # internal hostnames depends on these pods. Same class as blocky.
+    priorityClassName: cluster-infra
     topologySpreadConstraints:
       - maxSkew: 1
         topologyKey: kubernetes.io/hostname
