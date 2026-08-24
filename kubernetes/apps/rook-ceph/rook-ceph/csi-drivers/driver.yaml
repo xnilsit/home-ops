@@ -18,6 +18,96 @@
 apiVersion: csi.ceph.io/v1
 kind: Driver
 metadata:
+  name: rook-ceph.cephfs.csi.ceph.com
+  namespace: rook-ceph
+spec:
+  log:
+    verbosity: 0
+  clusterName: rook-ceph
+  enableFencing: false
+  grpcTimeout: 30
+  snapshotPolicy: volumeSnapshot
+  generateOMapInfo: false
+  fsGroupPolicy: File
+  attachRequired: true
+  deployCsiAddons: false
+  cephFsClientType: kernel
+  kernelMountOptions: {}
+  fuseMountOptions: {}
+  nodePlugin:
+    serviceAccountName: rook-ceph-cephfs-csi-ceph-com-nodeplugin-sa
+    resources:
+      registrar:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 5m
+          memory: 64Mi
+      liveness: {}
+      addons: {}
+      logRotator: {}
+      plugin:
+        limits:
+          cpu: 200m
+          memory: 192Mi
+        requests:
+          cpu: 10m
+          memory: 64Mi
+    tolerations: []
+    volumes: []
+  controllerPlugin:
+    serviceAccountName: rook-ceph-cephfs-csi-ceph-com-ctrlplugin-sa
+    hostNetwork: false
+    replicas: 2
+    resources:
+      attacher:
+        limits:
+          cpu: 100m
+          memory: 64Mi
+        requests:
+          cpu: 5m
+          memory: 32Mi
+      snapshotter:
+        limits:
+          cpu: 100m
+          memory: 32Mi
+        requests:
+          cpu: 5m
+          memory: 16Mi
+      resizer:
+        limits:
+          cpu: 100m
+          memory: 96Mi
+        requests:
+          cpu: 5m
+          memory: 48Mi
+      provisioner:
+        limits:
+          cpu: 100m
+          memory: 32Mi
+        requests:
+          cpu: 5m
+          memory: 16Mi
+      omapGenerator: {}
+      liveness: {}
+      addons: {}
+      logRotator: {}
+      plugin:
+        limits:
+          cpu: 200m
+          memory: 96Mi
+        requests:
+          cpu: 15m
+          memory: 48Mi
+    privileged: false
+    tolerations: []
+    volumes: []
+
+---
+apiVersion: csi.ceph.io/v1
+kind: Driver
+metadata:
   name: rook-ceph.rbd.csi.ceph.com
   namespace: rook-ceph
 spec:
@@ -103,6 +193,7 @@ spec:
     privileged: false
     tolerations: []
     volumes: []
+
 ---
 apiVersion: csi.ceph.io/v1
 kind: OperatorConfig
@@ -110,6 +201,7 @@ metadata:
   name: ceph-csi-operator-config
   namespace: rook-ceph
 spec:
+
   driverSpecDefaults:
     log:
       verbosity: 0

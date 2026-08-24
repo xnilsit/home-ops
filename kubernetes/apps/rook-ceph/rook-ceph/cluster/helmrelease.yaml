@@ -72,15 +72,16 @@ spec:
           bdev_enable_discard: "true" # quote
           bdev_async_discard_threads: "1" # quote
           osd_class_update_on_start: "false" # quote
-          # PG budget on 3 OSDs. Every pool is pinned at both ends - metadata
-          # via pg_num_min, the RGW data pool via pg_num_max - so the autoscaler
-          # has nothing left to move and the target below is effectively
-          # advisory. That matters: leaving the data pool unbounded with bulk
-          # set took it to 512 PGs and tripped "too many PGs per OSD".
+          # PG budget on 3 OSDs. Every pool is bounded - the RGW pools pinned at
+          # both ends, the CephFS pools capped by pg_num_max - so the autoscaler
+          # has little left to move and the target below is largely advisory.
+          # That matters: leaving the RGW data pool unbounded with bulk set took
+          # it to 512 PGs and tripped "too many PGs per OSD".
           #
-          # Steady state: 32x7 metadata + 256 data + 32 blockpool + 1 mgr,
-          # at size 3 across 3 OSDs = ~513 PGs/OSD, up from a measured 217.
-          # Both defaults (250 guard, 100 target) would block this outright.
+          # Steady state: 32x7 rgw metadata + 256 rgw data + 32 blockpool
+          # + 16 cephfs metadata + 32 cephfs data + 1 mgr, at size 3 across
+          # 3 OSDs = ~561 PGs/OSD, up from a measured 217. Both defaults
+          # (250 guard, 100 target) would block this outright.
           #
           # The target sits above the landing point on purpose so the autoscaler
           # is not permanently trying to shrink, and the guard above that with
@@ -222,7 +223,62 @@ spec:
       mountOptions:
         - "discard"
 
-    cephFileSystems: []
+    cephFileSystems:
+      - name: ceph-filesystem
+        spec:
+          metadataPool:
+            failureDomain: host
+            replicated:
+              size: 3
+            parameters:
+              # Metadata is small but latency-sensitive; 16 PGs keeps the MDS
+              # omap work spread without adding much to the PG budget above.
+              pg_num_min: "16"
+          dataPools:
+            - name: data0
+              failureDomain: host
+              replicated:
+                size: 3
+              parameters:
+                # Not bulk: unlike the RGW data pool this one starts empty and
+                # grows slowly, so the autoscaler ramping is fine. pg_num_max
+                # keeps it from repeating the 512-PG overshoot the object store
+                # data pool hit.
+                pg_num_max: "128"
+          metadataServer:
+            activeCount: 1
+            activeStandby: true
+            priorityClassName: system-cluster-critical
+            resources:
+              limits:
+                memory: 2Gi
+              requests:
+                cpu: 100m
+                memory: 2Gi
+        storageClass:
+          enabled: true
+          name: ceph-filesystem
+          isDefault: false
+          pool: data0
+          reclaimPolicy: Delete
+          allowVolumeExpansion: true
+          volumeBindingMode: Immediate
+          parameters:
+            csi.storage.k8s.io/provisioner-secret-name: rook-csi-cephfs-provisioner
+            csi.storage.k8s.io/provisioner-secret-namespace: "{{ .Release.Namespace }}"
+            csi.storage.k8s.io/controller-expand-secret-name: rook-csi-cephfs-provisioner
+            csi.storage.k8s.io/controller-expand-secret-namespace: "{{ .Release.Namespace }}"
+            csi.storage.k8s.io/controller-publish-secret-name: rook-csi-cephfs-provisioner
+            csi.storage.k8s.io/controller-publish-secret-namespace: "{{ .Release.Namespace }}"
+            csi.storage.k8s.io/node-stage-secret-name: rook-csi-cephfs-node
+            csi.storage.k8s.io/node-stage-secret-namespace: "{{ .Release.Namespace }}"
+            csi.storage.k8s.io/fstype: ext4
+
+    cephFileSystemVolumeSnapshotClass:
+      enabled: true
+      name: csi-ceph-filesystem
+      isDefault: false
+      deletionPolicy: Delete
 
     cephObjectStores:
       - name: ceph-objectstore
