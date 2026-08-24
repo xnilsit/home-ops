@@ -24,7 +24,7 @@ spec:
     # `tpl ... $rootContext`, so .Values is reachable from the env below.
     ntfyAuth:
       users:
-        - "nils:$(ADMIN_PASSWORD_HASH):admin"
+        - "nilsit:$(ADMIN_PASSWORD_HASH):admin"
         - "alertmanager:$(ALERTMANAGER_PASSWORD_HASH):user"
       access:
         # Only role=user may hold ACL entries - ntfy's parseAccess rejects an
