@@ -17,6 +17,14 @@
 # configMapGenerator: app-template passes `configMaps.*.data` through Helm's
 # `tpl`, which would try to evaluate these {{ }} expressions itself.
 #
+# The severity-specific title emoji is deliberate: upstream uses one 🚨 for
+# every firing alert, so the title alone cannot distinguish critical from
+# warning. MacroDroid on the phone triggers an alarm off a notification-text
+# match, and `Severity: critical` in the body plus 🔴 in the title give it two
+# independent things to key on. Avoid Go template VARIABLES here ($x): the
+# generated ConfigMap is exempted from Flux substitution, but not relying on
+# that is cheaper than depending on it.
+#
 # Two fixes over the upstream template, both cosmetic:
 #   - `Ends at` on its own line (upstream omits the newline, producing
 #     "Starts at: ...ZEnds at: ...")
@@ -24,10 +32,13 @@
 #     zero time "0001-01-01T00:00:00Z", which is a non-empty string and so is
 #     truthy to `if` - hence the explicit comparison.
 title: |
-  {{- if eq .status "firing" }}
-  🚨 Alert: {{ (first .alerts).labels.alertname }}
-  {{- else if eq .status "resolved" }}
+  {{- if eq .status "resolved" }}
   ✅ Resolved: {{ (first .alerts).labels.alertname }}
+  {{- else if eq .status "firing" }}
+  {{- if eq (first .alerts).labels.severity "critical" }}🔴 CRITICAL: {{ (first .alerts).labels.alertname }}
+  {{- else if eq (first .alerts).labels.severity "warning" }}🟠 Warning: {{ (first .alerts).labels.alertname }}
+  {{- else }}🚨 Alert: {{ (first .alerts).labels.alertname }}
+  {{- end }}
   {{- else }}
   {{ fail "Unsupported Alertmanager status." }}
   {{- end }}
