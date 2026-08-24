@@ -1,0 +1,62 @@
+---
+# ntfy message template, mounted into template-dir as alertmanager.yml so it
+# SHADOWS ntfy's built-in template of the same name. Shadowing rather than using
+# a new name on purpose: if this ConfigMap ever fails to mount, ntfy silently
+# falls back to the embedded template and alerts still arrive - a new name would
+# 404 as "template file not found" and drop them.
+#
+# Reason it exists: the built-in template sets only title and message, and
+# priority CANNOT be supplied any other way. In file-template mode ntfy ignores
+# both `?priority=` and the X-Priority header (renderTemplateFromFile never
+# receives priorityStr), and AlertmanagerConfig webhookConfigs cannot set custom
+# headers anyway - so a template with its own `priority` field is the only route.
+# Verified against ntfy v2.27.0.
+#
+# This is Go template syntax evaluated by ntfy over the Alertmanager webhook
+# JSON. It is deliberately kept in its own file and loaded via a kustomize
+# configMapGenerator: app-template passes `configMaps.*.data` through Helm's
+# `tpl`, which would try to evaluate these {{ }} expressions itself.
+#
+# Two fixes over the upstream template, both cosmetic:
+#   - `Ends at` on its own line (upstream omits the newline, producing
+#     "Starts at: ...ZEnds at: ...")
+#   - `Ends at` and `Source` suppressed when empty. A firing alert carries the
+#     zero time "0001-01-01T00:00:00Z", which is a non-empty string and so is
+#     truthy to `if` - hence the explicit comparison.
+title: |
+  {{- if eq .status "firing" }}
+  🚨 Alert: {{ (first .alerts).labels.alertname }}
+  {{- else if eq .status "resolved" }}
+  ✅ Resolved: {{ (first .alerts).labels.alertname }}
+  {{- else }}
+  {{ fail "Unsupported Alertmanager status." }}
+  {{- end }}
+priority: |
+  {{- if eq .status "resolved" }}2
+  {{- else if eq (first .alerts).labels.severity "critical" }}5
+  {{- else if eq (first .alerts).labels.severity "warning" }}4
+  {{- else }}3
+  {{- end }}
+message: |-
+  Status: {{ .status | title }}
+  Receiver: {{ .receiver }}
+
+  {{- range .alerts }}
+  Alert: {{ .labels.alertname }}
+  Instance: {{ .labels.instance }}
+  Severity: {{ .labels.severity }}
+  Starts at: {{ .startsAt }}
+  {{- if and .endsAt (ne .endsAt "0001-01-01T00:00:00Z") }}
+  Ends at: {{ .endsAt }}
+  {{- end }}
+  {{- if .annotations.summary }}
+  Summary: {{ .annotations.summary }}
+  {{- end }}
+  {{- if .annotations.description }}
+  Description: {{ .annotations.description }}
+  {{- end }}
+  {{- if .generatorURL }}
+  Source: {{ .generatorURL }}
+  {{- end }}
+
+  {{ end }}
