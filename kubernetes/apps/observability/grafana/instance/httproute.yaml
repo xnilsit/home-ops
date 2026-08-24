@@ -4,13 +4,16 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: grafana-route
-  annotations:
-    external-dns.alpha.kubernetes.io/target: "internal.${CLUSTER_DOMAIN}"
 spec:
   hostnames:
     - "grafana.${CLUSTER_DOMAIN}"
   parentRefs:
-    - name: envoy-external
+    # LAN only. cloudflare-dns runs with --gateway-name=envoy-external, so
+    # moving off that gateway is also what drops the public DNS record - which
+    # made the previous external-dns target annotation dead weight. Resolution
+    # is now k8s-gateway, which watches HTTPRoutes on either gateway and
+    # answers with the parent's address.
+    - name: envoy-internal
       namespace: network
       sectionName: https
   rules:
