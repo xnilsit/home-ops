@@ -1,0 +1,55 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: ${APP}-postgres
+spec:
+  instances: ${PG_INSTANCES:=2}
+  # Tag comes from PG_IMAGE_TAG, which the consuming ks.yaml must substitute
+  # alongside APP so Renovate can bump it - see
+  # kubernetes/apps/database/pg-shared/ks.yaml for the annotated form.
+  imageName: ghcr.io/cloudnative-pg/postgresql:${PG_IMAGE_TAG}
+  primaryUpdateMethod: switchover
+
+  priorityClassName: cluster-platform
+
+  # Defaults to local-path for the same reason pg-shared does: CNPG replicates
+  # at the PostgreSQL layer, so Ceph replicating underneath is redundant. The
+  # consequence is that a PVC cannot move - a permanently lost node strands it
+  # until it is deleted by hand. Override PG_STORAGE_CLASS to ceph-block for a
+  # single-instance cluster, where there is no Postgres-level replica to fall
+  # back on.
+  storage:
+    size: ${PG_STORAGE_SIZE:=8Gi}
+    storageClass: ${PG_STORAGE_CLASS:=local-path}
+
+  # The app lives in this same namespace, so it reads the CNPG-generated
+  # ${APP}-postgres-app secret - which already carries a ready-made `uri` -
+  # directly. This annotation is only for consumers in OTHER namespaces.
+  inheritedMetadata:
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+
+  bootstrap:
+    initdb:
+      database: ${APP}
+      owner: ${APP}
+
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: ${APP}-postgres-store
+        # cnpg-backup is shared with every other non-timescale cluster, and
+        # barman namespaces backups by serverName underneath destinationPath.
+        # Two clusters sharing a value would overwrite each other's WAL and base
+        # backups, so this must stay unique - it is why the name carries APP.
+        serverName: ${APP}-postgres
+
+  resources:
+    limits:
+      memory: ${PG_MEMORY_LIMIT:=1Gi}
+    requests:
+      cpu: ${PG_CPU_REQUEST:=100m}
+      memory: ${PG_MEMORY_REQUEST:=256Mi}

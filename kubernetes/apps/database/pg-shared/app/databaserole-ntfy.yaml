@@ -1,0 +1,17 @@
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: ntfy
+spec:
+  # A DatabaseRole CR rather than an entry in the Cluster's managed.roles list:
+  # on a shared cluster that keeps each consumer to its own file, so onboarding
+  # or removing an app never touches a list every other consumer depends on.
+  cluster:
+    name: pg-shared
+  name: ntfy
+  ensure: present
+  login: true
+  inherit: true
+  passwordSecret:
+    name: pg-shared-ntfy

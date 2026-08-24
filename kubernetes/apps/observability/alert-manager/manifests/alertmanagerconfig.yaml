@@ -28,14 +28,28 @@ spec:
           - name: alertname
             value: Watchdog
             matchType: =
+      # Two sibling routes, not one: Alertmanager delivers an alert to a single
+      # receiver per matched leaf, so `continue: true` on the first is what
+      # makes the same alert reach both channels. Keeping matchers on both
+      # (rather than matcher-less catch-alls) preserves the existing behaviour
+      # for everything else - an alert matching no child still falls through to
+      # this route's parent receiver.
+      #
+      # One matcher with =~, not two with =: matchers within a route are ANDed,
+      # so `severity="critical"` AND `severity="warning"` can never match. That
+      # was the previous shape here, and it was inert only because the parent
+      # route already defaulted to telegram.
       - receiver: telegram
+        continue: true
         matchers:
           - name: severity
-            value: critical
-            matchType: =
+            value: critical|warning
+            matchType: =~
+      - receiver: ntfy
+        matchers:
           - name: severity
-            value: warning
-            matchType: =
+            value: critical|warning
+            matchType: =~
   receivers:
     - name: telegram
       telegramConfigs:
@@ -61,6 +75,27 @@ spec:
             {{ end }}
             {{ end }}
           parseMode: Markdown
+    - name: ntfy
+      webhookConfigs:
+        # ?template=alertmanager selects ntfy's BUILT-IN Alertmanager template
+        # (added in 2.14), which renders the raw webhook JSON server-side into a
+        # readable title and body. That is what removes the need for a bridge
+        # like ntfy-alertmanager.
+        #
+        # In-cluster Service URL, and ntfy runs in this same namespace, so the
+        # token is read straight from its own secret rather than a mirrored copy.
+        - url: "http://ntfy.observability.svc.cluster.local:8080/alerts?template=alertmanager"
+          sendResolved: true
+          # The default of 0 puts every alert in the group into one POST. ntfy
+          # rejects a rendered message over message-size-limit (4096) with a 400
+          # and the notification is lost, so cap the batch instead.
+          maxAlerts: 5
+          httpConfig:
+            # type defaults to Bearer, which is what ntfy expects.
+            authorization:
+              credentials:
+                name: ntfy-auth
+                key: ALERTMANAGER_TOKEN
     # Optional: fallback "blackhole" receiver to prevent dropped alerts
     - name: blackhole
   inhibitRules:

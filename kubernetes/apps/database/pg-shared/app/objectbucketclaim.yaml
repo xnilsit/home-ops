@@ -1,0 +1,22 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/objectbucket.io/objectbucketclaim_v1alpha1.json
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: cnpg-backup
+spec:
+  # Explicit bucketName, NOT generateBucketName: the OBC writes credentials to a
+  # Secret but BUCKET_NAME/BUCKET_HOST/BUCKET_PORT to a same-named ConfigMap.
+  # Barman's s3Credentials are SecretKeySelectors, so they can reach the
+  # credentials but not the bucket name - destinationPath must be a literal,
+  # which a random generated suffix would make impossible.
+  #
+  # This is the one GREENFIELD claim on cnpg-backup, and therefore the bucket's
+  # creator and owner. Every other CNPG cluster reaches the same bucket through
+  # the brownfield ceph-bucket-cnpg-backup StorageClass, which appends a policy
+  # statement per consumer rather than relinking ownership. Clusters are
+  # separated inside the bucket by the barman plugin's serverName parameter.
+  bucketName: cnpg-backup
+  # -retain, not -delete: deleting this OBC must not take the Postgres backups
+  # with it. Cleanup is manual and that is the point.
+  storageClassName: ceph-bucket-retain

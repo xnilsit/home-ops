@@ -1,0 +1,19 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Order matters on first reconcile: the bucket must exist before the Cluster
+  # starts archiving, since barman-cloud >= 3.16 no longer auto-creates it.
+  - ./objectbucketclaim.yaml
+  - ./objectstore.yaml
+  # Must precede the DatabaseRole, which cannot create a role without its
+  # password secret.
+  - ./secret-ntfy.sops.yaml
+  - ./cluster.yaml
+  # One pair of files per consumer. A DatabaseRole must exist before the
+  # Database that names it as owner.
+  - ./databaserole-ntfy.yaml
+  - ./database-ntfy.yaml
+  - ./scheduledbackup.yaml
+  - ./podmonitor.yaml

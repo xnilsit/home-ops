@@ -1,0 +1,80 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-shared
+spec:
+  instances: 3
+  # Tag comes from PG_IMAGE_TAG in ks.yaml so Renovate can bump it; `18-*` alone
+  # never changes string, so nothing would ever open a PR and the kubelet's
+  # IfNotPresent would keep serving whatever was first pulled.
+  imageName: ghcr.io/cloudnative-pg/postgresql:${PG_IMAGE_TAG}
+  primaryUpdateMethod: switchover
+
+  # Shared datastore, not an app: any app needing a small Postgres database
+  # lands here rather than getting its own Cluster. The PVCs are node-local and
+  # cannot move, so an instance evicted under node pressure has to be rebuilt
+  # from scratch rather than rescheduled.
+  priorityClassName: cluster-platform
+
+  # local-path is node-local and WaitForFirstConsumer. CNPG replicates at the
+  # PostgreSQL layer, so 3 instances give 3 independent copies via streaming
+  # replication - no need for Ceph to replicate underneath. Default pod
+  # anti-affinity puts one instance per node on this 3-node cluster.
+  #
+  # Consequence: a PVC cannot move. If a node is lost permanently its PVC is
+  # stranded and must be deleted by hand before CNPG re-provisions elsewhere.
+  # local-path also does not support volume expansion - resizing means replacing
+  # instances one at a time.
+  #
+  # The LocalPathVolume* alerts in timescale/app/prometheusrule.yaml are
+  # node-level (mountpoint /var/mnt/local-path), so they already cover this
+  # cluster's disk usage too - deliberately not duplicated here.
+  storage:
+    size: 20Gi
+    storageClass: local-path
+
+  # Lets the CNPG-generated `pg-shared-app` secret carry the reflector
+  # annotation, so consumers in other namespaces can mirror a connection URI
+  # without a hand-authored SOPS copy. Harmless on the other generated objects -
+  # reflector only acts on Secrets and ConfigMaps.
+  inheritedMetadata:
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+
+  # CNPG always bootstraps one database, so this is just its default (app/app)
+  # made explicit - nothing uses it. Every real consumer gets its own Database
+  # and DatabaseRole CR instead of an entry here or in managed.roles, so
+  # onboarding an app is one new file rather than an edit to a list every other
+  # consumer already depends on.
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: pg-shared-store
+        # Explicit because cnpg-backup is shared with every other non-timescale
+        # cluster. serverName is the subdirectory inside the bucket, so two
+        # clusters that ended up with the same value would overwrite each
+        # other's WAL and base backups.
+        serverName: pg-shared
+
+  postgresql:
+    parameters:
+      shared_buffers: 256MB
+      effective_cache_size: 768MB
+      work_mem: 16MB
+      maintenance_work_mem: 128MB
+      wal_compression: "on"
+
+  resources:
+    limits:
+      memory: 2Gi
+    requests:
+      cpu: 100m
+      memory: 512Mi

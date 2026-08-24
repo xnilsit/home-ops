@@ -3,26 +3,29 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: &app alertmanager
+  name: &app ntfy
   namespace: flux-system
 spec:
   targetNamespace: observability
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
-  path: ./kubernetes/apps/observability/alert-manager/manifests
-  prune: true
+  path: ./kubernetes/apps/observability/ntfy/app
   dependsOn:
-    - name: vm-k8s-stack
+    # The ntfy database and its owner role live on the shared cluster
+    - name: pg-shared
       namespace: flux-system
-    # Not cosmetic: when the operator cannot load a Secret referenced by this
-    # AlertmanagerConfig it skips the WHOLE object, so a missing ntfy-auth would
-    # take the telegram receiver down with it.
-    - name: ntfy
+    # A ServiceMonitor is rendered, and on a from-scratch bootstrap the CRD
+    # would not exist yet
+    - name: prometheus-operator-crds
       namespace: flux-system
+  postBuild:
+    substitute:
+      APP: *app
+  prune: true
   sourceRef:
     kind: GitRepository
     name: flux-system
   wait: false
-  interval: 30m
+  interval: 1h
   timeout: 5m

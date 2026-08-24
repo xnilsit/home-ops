@@ -1,0 +1,215 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ntfy
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: ntfy
+  interval: 1h
+  values:
+    # Readable source of truth for ntfy's declarative auth, rendered into the
+    # comma-separated NTFY_AUTH_* env vars below (they are urfave/cli
+    # StringSliceFlags, so comma is the separator ntfy expects).
+    #
+    # The $(...) references are kubelet env expansion, not Helm and not
+    # envsubst: kubelet resolves them from the secretKeyRef atoms declared
+    # earlier in the same env list. That is what keeps the shape of the auth
+    # config readable in Git while the hashes and token stay in SOPS.
+    #
+    # Custom top-level key on purpose - app-template's values.schema.json sets
+    # no root additionalProperties, and env string values are passed through
+    # `tpl ... $rootContext`, so .Values is reachable from the env below.
+    ntfyAuth:
+      users:
+        - "nils:$(ADMIN_PASSWORD_HASH):admin"
+        - "alertmanager:$(ALERTMANAGER_PASSWORD_HASH):user"
+      access:
+        # Only role=user may hold ACL entries - ntfy's parseAccess rejects an
+        # admin outright ("only regular users can have ACL entries"), and an
+        # admin has implicit full access anyway, so `nils` is absent here.
+        # write-only: alertmanager publishes and must not be able to read.
+        - "alertmanager:alerts:wo"
+      tokens:
+        - "alertmanager:$(ALERTMANAGER_TOKEN):alertmanager"
+
+    controllers:
+      ntfy:
+        strategy: RollingUpdate
+        annotations:
+          # app-template checksums its own ConfigMaps, so server.yml edits roll
+          # the pod by themselves. ntfy-auth is an external Secret, so without
+          # this a rotated token would leave the old value in the running env.
+          secret.reloader.stakater.com/reload: ntfy-auth
+        containers:
+          app:
+            image:
+              repository: docker.io/binwiederhier/ntfy
+              tag: v2.27.0
+            # The image is ENTRYPOINT ["ntfy"] with no CMD, so the subcommand
+            # has to be supplied here or the container exits printing usage.
+            args:
+              - "serve"
+            env:
+              # Atoms from the SOPS secret. Declared as their own vars purely so
+              # the composed NTFY_AUTH_* values below can reference them.
+              ADMIN_PASSWORD_HASH:
+                valueFrom:
+                  secretKeyRef:
+                    name: ntfy-auth
+                    key: ADMIN_PASSWORD_HASH
+              ALERTMANAGER_PASSWORD_HASH:
+                valueFrom:
+                  secretKeyRef:
+                    name: ntfy-auth
+                    key: ALERTMANAGER_PASSWORD_HASH
+              ALERTMANAGER_TOKEN:
+                valueFrom:
+                  secretKeyRef:
+                    name: ntfy-auth
+                    key: ALERTMANAGER_TOKEN
+              # Postgres replaces every file-backed store: with database-url set,
+              # ntfy REFUSES to start if auth-file, cache-file or web-push-file
+              # are also configured. That is why this deployment has no PVC.
+              # Reflected in from database/pg-shared-ntfy by the
+              # postgres-shared component.
+              NTFY_DATABASE_URL:
+                valueFrom:
+                  secretKeyRef:
+                    name: ntfy-pg-shared
+                    key: uri
+              # dependsOn drives app-template's topological sort of the env map.
+              # It is load-bearing: kubelet only expands $(VAR) against vars
+              # already emitted earlier in the list, so without it the hashes
+              # could render as empty and ntfy would reject the auth config.
+              NTFY_AUTH_USERS:
+                dependsOn:
+                  - ADMIN_PASSWORD_HASH
+                  - ALERTMANAGER_PASSWORD_HASH
+                value: '{{ join "," .Values.ntfyAuth.users }}'
+              NTFY_AUTH_TOKENS:
+                dependsOn:
+                  - ALERTMANAGER_TOKEN
+                value: '{{ join "," .Values.ntfyAuth.tokens }}'
+              # No dependsOn - contains no $(...) references.
+              NTFY_AUTH_ACCESS: '{{ join "," .Values.ntfyAuth.access }}'
+            probes:
+              # /v1/health is served by handleInternal before any auth gate, so
+              # it answers even with auth-default-access: deny-all.
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /v1/health
+                    port: &port 8080
+                  initialDelaySeconds: 5
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+                memory: 64Mi
+              limits:
+                memory: 256Mi
+    defaultPodOptions:
+      securityContext:
+        # Pod level only. readOnlyRootFilesystem and capabilities belong on the
+        # container - app-template's pod-level securityContext schema sets
+        # additionalProperties: false and rejects them, failing `helm template`.
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+    configMaps:
+      config:
+        data:
+          # Everything here is non-secret on purpose, so the effective server
+          # config stays reviewable in a Git diff. The auth material arrives via
+          # the NTFY_AUTH_* env vars above.
+          #
+          # This block is rendered through `tpl`, so it must not contain Go
+          # template syntax. ${SECRET_DOMAIN} is a Flux postBuild substitution
+          # and resolves before Helm ever sees it.
+          server.yml: |
+            base-url: https://ntfy.${SECRET_DOMAIN}
+            listen-http: ":8080"
+
+            # Private instance: nothing is readable or publishable without
+            # credentials. Users, ACLs and tokens are provisioned declaratively
+            # through the environment.
+            auth-default-access: deny-all
+            enable-login: true
+            enable-signup: false
+
+            # ntfy takes the RIGHT-MOST entry of this header. Behind Envoy that
+            # would be the cloudflared pod IP, collapsing every internet client
+            # into one rate-limit bucket, so read Cloudflare's own header
+            # instead. Absent or invalid, ntfy falls back to the socket address -
+            # which is what makes Alertmanager's in-cluster POST work.
+            behind-proxy: true
+            proxy-forwarded-header: "Cf-Connecting-Ip"
+
+            # Separate port so /metrics is not reachable through the HTTPRoute,
+            # which publishes the 8080 port only. Setting this implicitly
+            # enables metrics, so enable-metrics would be redundant.
+            metrics-listen-http: ":9090"
+
+            # Deliberately absent: auth-file, cache-file and web-push-file are
+            # rejected alongside database-url, and attachment-cache-dir would
+            # reintroduce a volume for a feature alerting does not use.
+    persistence:
+      config:
+        type: configMap
+        # identifier, NOT name: this refers to the configMaps entry above and
+        # lets the chart resolve the generated ConfigMap's real name. A hardcoded
+        # name that does not match would mount nothing, and ntfy would silently
+        # start on defaults with auth wide open.
+        identifier: config
+        globalMounts:
+          - path: /etc/ntfy
+            readOnly: true
+      # Required by readOnlyRootFilesystem - Go writes temp files here.
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+    service:
+      app:
+        controller: ntfy
+        ports:
+          http:
+            port: *port
+            primary: true
+          metrics:
+            port: 9090
+    serviceMonitor:
+      app:
+        service:
+          identifier: app
+        endpoints:
+          - port: metrics
+    route:
+      app:
+        hostnames:
+          - "ntfy.${SECRET_DOMAIN}"
+        parentRefs:
+          # envoy-external, not -internal: the phone app holds a long-lived
+          # connection to the server, so notifications away from the LAN only
+          # work if it is reachable from the internet. Safe to publish because
+          # auth-default-access is deny-all.
+          - name: envoy-external
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              # http only - the metrics port stays off the public route
+              - identifier: app
+                port: *port

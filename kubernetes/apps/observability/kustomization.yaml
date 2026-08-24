@@ -12,6 +12,7 @@ resources:
   - ./alert-manager/ks.yaml
   - ./blackbox-exporter/ks.yaml
   - ./prometheus-adapter/ks.yaml
+  - ./ntfy/ks.yaml
 components:
   - ../../flux/components/namespace
 patches:
