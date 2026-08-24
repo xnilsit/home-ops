@@ -12,7 +12,9 @@ spec:
       - alertname
       - namespace
     groupWait: 30s
-    groupInterval: 5m
+    # 3m: this is also the retry cadence for a failed delivery, so it caps how
+    # far a notification can lag behind ntfy being rescheduled after node loss.
+    groupInterval: 3m
     repeatInterval: 4h
     routes:
       - receiver: blackhole

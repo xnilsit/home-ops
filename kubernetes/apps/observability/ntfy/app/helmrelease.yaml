@@ -37,15 +37,10 @@ spec:
 
     controllers:
       ntfy:
-        # Recreate, NOT RollingUpdate: ntfy has no clustering. Topic subscribers
-        # live in an in-process map (server.topics) and topic.Publish fans out
-        # only to that process, so during the two-pod overlap of a rolling
-        # update a phone still streaming from the old pod misses any alert the
-        # Service routes to the new one - and only sees it on reconnect, via the
-        # `since=` backfill. Recreate costs a few seconds of 503 instead, which
-        # Alertmanager retries and the phone reconnects through. Same reason
-        # replicas stays at 1 (the chart default): the delayed sender also polls
-        # without row locking, and rate-limit state is per-process.
+        # Recreate, and replicas stays at 1: ntfy has no clustering. Subscribers
+        # live in an in-process map and topic.Publish only reaches that process,
+        # so during a rolling update's two-pod overlap a client streaming from
+        # the old pod misses anything the Service routes to the new one.
         strategy: Recreate
         annotations:
           # app-template checksums its own ConfigMaps, so server.yml edits roll
@@ -134,6 +129,21 @@ spec:
               limits:
                 memory: 256Mi
     defaultPodOptions:
+      # No PriorityClass is globalDefault, so ntfy would otherwise run at 0.
+      priorityClassName: cluster-platform
+      # Overrides the tolerationSeconds: 300 that DefaultTolerationSeconds
+      # injects - the bulk of the ~6min before a replacement pod is created
+      # after a node is lost. 10s brings that under ~80s. Safe because ntfy
+      # holds no PVC and is a Deployment, so the replacement schedules at once.
+      tolerations:
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 10
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 10
       securityContext:
         # Pod level only. readOnlyRootFilesystem and capabilities belong on the
         # container - app-template's pod-level securityContext schema sets
