@@ -9,6 +9,13 @@ spec:
     name: cert-manager
   interval: 1h
   values:
+    global:
+      # The webhook is in the admission path for every Certificate and
+      # ClusterIssuer, and expiring ingress certs cannot be renewed without the
+      # controller. Built-in class rather than cluster-infra: cert-manager is
+      # installed by the bootstrap helmfile before Flux exists, so a custom
+      # class would not be created yet.
+      priorityClassName: system-cluster-critical
     crds:
       enabled: true
     replicaCount: 1

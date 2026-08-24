@@ -15,6 +15,9 @@ spec:
   releaseName: plugin-barman-cloud
   interval: 1h
   values:
+    # Serves every base backup and WAL archive call from the Postgres
+    # instances; if it is down, WAL accumulates on the PVCs.
+    priorityClassName: cluster-platform
     crds:
       create: true
     resources:

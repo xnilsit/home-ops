@@ -11,6 +11,11 @@ spec:
   values:
     global:
       imageRegistry: mirror.gcr.io
+    deployment:
+      # Without the controller no Gateway or HTTPRoute change is ever
+      # programmed into the proxies. The proxies themselves get the same class
+      # via the EnvoyProxy CR in ./envoy.yaml.
+      priorityClassName: cluster-infra
     config:
       envoyGateway:
         extensionApis:

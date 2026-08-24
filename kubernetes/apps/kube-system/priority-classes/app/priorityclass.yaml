@@ -1,16 +1,47 @@
 ---
+# The cluster's scheduling ladder, highest to lowest:
+#
+#   system-node-critical      2000001000  built-in - per-node agents
+#                                         (cilium, spegel, ceph mon/osd, tuppr)
+#   system-cluster-critical   2000000000  built-in - control-plane add-ons and
+#                                         anything installed by the bootstrap
+#                                         helmfile before Flux exists
+#                                         (coredns, metrics-server, cert-manager,
+#                                         flux, ceph mgr/rgw/csi)
+#   cluster-infra                1000000  core cluster infrastructure - the
+#                                         platform cannot serve traffic or
+#                                         provision storage without it
+#   cluster-platform              100000   operators and shared datastores -
+#                                         losing these blocks reconciliation and
+#                                         recovery, but not live traffic
+#   (default)                          0  ordinary apps and observability
+#
+# Bootstrapped components must NOT use the custom classes below: the bootstrap
+# helmfile reads spec.values straight out of their HelmReleases and installs
+# them before Flux can create these objects, so the pods would be rejected and
+# the bootstrap would hang. Use the built-ins there instead.
 # yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/scheduling.k8s.io/priorityclass_v1.json
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
   name: cluster-infra
-# Well above the default 0 that every other workload gets, but below
-# system-cluster-critical (2000000000) so control-plane add-ons still win.
-# For infrastructure the rest of the cluster (and the LAN) depends on:
-# scheduled first, preempts ordinary apps, evicted last under node pressure.
 value: 1000000
 preemptionPolicy: PreemptLowerPriority
 globalDefault: false
 description: >-
-  Critical cluster infrastructure such as DNS. Takes precedence over ordinary
-  workloads but yields to system-cluster-critical.
+  Core cluster infrastructure - DNS, ingress and the storage control plane.
+  Takes precedence over ordinary workloads but yields to
+  system-cluster-critical.
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/scheduling.k8s.io/priorityclass_v1.json
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: cluster-platform
+value: 100000
+preemptionPolicy: PreemptLowerPriority
+globalDefault: false
+description: >-
+  Operators and shared datastores. Above ordinary apps because an evicted
+  operator cannot fail over or repair the workloads it owns, but below
+  cluster-infra.

@@ -19,6 +19,8 @@ spec:
     # cluster chart creates along with the CephObjectStore
     - name: rook-ceph-cluster
       namespace: flux-system
+    - name: priority-classes
+      namespace: flux-system
   postBuild:
     substitute:
       # The operand image is the only part of this stack with an OS, so it is

@@ -10,6 +10,9 @@ spec:
     name: cloudnative-pg
   interval: 1h
   values:
+    # Postgres keeps serving if the operator goes away, but nothing can fail
+    # over, switch over or restart an instance until it is back.
+    priorityClassName: cluster-platform
     crds:
       create: true
     monitoring:

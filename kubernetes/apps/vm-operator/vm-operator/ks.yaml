@@ -14,6 +14,8 @@ spec:
   dependsOn:
     - name: vm-operator-crds
       namespace: flux-system
+    - name: priority-classes
+      namespace: flux-system
   healthChecks:
     - kind: CustomResourceDefinition
       name: vmsingles.operator.victoriametrics.com

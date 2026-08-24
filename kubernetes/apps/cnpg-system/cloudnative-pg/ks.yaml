@@ -14,6 +14,8 @@ spec:
   dependsOn:
     - name: prometheus-operator-crds
       namespace: flux-system
+    - name: priority-classes
+      namespace: flux-system
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease

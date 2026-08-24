@@ -7,6 +7,9 @@ metadata:
 spec:
   interval: 1h
   path: ./kubernetes/apps/network/envoy-gateway/app
+  dependsOn:
+    - name: priority-classes
+      namespace: flux-system
   prune: true
   sourceRef:
     kind: GitRepository

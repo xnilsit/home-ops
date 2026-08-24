@@ -131,3 +131,15 @@ spec:
             target:
               kind: Deployment
               name: kustomize-controller
+          - # The distribution ships notification-controller without a priority
+            # class, unlike its three siblings. It terminates the Receiver
+            # webhook, so without it pushes to the repo only reconcile on the
+            # next poll interval. Built-in class rather than cluster-infra:
+            # flux-instance is bootstrapped before Flux can create custom ones.
+            patch: |-
+              - op: add
+                path: /spec/template/spec/priorityClassName
+                value: system-cluster-critical
+            target:
+              kind: Deployment
+              name: notification-controller

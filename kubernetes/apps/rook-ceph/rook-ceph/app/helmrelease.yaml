@@ -38,6 +38,15 @@ spec:
     # live here now configure the ceph-csi-operator, and are rendered into
     # ../csi-drivers. Only image overrides remain valid under `csi:` here.
     cephCommandsTimeoutSeconds: "20"
+    # The operator is the only thing that can heal the cluster - restart a
+    # failed mon, replace an OSD, resize a pool. The mons, OSDs and CSI plugins
+    # it creates already carry system-node/cluster-critical from Rook itself.
+    priorityClassName: cluster-infra
+    ceph-csi-operator:
+      controllerManager:
+        # Reconciles the Driver CRs in ../csi-drivers; without it no new PVC
+        # can be attached.
+        priorityClassName: cluster-infra
     monitoring:
       enabled: true
       createPrometheusRules: true

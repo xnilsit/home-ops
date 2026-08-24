@@ -12,6 +12,10 @@ spec:
     fullnameOverride: reloader
     reloader:
       readOnlyRootFileSystem: true
+      deployment:
+        # Drives the reloader.stakater.com/auto restarts that pick up rotated
+        # secrets and rendered configs across the cluster.
+        priorityClassName: cluster-platform
       podMonitor:
         enabled: true
         namespace: "{{ .Release.Namespace }}"

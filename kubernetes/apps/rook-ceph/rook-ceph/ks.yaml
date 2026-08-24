@@ -18,6 +18,9 @@ spec:
       kind: HelmRelease
       name: rook-ceph-operator
       namespace: rook-ceph
+  dependsOn:
+    - name: priority-classes
+      namespace: flux-system
   path: ./kubernetes/apps/rook-ceph/rook-ceph/app
   prune: true
   sourceRef:

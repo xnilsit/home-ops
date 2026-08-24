@@ -31,5 +31,8 @@ spec:
     remediation:
       retries: 3
   values:
+    # Mirrors the CNPG- and cert-manager-generated secrets into the namespaces
+    # that consume them, so a stale mirror breaks apps on the next rotation.
+    priorityClassName: cluster-platform
     image:
       repository: mirror.gcr.io/emberstack/kubernetes-reflector

@@ -20,6 +20,8 @@ spec:
     # operator is not optional, so the install fails without cert-manager.
     - name: cert-manager
       namespace: flux-system
+    - name: priority-classes
+      namespace: flux-system
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease

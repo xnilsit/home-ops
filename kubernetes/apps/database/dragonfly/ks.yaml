@@ -14,6 +14,8 @@ spec:
   dependsOn:
     - name: dragonfly-operator
       namespace: flux-system
+    - name: priority-classes
+      namespace: flux-system
   healthChecks:
     - apiVersion: dragonflydb.io/v1alpha1
       kind: Dragonfly

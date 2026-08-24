@@ -12,6 +12,11 @@ spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:${PG_IMAGE_TAG}
   primaryUpdateMethod: switchover
 
+  # Shared datastore, not an app: blocky's query log writes here. The PVCs are
+  # node-local and cannot move, so an instance evicted under node pressure has
+  # to be rebuilt from scratch rather than rescheduled.
+  priorityClassName: cluster-platform
+
   # local-path is node-local and WaitForFirstConsumer. CNPG replicates at the
   # PostgreSQL layer, so 3 instances give 3 independent copies via streaming
   # replication - no need for Ceph to replicate underneath. Default pod

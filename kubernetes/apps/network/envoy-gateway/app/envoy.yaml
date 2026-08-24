@@ -12,6 +12,9 @@ spec:
     kubernetes:
       envoyDeployment:
         replicas: 2
+        pod:
+          # Every ingress request into the cluster goes through these pods.
+          priorityClassName: cluster-infra
         container:
           imageRepository: mirror.gcr.io/envoyproxy/envoy
           resources:

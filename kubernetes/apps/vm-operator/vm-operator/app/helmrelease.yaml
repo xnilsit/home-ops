@@ -38,6 +38,9 @@ spec:
   uninstall:
     keepHistory: false
   values:
+    # Reconciles every VM* CR in observability; the monitoring stack it owns
+    # stays at the default priority.
+    priorityClassName: cluster-platform
     global:
       image:
         registry: mirror.gcr.io

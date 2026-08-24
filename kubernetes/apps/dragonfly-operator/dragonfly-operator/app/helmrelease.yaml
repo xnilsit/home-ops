@@ -14,6 +14,9 @@ spec:
       install: true
       keep: true
     manager:
+      # Owns master election for the Dragonfly replicas; without it a failed
+      # master is never promoted.
+      priorityClassName: cluster-platform
       image:
         repository: ghcr.io/dragonflydb/operator
     rbacProxy:

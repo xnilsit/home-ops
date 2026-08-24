@@ -53,6 +53,9 @@ spec:
               limits:
                 memory: 256Mi
     defaultPodOptions:
+      # The only ingress path from the internet; envoy-external is not
+      # reachable without it.
+      priorityClassName: cluster-infra
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534

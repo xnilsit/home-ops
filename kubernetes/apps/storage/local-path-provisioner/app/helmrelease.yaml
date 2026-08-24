@@ -9,6 +9,8 @@ spec:
     name: local-path-provisioner
   interval: 1h
   values:
+    # Any PVC on the local-path StorageClass stays Pending without it.
+    priorityClassName: cluster-infra
     nodePathMap:
       - node: DEFAULT_PATH_FOR_NON_LISTED_NODES
         paths:

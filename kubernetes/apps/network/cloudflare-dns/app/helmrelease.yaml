@@ -10,6 +10,8 @@ spec:
   interval: 1h
   values:
     fullnameOverride: *app
+    # Owns the public DNS records for every externally reachable route.
+    priorityClassName: cluster-infra
     provider: cloudflare
     env:
       - name: CF_API_TOKEN
