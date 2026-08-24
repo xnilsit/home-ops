@@ -37,7 +37,16 @@ spec:
 
     controllers:
       ntfy:
-        strategy: RollingUpdate
+        # Recreate, NOT RollingUpdate: ntfy has no clustering. Topic subscribers
+        # live in an in-process map (server.topics) and topic.Publish fans out
+        # only to that process, so during the two-pod overlap of a rolling
+        # update a phone still streaming from the old pod misses any alert the
+        # Service routes to the new one - and only sees it on reconnect, via the
+        # `since=` backfill. Recreate costs a few seconds of 503 instead, which
+        # Alertmanager retries and the phone reconnects through. Same reason
+        # replicas stays at 1 (the chart default): the delayed sender also polls
+        # without row locking, and rate-limit state is per-process.
+        strategy: Recreate
         annotations:
           # app-template checksums its own ConfigMaps, so server.yml edits roll
           # the pod by themselves. ntfy-auth is an external Secret, so without
