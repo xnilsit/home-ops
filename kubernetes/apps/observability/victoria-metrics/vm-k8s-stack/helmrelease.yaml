@@ -80,6 +80,10 @@ spec:
     vmalert:
       enabled: true
       spec:
+        # Without this, the generatorURL vmalert puts in every alert is its own
+        # pod hostname, which is unreachable from a phone.
+        extraArgs:
+          external.url: "https://vmalert.${CLUSTER_DOMAIN}"
         # 10s, not the 300s DefaultTolerationSeconds injects - that default is
         # the bulk of the ~6min before a lost node's pod is rescheduled.
         tolerations: &fastReschedule
