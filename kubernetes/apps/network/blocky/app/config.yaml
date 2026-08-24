@@ -21,10 +21,13 @@ blocking:
       - https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/pro.txt
     tif:
       - https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/tif.txt
+    misc:
+      - https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/gambling.txt
   clientGroupsBlock:
     default:
       - ads
       - tif
+      - misc
   blockType: zeroIp
   blockTTL: 1m
   loading:
