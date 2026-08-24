@@ -1,0 +1,51 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app pg-shared
+  namespace: flux-system
+spec:
+  targetNamespace: database
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/database/pg-shared/app
+  dependsOn:
+    # The Cluster references the barman plugin, which must be running first
+    - name: barman-cloud-plugin
+      namespace: flux-system
+    # The ObjectBucketClaim needs the ceph-bucket-retain StorageClass, which
+    # that Kustomization applies alongside the CephObjectStore
+    - name: rook-ceph-cluster
+      namespace: flux-system
+    - name: priority-classes
+      namespace: flux-system
+  postBuild:
+    substitute:
+      # The operand image is the only part of this stack with an OS, so it is
+      # where security patching actually matters. It lives here rather than
+      # inline on imageName because Renovate's annotated manager captures the
+      # whole bare token after `: ` - on a combined `repo:tag` string it would
+      # capture the repository too and never resolve a version.
+      #
+      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql
+      PG_IMAGE_TAG: 18.6-minimal-trixie
+  healthChecks:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      name: *app
+      namespace: database
+  healthCheckExprs:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      failed: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'False')
+      current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  interval: 1h
+  # Three instances bootstrap serially and the first one has to pull the operand
+  timeout: 20m

@@ -1,0 +1,32 @@
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: ${APP}-postgres-store
+spec:
+  # TOP-LEVEL, not under .configuration. Pattern is ^[1-9][0-9]*[dwm]$ - no `y`.
+  retentionPolicy: ${PG_RETENTION:=30d}
+  configuration:
+    # serverName is supplied as a plugin parameter on the Cluster, not here.
+    destinationPath: s3://cnpg-backup/
+    endpointURL: http://rook-ceph-rgw-ceph-objectstore.rook-ceph.svc:80
+    # Secret and key names come from the OBC, which names its Secret after itself
+    s3Credentials:
+      accessKeyId:
+        name: ${APP}-postgres-backup
+        key: AWS_ACCESS_KEY_ID
+      secretAccessKey:
+        name: ${APP}-postgres-backup
+        key: AWS_SECRET_ACCESS_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+  instanceSidecarConfiguration:
+    # The sidecar ships with NO default limits.
+    resources:
+      limits:
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi

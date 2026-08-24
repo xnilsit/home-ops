@@ -1,0 +1,12 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  # Order matters on first reconcile: the OBC grants this namespace access to
+  # the shared bucket, and the Cluster cannot archive before that exists.
+  - ./objectbucketclaim.yaml
+  - ./objectstore.yaml
+  - ./cluster.yaml
+  - ./scheduledbackup.yaml
+  - ./podmonitor.yaml

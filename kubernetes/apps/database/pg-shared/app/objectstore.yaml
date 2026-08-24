@@ -1,0 +1,40 @@
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: pg-shared-store
+spec:
+  # TOP-LEVEL, not under .configuration. The plugin's own concepts.md documents
+  # it in the wrong place; the CRD schema and every other page use top-level.
+  # Pattern is ^[1-9][0-9]*[dwm]$ - no `y`.
+  retentionPolicy: 30d
+  configuration:
+    # serverName is deliberately unset - it exists only for in-tree API
+    # compatibility, and is supplied as a plugin parameter on the Cluster. That
+    # matters more here than for timescale: cnpg-backup is shared, so serverName
+    # is the only thing keeping one cluster's backups out of another's.
+    #
+    # Bucket name must match the ObjectBucketClaim's spec.bucketName
+    destinationPath: s3://cnpg-backup/
+    endpointURL: http://rook-ceph-rgw-ceph-objectstore.rook-ceph.svc:80
+    # Secret and key names come from the OBC, which names its Secret after itself
+    s3Credentials:
+      accessKeyId:
+        name: cnpg-backup
+        key: AWS_ACCESS_KEY_ID
+      secretAccessKey:
+        name: cnpg-backup
+        key: AWS_SECRET_ACCESS_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+  instanceSidecarConfiguration:
+    # The sidecar ships with NO default limits, and these apply to every Cluster
+    # using this ObjectStore.
+    resources:
+      limits:
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi

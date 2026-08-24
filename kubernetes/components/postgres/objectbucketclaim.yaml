@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/objectbucket.io/objectbucketclaim_v1alpha1.json
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: ${APP}-postgres-backup
+spec:
+  # Both bucketName and generateBucketName are deliberately UNSET. That is what
+  # makes this a brownfield claim: Rook then takes the bucket name from the
+  # StorageClass instead and calls Grant() rather than Provision(), so this
+  # namespace gets its own rgw user and its own credentials Secret while the
+  # cnpg-backup bucket itself stays owned by the pg-shared claim that created it.
+  #
+  # This claim exists purely to put bucket credentials in the app's namespace: a
+  # barman ObjectStore is namespace-scoped and its s3Credentials are
+  # SecretKeySelectors, and the Secret an OBC generates carries no annotations,
+  # so reflector cannot mirror one in from elsewhere.
+  storageClassName: ceph-bucket-cnpg-backup

@@ -1,0 +1,15 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/database_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: ntfy
+spec:
+  name: ntfy
+  owner: ntfy
+  cluster:
+    name: pg-shared
+    # No extensions: ntfy creates and migrates its own schema on first start. The
+    # owner role comes from databaserole-ntfy.yaml in this same Kustomization, so
+    # the first reconcile can fail with "role does not exist" before settling on
+    # retry.
