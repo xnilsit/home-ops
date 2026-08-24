@@ -1,0 +1,33 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/grafana.integreatly.org/grafanadashboard_v1beta1.json
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: cloudnative-pg
+spec:
+  datasources:
+    - datasourceName: prometheus
+      inputName: DS_PROMETHEUS
+    # The dashboard declares a SECOND input: one stat panel has a target on
+    # Grafana's built-in expression datasource, whose uid is the literal
+    # `__expr__`. The operator's resolveDatasources is a plain ReplaceAll of
+    # ${inputName} with datasourceName and never looks the datasource up, so
+    # this substitutes correctly even though no GrafanaDatasource named
+    # `__expr__` exists. Omitting it would leave a literal ${DS_EXPRESSION} in
+    # that panel's uid and break it.
+    - datasourceName: "__expr__"
+      inputName: DS_EXPRESSION
+  # NOT grafana.com dashboard 20417, and not the cluster-v0.0.5 tag: both
+  # predate the barman-cloud fix. The in-core backup metrics
+  # cnpg_collector_{last_available,last_failed}_backup_timestamp and
+  # first_recoverability_point are deprecated since CNPG 1.26 and sit at 0 for
+  # clusters backed up by the barman-cloud CNPG-I plugin, which exports
+  # barman_cloud_cloudnative_pg_io_* instead. Verified against this cluster: the
+  # in-core metric reads 0 on all 6 instances while the plugin metric carries
+  # real timestamps, so the backup panels would show no data.
+  #
+  # Upstream fixed it by querying both names under max(), but only on main - the
+  # newest tag is still cluster-v0.0.5. Consequence of tracking main: the
+  # dashboard is unpinned and can change under us on any resync. Switch to a
+  # tag, which Renovate can then track, once one ships the fix.
+  url: "https://raw.githubusercontent.com/cloudnative-pg/grafana-dashboards/refs/heads/main/charts/cluster/grafana-dashboard.json"
