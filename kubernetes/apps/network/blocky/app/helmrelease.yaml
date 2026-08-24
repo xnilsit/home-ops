@@ -26,7 +26,7 @@ spec:
               repository: ghcr.io/0xerr0r/blocky
               tag: v0.34.0
             probes:
-              liveness: &probes
+              startup: &probe
                 enabled: true
                 custom: true
                 spec:
@@ -35,10 +35,11 @@ spec:
                       - "/app/blocky"
                       - "healthcheck"
                   initialDelaySeconds: 5
-                  periodSeconds: 10
-                  timeoutSeconds: 5
-                  failureThreshold: 3
-              readiness: *probes
+                  periodSeconds: 5
+                  timeoutSeconds: 3
+                  failureThreshold: 5
+              readiness: *probe
+              liveness: *probe
             securityContext:
               allowPrivilegeEscalation: false
               readOnlyRootFilesystem: true
