@@ -3,6 +3,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+  - ./grafanadashboard.yaml
   - ./helmrelease.yaml
   - ./ocirepository.yaml
   - ./secret.sops.yaml
@@ -27,3 +28,22 @@ generatorOptions:
   # Consequence: edits change it in place without rolling the pod, which is what
   # the configmap reloader annotation on the controller is for.
   disableNameSuffixHash: true
+replacements:
+  # Keeps the upstream dashboard on the tag of the running image. Renovate's
+  # grafanaDashboards preset only tracks grafana.com URLs, so a hand-pinned
+  # raw.githubusercontent tag would silently drift behind the image.
+  - source:
+      kind: HelmRelease
+      name: ntfy
+      fieldPath: spec.values.controllers.ntfy.containers.app.image.tag
+    targets:
+      - select:
+          kind: GrafanaDashboard
+          name: ntfy
+        fieldPaths:
+          - spec.url
+        options:
+          # The tag is the 6th "/"-separated segment of the URL. Positional, so
+          # the placeholder tag in grafanadashboard.yaml must stay in that slot.
+          delimiter: /
+          index: 5
