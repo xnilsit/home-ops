@@ -41,6 +41,10 @@ caching:
   minTime: 5m
   maxTime: 30m
   prefetching: true
+  prefetchExpires: 2h
+  prefetchThreshold: 10
+  prefetchMaxItemsCount: 0
+  cacheTimeNegative: -1
 redis:
   address: dragonfly.database.svc.cluster.local:6379
   password: file:/run/secrets/dragonfly/password
