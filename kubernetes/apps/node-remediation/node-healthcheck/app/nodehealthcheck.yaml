@@ -4,9 +4,12 @@ kind: NodeHealthCheck
 metadata:
   name: node-healthcheck
 spec:
-  # Empty selector: all three nodes are control-plane, so there is no worker
-  # pool to scope this to.
-  selector: {}
+  # Every node, since all three are control-plane and there is no worker pool to
+  # scope this to. Spelled out rather than `{}` because the validating webhook
+  # rejects a selector with no matchLabels and no matchExpressions.
+  selector:
+    matchLabels:
+      kubernetes.io/os: linux
   # 51% of 3 nodes requires 2 healthy, so one lost node is remediated and two
   # are not - which is the guardrail against fencing on a network partition.
   minHealthy: "51%"
