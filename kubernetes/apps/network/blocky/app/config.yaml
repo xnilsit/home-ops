@@ -14,6 +14,8 @@ conditional:
   fallbackUpstream: false
   mapping:
     localdomain: 192.168.0.1
+    # USG dnsmasq re-serves cached NODATA without the SOA, so clients can't negative-cache
+    home-connect.com: tcp-tls:1.1.1.1:853,tcp-tls:9.9.9.9:853
     .: 192.168.0.1
 blocking:
   denylists:
