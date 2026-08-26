@@ -33,12 +33,17 @@ in `kubernetes/apps/garage/` and applied by
 
    ```sh
    docker exec garage /garage status                        # note the node id
-   docker exec garage /garage layout assign -z nas -c 2T <node-id>
+   docker exec garage /garage layout assign -z nas -c 500GB <node-id>
    docker exec garage /garage layout apply --version 1
    docker exec garage /garage status                        # node now shows capacity
    ```
 
-   Pick `-c` to match what you want to hand Garage on that volume.
+   `-c` is a byte size, suffixes `B KB MB GB TB PB` (decimal) or `KiB MiB GiB TiB` (binary) —
+   a bare `2T` does not parse. It is the weight Garage spreads partitions by, not a quota: with
+   one node every partition lands here whatever the number, and Garage keeps accepting writes
+   past it until `/volume1` is actually full. Size it off what the backups weigh
+   (`kubectl rook-ceph radosgw-admin bucket stats --bucket=cnpg-backup`) times roughly 3 for
+   retention churn, and re-run `layout assign` plus `layout apply --version <n+1>` to change it.
 
 6. Check the Admin API answers from a cluster node, which is what the operator needs:
 

@@ -10,5 +10,6 @@ spec:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy
   ref:
-    tag: v0.7.6
+    # Chart tags carry no `v` prefix, unlike the operator's GitHub releases
+    tag: 0.7.6
   url: oci://ghcr.io/rajsinghtech/charts/garage-operator

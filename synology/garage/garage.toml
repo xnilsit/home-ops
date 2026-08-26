@@ -6,8 +6,8 @@
 # of git and out of Garage's world-readable-secret check on this file.
 metadata_dir = "/var/lib/garage/meta"
 data_dir = "/var/lib/garage/data"
-# sqlite rather than Garage's recommended lmdb - a single sparse file survives
-# DSM snapshots and manual copies better than an mmap'd lmdb store.
+# sqlite, not the lmdb default: slower, but free of lmdb's mmap and
+# unclean-shutdown failure modes - the right trade on a NAS holding backups.
 db_engine = "sqlite"
 
 # Single node - Garage itself holds exactly one copy. The redundancy story is
