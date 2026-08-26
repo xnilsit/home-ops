@@ -1,0 +1,93 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: garage-webui
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: garage-webui
+  interval: 1h
+  values:
+    controllers:
+      garage-webui:
+        # Sessions live in an in-process map (scs memstore), so a second replica
+        # would reject cookies minted by the first and a restart logs everyone
+        # out. Single replica, and Recreate rather than RollingUpdate.
+        strategy: Recreate
+        annotations:
+          secret.reloader.stakater.com/reload: garage-webui-auth,garage-credentials
+        containers:
+          app:
+            image:
+              repository: docker.io/khairul169/garage-webui
+              tag: 1.1.0
+            env:
+              # Env wins over the garage.toml the image expects at
+              # /etc/garage.toml. That file is on the NAS, not here, so the
+              # startup log carries one "Cannot load garage config!" line - the
+              # four values below are everything it reads out of it.
+              API_BASE_URL: http://192.168.0.200:3903
+              S3_ENDPOINT_URL: http://192.168.0.200:3900
+              S3_REGION: eu-central-1
+              API_ADMIN_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: garage-credentials
+                    key: admin-token
+              # Without this the API layer is unauthenticated - and it can read
+              # every S3 secret key in Garage via GetKeyInfo?showSecretKey=true.
+              AUTH_USER_PASS:
+                valueFrom:
+                  secretKeyRef:
+                    name: garage-webui-auth
+                    key: AUTH_USER_PASS
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: &port 3909
+                  initialDelaySeconds: 5
+                  periodSeconds: 30
+                  timeoutSeconds: 2
+                  failureThreshold: 3
+              readiness: *probes
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 128Mi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+    service:
+      app:
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        hostnames:
+          - "garage.${SECRET_DOMAIN}"
+        # envoy-internal only: this is full administrative control of Garage,
+        # including read access to every S3 credential it holds.
+        parentRefs:
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port

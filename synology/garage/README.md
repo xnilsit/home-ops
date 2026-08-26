@@ -54,6 +54,11 @@ in `kubernetes/apps/garage/` and applied by
 
 ## Day-to-day
 
+`garage.${SECRET_DOMAIN}` (garage-webui, in the `garage` namespace, LAN-only behind
+envoy-internal) shows the same cluster, bucket and key state in a browser. It holds the admin
+token, so it can read every S3 secret key Garage stores — hence the password on it and no
+external route.
+
 ```sh
 docker exec garage /garage status              # node health and layout
 docker exec garage /garage bucket list         # what the operator has created
