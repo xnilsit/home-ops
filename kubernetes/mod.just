@@ -37,6 +37,33 @@ bench-rgw:
 bench-rgw-logs:
     kubectl --namespace rook-ceph logs --follow job/rgw-benchmark
 
+migrate_dir := source_directory() / 'apps/garage/rgw-to-garage'
+
+[doc('Copy the CNPG backup buckets from Ceph RGW to Garage on the NAS')]
+[group('kube')]
+migrate-cnpg-backups:
+    # A Job is immutable, so a rerun has to replace it. Rerunning is safe: both
+    # Jobs run `rclone copy`, which never deletes at the destination.
+    just log info "Replacing any previous copy Jobs"
+    kubectl --namespace database delete --ignore-not-found \
+        job/rgw-to-garage-cnpg-backup job/rgw-to-garage-timescale-backup
+    kubectl apply -f '{{ migrate_dir }}/job.yaml'
+    just log info "Copy started - follow with: just kube migrate-cnpg-backups-logs"
+
+[doc('Follow the running RGW-to-Garage copy Jobs')]
+[group('kube')]
+migrate-cnpg-backups-logs:
+    # --max-log-requests must clear the pod count or kubectl refuses to stream
+    kubectl --namespace database logs --follow --prefix --max-log-requests 4 \
+        --selector app.kubernetes.io/name=rgw-to-garage
+
+[doc('Wait for the RGW-to-Garage copy Jobs to finish')]
+[group('kube')]
+migrate-cnpg-backups-wait:
+    kubectl --namespace database wait job/rgw-to-garage-cnpg-backup \
+        job/rgw-to-garage-timescale-backup --for=condition=Complete --timeout=6h
+    just log info "Both buckets copied"
+
 [doc('Delete the RGW warp benchmark Job and its bucket claim')]
 [group('kube')]
 bench-rgw-clean:

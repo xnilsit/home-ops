@@ -1,0 +1,41 @@
+---
+# One key per bucket, each writing a Secret shaped the way a barman-cloud
+# ObjectStore expects. The Secrets live here; reflector mirrors them into
+# database, where the ObjectStores are - a barman ObjectStore is
+# namespace-scoped and its s3Credentials are SecretKeySelectors, so the
+# credentials have to exist in the consuming namespace.
+apiVersion: v1
+kind: List
+items:
+  - <<: &key {apiVersion: garage.rajsingh.info/v1beta1, kind: GarageKey}
+    metadata: {name: cnpg-backup}
+    spec:
+      clusterRef: {name: nas}
+      neverExpires: true
+      secretTemplate:
+        <<: &template
+          accessKeyIdKey: AWS_ACCESS_KEY_ID
+          secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
+          # Garage checks the region in the SigV4 credential scope and rejects a
+          # mismatch, so barman has to be told it. Hardcoded rather than
+          # includeRegion: the operator derives that from spec.s3Api.region,
+          # which a tier-less management handle does not carry - it would default
+          # to "garage" and every request would fail to authenticate.
+          includeRegion: false
+          additionalData: {AWS_REGION: eu-central-1}
+          annotations:
+            reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+            reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: database
+        name: garage-cnpg-backup
+      bucketPermissions:
+        - {bucketRef: {name: cnpg-backup}, read: true, write: true}
+  - <<: *key
+    metadata: {name: timescale-backup}
+    spec:
+      clusterRef: {name: nas}
+      neverExpires: true
+      secretTemplate:
+        <<: *template
+        name: garage-timescale-backup
+      bucketPermissions:
+        - {bucketRef: {name: timescale-backup}, read: true, write: true}

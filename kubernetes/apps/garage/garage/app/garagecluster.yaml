@@ -1,0 +1,22 @@
+---
+# A GarageCluster with only spec.connectTo set is a MANAGEMENT HANDLE: the
+# operator provisions no StatefulSet, PVCs or Services and touches nothing but
+# the Admin API of the Garage running in Docker on the NAS. Adding spec.storage
+# or spec.gateway here would make the operator start deploying Garage in-cluster.
+apiVersion: garage.rajsingh.info/v1beta2
+kind: GarageCluster
+metadata:
+  name: nas
+spec:
+  connectTo:
+    adminApiEndpoint: http://192.168.0.200:3903
+    adminTokenSecretRef:
+      name: garage-credentials
+      key: admin-token
+  network:
+    # Only needed because the GarageKeys below let the operator DERIVE key
+    # material; without an RPC identity a handle can only adopt keys via
+    # spec.importKey. Must be the same rpc_secret the NAS container runs with.
+    rpcSecretRef:
+      name: garage-credentials
+      key: rpc-secret

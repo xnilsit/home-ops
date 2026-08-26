@@ -12,17 +12,26 @@ spec:
     # serverName is deliberately unset - it exists only for in-tree API
     # compatibility, and is supplied as a plugin parameter on the Cluster.
     #
-    # Bucket name must match the ObjectBucketClaim's spec.bucketName
+    # Bucket name must match the GarageBucket in kubernetes/apps/garage
     destinationPath: s3://timescale-backup/
-    endpointURL: http://rook-ceph-rgw-ceph-objectstore.rook-ceph.svc:80
-    # Secret and key names come from the OBC, which names its Secret after itself
+    # Garage on the NAS, deliberately by IP rather than through
+    # s3.${SECRET_DOMAIN}: backups must not depend on the ingress path, and
+    # multipart uploads have no reason to cross Envoy.
+    endpointURL: http://192.168.0.200:3900
+    # Written by the GarageKey in kubernetes/apps/garage and mirrored into this
+    # namespace by reflector - see ./secret-garage.yaml
     s3Credentials:
       accessKeyId:
-        name: timescale-backup
+        name: garage-timescale-backup
         key: AWS_ACCESS_KEY_ID
       secretAccessKey:
-        name: timescale-backup
+        name: garage-timescale-backup
         key: AWS_SECRET_ACCESS_KEY
+      # Garage checks the region in the SigV4 credential scope and rejects a
+      # mismatch. RGW ignored the value, so this had no reason to be set before.
+      region:
+        name: garage-timescale-backup
+        key: AWS_REGION
     wal:
       compression: gzip
     data:

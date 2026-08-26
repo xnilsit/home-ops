@@ -1,0 +1,12 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Order matters on first reconcile: the handle needs the credentials, and the
+  # buckets and keys only start reconciling once the handle reaches Running.
+  - ./secret.sops.yaml
+  - ./garagecluster.yaml
+  - ./garagebucket.yaml
+  - ./garagekey.yaml
+  - ./httproute.yaml

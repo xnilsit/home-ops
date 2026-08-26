@@ -1,0 +1,124 @@
+---
+# NOT MANAGED BY FLUX - one-shot migration of the CNPG backup buckets out of
+# Ceph RGW and onto Garage on the NAS. Run with `just kube migrate-cnpg-backups`.
+#
+# Runs in `database` because that is the one namespace holding both credential
+# sets: the OBC-generated RGW Secrets and the reflected garage-* Secrets.
+#
+# `rclone copy`, never `sync`: copy never deletes at the destination, so a
+# mistake here cannot destroy backup data. Barman's own retention cleans up
+# whatever it considers expired once it owns the Garage bucket.
+apiVersion: v1
+kind: List
+items:
+  - <<: &job {apiVersion: batch/v1, kind: Job}
+    metadata: {name: rgw-to-garage-cnpg-backup, namespace: database}
+    spec:
+      <<: &jobspec
+        # The failure worth retrying is a transient NAS or network hiccup
+        # mid-transfer; a rerun resumes rather than restarts.
+        backoffLimit: 2
+        activeDeadlineSeconds: 21600
+        # Safe only because Flux does not own this Job - under Flux a
+        # garbage-collected Job would be recreated and re-run on next reconcile.
+        ttlSecondsAfterFinished: 86400
+      template:
+        # Both Jobs share the label so one `kubectl logs -l` follows both
+        metadata: {labels: &podLabels {app.kubernetes.io/name: rgw-to-garage}}
+        spec:
+          <<: &podspec
+            restartPolicy: Never
+            # Default priority on purpose: a bulk copy must be evicted before
+            # anything that serves traffic or reconciles the cluster.
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 65534
+              runAsGroup: 65534
+              seccompProfile: {type: RuntimeDefault}
+          containers:
+            - <<: &container
+                name: rclone
+                image: mirror.gcr.io/rclone/rclone:1.75.0
+                command:
+                  - "/bin/sh"
+                  - "-c"
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+                  capabilities: {drop: ["ALL"]}
+                resources:
+                  requests: {cpu: 200m, memory: 256Mi}
+                  limits: {memory: 1Gi}
+              args:
+                - |
+                  set -eu
+                  # Default size+modtime comparison: rclone writes the source
+                  # mtime into S3 object metadata, so a second pass over
+                  # already-copied objects is a no-op. --checksum would compare
+                  # ETags, which differ between RGW and Garage for every
+                  # multipart object and would re-upload the whole bucket.
+                  exec rclone copy rgw:cnpg-backup garage:cnpg-backup \
+                    --transfers 8 \
+                    --fast-list \
+                    --s3-no-check-bucket \
+                    --stats 30s \
+                    --stats-one-line
+              env:
+                - <<: &rgwType {name: RCLONE_CONFIG_RGW_TYPE, value: s3}
+                - <<: &rgwProvider {name: RCLONE_CONFIG_RGW_PROVIDER, value: Ceph}
+                - <<: &rgwEndpoint
+                    name: RCLONE_CONFIG_RGW_ENDPOINT
+                    value: http://rook-ceph-rgw-ceph-objectstore.rook-ceph.svc:80
+                - <<: &rgwRegion {name: RCLONE_CONFIG_RGW_REGION, value: us-east-1}
+                - name: RCLONE_CONFIG_RGW_ACCESS_KEY_ID
+                  valueFrom: {secretKeyRef: {name: cnpg-backup, key: AWS_ACCESS_KEY_ID}}
+                - name: RCLONE_CONFIG_RGW_SECRET_ACCESS_KEY
+                  valueFrom: {secretKeyRef: {name: cnpg-backup, key: AWS_SECRET_ACCESS_KEY}}
+                - <<: &garageType {name: RCLONE_CONFIG_GARAGE_TYPE, value: s3}
+                # Garage is not one of rclone's known providers; Other keeps it
+                # off provider-specific request shapes only RGW accepts.
+                - <<: &garageProvider {name: RCLONE_CONFIG_GARAGE_PROVIDER, value: Other}
+                - <<: &garageEndpoint {name: RCLONE_CONFIG_GARAGE_ENDPOINT, value: "http://192.168.0.200:3900"}
+                # Garage rejects a SigV4 scope with the wrong region outright -
+                # a mismatch here fails the whole copy, not part of it.
+                - <<: &garageRegion {name: RCLONE_CONFIG_GARAGE_REGION, value: eu-central-1}
+                - name: RCLONE_CONFIG_GARAGE_ACCESS_KEY_ID
+                  valueFrom: {secretKeyRef: {name: garage-cnpg-backup, key: AWS_ACCESS_KEY_ID}}
+                - name: RCLONE_CONFIG_GARAGE_SECRET_ACCESS_KEY
+                  valueFrom: {secretKeyRef: {name: garage-cnpg-backup, key: AWS_SECRET_ACCESS_KEY}}
+  - <<: *job
+    metadata: {name: rgw-to-garage-timescale-backup, namespace: database}
+    spec:
+      <<: *jobspec
+      template:
+        metadata: {labels: *podLabels}
+        spec:
+          <<: *podspec
+          containers:
+            - <<: *container
+              args:
+                - |
+                  set -eu
+                  exec rclone copy rgw:timescale-backup garage:timescale-backup \
+                    --transfers 8 \
+                    --fast-list \
+                    --s3-no-check-bucket \
+                    --stats 30s \
+                    --stats-one-line
+              env:
+                - *rgwType
+                - *rgwProvider
+                - *rgwEndpoint
+                - *rgwRegion
+                - name: RCLONE_CONFIG_RGW_ACCESS_KEY_ID
+                  valueFrom: {secretKeyRef: {name: timescale-backup, key: AWS_ACCESS_KEY_ID}}
+                - name: RCLONE_CONFIG_RGW_SECRET_ACCESS_KEY
+                  valueFrom: {secretKeyRef: {name: timescale-backup, key: AWS_SECRET_ACCESS_KEY}}
+                - *garageType
+                - *garageProvider
+                - *garageEndpoint
+                - *garageRegion
+                - name: RCLONE_CONFIG_GARAGE_ACCESS_KEY_ID
+                  valueFrom: {secretKeyRef: {name: garage-timescale-backup, key: AWS_ACCESS_KEY_ID}}
+                - name: RCLONE_CONFIG_GARAGE_SECRET_ACCESS_KEY
+                  valueFrom: {secretKeyRef: {name: garage-timescale-backup, key: AWS_SECRET_ACCESS_KEY}}
