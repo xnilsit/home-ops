@@ -1,0 +1,22 @@
+---
+services:
+  garage:
+    image: dxflrs/garage:v2.3.0
+    container_name: garage
+    # 3900-3903 are free on DSM, and host networking keeps rpc_public_addr honest
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      # Fail the container rather than start Garage with no RPC identity
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:?}
+    volumes:
+      - /volume1/docker/garage/garage.toml:/etc/garage.toml:ro
+      - /volume1/docker/garage/meta:/var/lib/garage/meta
+      - /volume1/garage/data:/var/lib/garage/data
+    logging:
+      # DSM's default json-file driver is unbounded
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

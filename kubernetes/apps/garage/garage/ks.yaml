@@ -1,0 +1,48 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app garage
+  namespace: flux-system
+spec:
+  targetNamespace: garage
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/garage/garage/app
+  dependsOn:
+    - name: garage-operator
+      namespace: flux-system
+    # The HTTPRoute's Backend needs the envoy gateway CRDs and envoy-internal
+    - name: envoy-gateway
+      namespace: flux-system
+  healthChecks:
+    - apiVersion: garage.rajsingh.info/v1beta2
+      kind: GarageCluster
+      name: nas
+      namespace: garage
+    - <<: &key {apiVersion: garage.rajsingh.info/v1beta1, kind: GarageKey, namespace: garage}
+      name: cnpg-backup
+    - <<: *key
+      name: timescale-backup
+  healthCheckExprs:
+    # A management handle reports Running once the NAS Admin API answers - there
+    # are no pods for it to derive readiness from. Buckets and keys do not start
+    # reconciling before that, so gating on it is what makes `dependsOn: garage`
+    # in the database Kustomizations mean "credentials exist".
+    - apiVersion: garage.rajsingh.info/v1beta2
+      kind: GarageCluster
+      failed: status.phase == 'Failed'
+      current: status.phase == 'Running'
+    - apiVersion: garage.rajsingh.info/v1beta1
+      kind: GarageKey
+      failed: status.phase in ['Failed', 'Expired']
+      current: status.phase == 'Ready'
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  interval: 1h
+  timeout: 10m

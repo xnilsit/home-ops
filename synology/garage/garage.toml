@@ -1,0 +1,27 @@
+# Garage on the Synology NAS (192.168.0.200). Copied by hand to
+# /volume1/docker/garage/garage.toml - nothing in the cluster applies this.
+#
+# rpc_secret and admin_token are deliberately absent: they come from the
+# GARAGE_RPC_SECRET / GARAGE_ADMIN_TOKEN env vars in .env, which keeps them out
+# of git and out of Garage's world-readable-secret check on this file.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+# sqlite, not the lmdb default: slower, but free of lmdb's mmap and
+# unclean-shutdown failure modes - the right trade on a NAS holding backups.
+db_engine = "sqlite"
+
+# Single node - Garage itself holds exactly one copy. The redundancy story is
+# the Ceph RGW buckets this replaces, kept as a cold copy.
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "192.168.0.200:3901"
+
+[s3_api]
+api_bind_addr = "[::]:3900"
+# Garage checks the region in the SigV4 credential scope and rejects a mismatch,
+# so every client has to send this exact value.
+s3_region = "eu-central-1"
+
+[admin]
+api_bind_addr = "[::]:3903"

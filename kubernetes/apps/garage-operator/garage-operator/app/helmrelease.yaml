@@ -1,0 +1,34 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: garage-operator
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: garage-operator
+  interval: 1h
+  values:
+    crds:
+      install: true
+      keep: true
+    # Without it a reconcile of the buckets and keys the CNPG backups depend on
+    # can be evicted by an ordinary app.
+    priorityClassName: cluster-platform
+    # Needed for the v1beta1/v1beta2 conversion webhook, not just admission.
+    # cert-manager mints the certs from a chart-created self-signed Issuer.
+    webhooks:
+      enabled: true
+      certManager:
+        enabled: true
+    serviceMonitor:
+      enabled: true
+    # Sidecar-discovered ConfigMap; this cluster runs grafana-operator and
+    # imports dashboards as GrafanaDashboard CRs instead.
+    grafanaDashboard:
+      enabled: false
+    # The rules alert on storage/gateway pod health, which a management handle
+    # never has - they would fire on a cluster the operator owns no workload for.
+    prometheusRules:
+      enabled: false

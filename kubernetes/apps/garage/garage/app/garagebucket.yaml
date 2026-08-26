@@ -1,0 +1,18 @@
+---
+# The two CNPG backup buckets, named exactly as in Ceph RGW so the copied barman
+# catalogs and the ObjectStore destinationPaths carry over unchanged.
+#
+# Deliberately NO quotas on either: barman archives WAL continuously, and a
+# bucket that starts rejecting writes leaves the primary's pg_wal growing until
+# its local disk fills.
+apiVersion: v1
+kind: List
+items:
+  - <<: &bucket {apiVersion: garage.rajsingh.info/v1beta1, kind: GarageBucket}
+    metadata: {name: cnpg-backup}
+    # Retain, not the Delete default: deleting the CR must not take the Postgres
+    # backups with it.
+    spec: &spec {clusterRef: {name: nas}, deletionPolicy: Retain}
+  - <<: *bucket
+    metadata: {name: timescale-backup}
+    spec: *spec

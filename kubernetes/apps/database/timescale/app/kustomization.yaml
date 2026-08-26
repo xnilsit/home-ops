@@ -3,9 +3,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  # Order matters on first reconcile: the bucket must exist before the Cluster
-  # starts archiving, since barman-cloud >= 3.16 no longer auto-creates it.
+  # Kept after the move to Garage: the claim is reclaimPolicy Retain and the RGW
+  # bucket it owns is the cold copy of everything archived before the cutover.
   - ./objectbucketclaim.yaml
+  # Must precede the ObjectStore, which reads the mirrored Garage credentials
+  # out of it.
+  - ./secret-garage.yaml
   - ./objectstore.yaml
   # Must precede cluster.yaml: managed.roles cannot create blocky_ro
   # without its password secret.
