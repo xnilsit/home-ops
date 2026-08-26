@@ -4,6 +4,10 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: timescale
+  annotations:
+    # Required by the recovery bootstrap below: CNPG otherwise refuses to start
+    # archiving when the destination prefix already holds WALs.
+    cnpg.io/skipEmptyWalArchiveCheck: "enabled"
 spec:
   instances: 3
   # Tag comes from PG_IMAGE_TAG in ks.yaml so Renovate can bump it; `18-*` alone
@@ -65,10 +69,29 @@ spec:
       maintenance_work_mem: 256MB
       wal_compression: "on"
 
+  # Auto-restore, not initdb: recreating this Cluster after total loss (all
+  # three node-local PVCs gone) restores from Garage instead of coming up
+  # empty. The section is only read at creation, so it is inert while the
+  # cluster lives - switching it does NOT restore the running cluster.
   bootstrap:
-    initdb:
+    recovery:
+      source: &archive timescale-archive
       database: blocky
       owner: blocky
+
+  # Read side of the same ObjectStore. serverName is EXPLICIT: for an
+  # externalCluster the plugin defaults it to this entry's name, which would
+  # point at a prefix that does not exist. The archiver below leaves it unset,
+  # so it defaults to the cluster name - hence `timescale`.
+  externalClusters:
+    - name: *archive
+      plugin:
+        enabled: true
+        isWALArchiver: false
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: timescale-store
+          serverName: timescale
 
   managed:
     roles:

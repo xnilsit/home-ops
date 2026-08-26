@@ -1,0 +1,55 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# Opt-in auto-restore, layered on ../postgres. List it AFTER that component:
+#
+#   components:
+#     - ../../../../components/postgres
+#     - ../../../../components/postgres-recovery
+#
+# Deliberately a second component rather than a substitution variable: envsubst
+# replaces strings, and swapping the bootstrap method means removing one YAML
+# block and adding two.
+#
+# NOT safe on a first deploy. A recovery bootstrap with nothing in the object
+# store leaves the Cluster stuck and fails the ks.yaml health check, so a new
+# app ships on ../postgres alone and adds this line once its first
+# ScheduledBackup has completed.
+patches:
+  # No `target:` on purpose - there, `name` is a REGEX and `${APP}-postgres`
+  # would never match ($ anchors). With the selector taken from the patch body
+  # instead, the name is matched literally.
+  - patch: |-
+      ---
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      metadata:
+        name: ${APP}-postgres
+        annotations:
+          # Recovery archives into a prefix that already holds WALs, which CNPG
+          # otherwise refuses to do.
+          cnpg.io/skipEmptyWalArchiveCheck: "enabled"
+      spec:
+        bootstrap:
+          # replace, not merge: leaving ../postgres's initdb in place alongside
+          # recovery is rejected with "Only one bootstrap method can be
+          # specified at a time".
+          $patch: replace
+          recovery:
+            source: ${APP}-postgres-archive
+            database: ${APP}
+            owner: ${APP}
+        # Read side of the ObjectStore ../postgres already archives to. Both
+        # serverNames are explicit and equal: the plugin defaults an
+        # externalCluster's to that entry's own name, which is not a prefix that
+        # exists.
+        externalClusters:
+          - name: ${APP}-postgres-archive
+            plugin:
+              enabled: true
+              isWALArchiver: false
+              name: barman-cloud.cloudnative-pg.io
+              parameters:
+                barmanObjectName: ${APP}-postgres-store
+                serverName: ${APP}-postgres

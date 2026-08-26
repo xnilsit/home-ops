@@ -4,6 +4,10 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: pg-shared
+  annotations:
+    # Required by the recovery bootstrap below: CNPG otherwise refuses to start
+    # archiving when the destination prefix already holds WALs.
+    cnpg.io/skipEmptyWalArchiveCheck: "enabled"
 spec:
   instances: 3
   # Tag comes from PG_IMAGE_TAG in ks.yaml so Renovate can bump it; `18-*` alone
@@ -43,15 +47,33 @@ spec:
     annotations:
       reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
 
-  # CNPG always bootstraps one database, so this is just its default (app/app)
-  # made explicit - nothing uses it. Every real consumer gets its own Database
-  # and DatabaseRole CR instead of an entry here or in managed.roles, so
-  # onboarding an app is one new file rather than an edit to a list every other
-  # consumer already depends on.
+  # Auto-restore, not initdb: recreating this Cluster after total loss (all
+  # three node-local PVCs gone) restores from Garage instead of coming up
+  # empty. The section is only read at creation, so it is inert while the
+  # cluster lives - switching it does NOT restore the running cluster.
+  #
+  # database/owner are the app database CNPG names in the generated
+  # `pg-shared-app` secret - kept at app/app, which nothing uses. Every real
+  # consumer gets its own Database and DatabaseRole CR.
   bootstrap:
-    initdb:
+    recovery:
+      source: &archive pg-shared-archive
       database: app
       owner: app
+
+  # Read side of the same ObjectStore. serverName is EXPLICIT: for an
+  # externalCluster the plugin defaults it to this entry's name, which would
+  # point at a prefix that does not exist. It must match the archiver's
+  # serverName below.
+  externalClusters:
+    - name: *archive
+      plugin:
+        enabled: true
+        isWALArchiver: false
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: pg-shared-store
+          serverName: pg-shared
 
   plugins:
     - name: barman-cloud.cloudnative-pg.io
