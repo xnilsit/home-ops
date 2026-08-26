@@ -22,6 +22,10 @@ items:
           # which a tier-less management handle does not carry - it would default
           # to "garage" and every request would fail to authenticate.
           includeRegion: false
+          # Same reason, and the operator hard-fails the key without it: it
+          # cannot infer an S3 endpoint from a handle's adminApiEndpoint. Both
+          # ObjectStores carry their own endpointURL anyway.
+          includeEndpoint: false
           additionalData: {AWS_REGION: eu-central-1}
           annotations:
             reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
