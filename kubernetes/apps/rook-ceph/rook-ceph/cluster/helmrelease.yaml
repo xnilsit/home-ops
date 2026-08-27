@@ -104,7 +104,7 @@ spec:
         readAffinity:
           enabled: true
       healthCheck:
-        muteHealthWarning: # Tentacle cephx warnings, no key rotation configured
+        muteHealthWarning: # Tentacle cephx warnings; daemon keys not pinned to aes
           AUTH_INSECURE_ROTATING_SERVICE_KEY_TYPE:
             policy: mute
           AUTH_INSECURE_CLIENT_KEY_TYPE:
@@ -130,6 +130,19 @@ spec:
         provider: host
         connections:
           requireMsgr2: true
+      security:
+        cephx:
+          daemon:
+            keyRotationPolicy: KeyGeneration # bump keyGeneration to rotate
+            keyGeneration: 2
+          csi:
+            keyRotationPolicy: KeyGeneration
+            keepPriorKeyCountMax: 1
+            keyGeneration: 2
+            keyType: aes
+          rbdMirrorPeer:
+            keyRotationPolicy: KeyGeneration
+            keyGeneration: 2
       storage:
         useAllNodes: false
         useAllDevices: false
