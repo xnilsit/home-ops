@@ -18,10 +18,36 @@ spec:
         resourceFieldRef:
           resource: limits.memory
           divisor: 1Mi
+    - name: AWS_ACCESS_KEY_ID
+      valueFrom:
+        secretKeyRef:
+          name: ${APP}-garage-dragonfly-backup
+          key: AWS_ACCESS_KEY_ID
+    - name: AWS_SECRET_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: ${APP}-garage-dragonfly-backup
+          key: AWS_SECRET_ACCESS_KEY
+    - name: AWS_REGION
+      valueFrom:
+        secretKeyRef:
+          name: ${APP}-garage-dragonfly-backup
+          key: AWS_REGION
   args:
     - --maxmemory=$(MAX_MEMORY)Mi
     - --proactor_threads=2
     - --cluster_mode=emulated
+    # Timestamped so a replica's shutdown save cannot clobber the master's.
+    - --dbfilename=dump-{timestamp}
+    # Bare host:port - a scheme here yields a doubled URL.
+    - --s3_endpoint=192.168.0.200:3900
+    - --s3_use_https=false
+  snapshot:
+    # Own prefix in the bucket every Dragonfly shares.
+    dir: s3://dragonfly-backup/${APP}/
+    cron: 0 * * * *
+    # Replicas share the prefix; the operator clears snapshot_cron on non-masters.
+    enableOnMasterOnly: true
   resources:
     requests:
       cpu: 25m

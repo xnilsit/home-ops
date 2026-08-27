@@ -23,56 +23,40 @@ spec:
         resourceFieldRef:
           resource: limits.memory
           divisor: 1Mi
+    - name: AWS_ACCESS_KEY_ID
+      valueFrom:
+        secretKeyRef:
+          name: garage-dragonfly-backup
+          key: AWS_ACCESS_KEY_ID
+    - name: AWS_SECRET_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: garage-dragonfly-backup
+          key: AWS_SECRET_ACCESS_KEY
+    - name: AWS_REGION
+      valueFrom:
+        secretKeyRef:
+          name: garage-dragonfly-backup
+          key: AWS_REGION
   args:
     - --maxmemory=$(MAX_MEMORY)Mi
     - --proactor_threads=2
     - --cluster_mode=emulated
-    - --dbfilename=dump
+    # Timestamped so a replica's shutdown save cannot clobber the master's.
+    - --dbfilename=dump-{timestamp}
+    # Bare host:port - a scheme here yields a doubled URL.
+    - --s3_endpoint=192.168.0.200:3900
+    - --s3_use_https=false
   resources:
     requests:
       cpu: 100m
     limits:
       memory: 1Gi
   snapshot:
+    dir: s3://dragonfly-backup/${APP}/
     cron: 0 * * * *
-    enableOnMasterOnly: false
-    persistentVolumeClaimSpec:
-      accessModes:
-        - ReadWriteOnce
-      storageClassName: local-path
-      resources:
-        requests:
-          storage: 4Gi
-  additionalContainers:
-    - name: snapshot-archiver
-      image: mirror.gcr.io/library/busybox:1.38.0
-      command:
-        - /bin/sh
-        - -c
-        - |
-          while true; do
-            sleep 60
-            test "$(date +%M)" = "10" || continue
-            mkdir -p "/dragonfly/snapshots/hourly/$(date +%H)"
-            cp -f /dragonfly/snapshots/dump-*.dfs "/dragonfly/snapshots/hourly/$(date +%H)/" 2>/dev/null || true
-            sleep 60
-          done
-      volumeMounts:
-        - name: df
-          mountPath: /dragonfly/snapshots
-      securityContext:
-        runAsUser: 999
-        runAsGroup: 999
-        allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: true
-        capabilities:
-          drop:
-            - "ALL"
-      resources:
-        requests:
-          cpu: 5m
-        limits:
-          memory: 32Mi
+    # Replicas share the bucket; the operator clears snapshot_cron on non-masters.
+    enableOnMasterOnly: true
   pdb:
     maxUnavailable: 1
   serviceSpec:

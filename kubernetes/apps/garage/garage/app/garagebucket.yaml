@@ -21,3 +21,13 @@ items:
   - <<: *bucket
     metadata: {name: kopiur}
     spec: *spec
+  - <<: *bucket
+    metadata: {name: dragonfly-backup}
+    spec:
+      <<: *spec
+      # Dragonfly has no snapshot retention of its own.
+      lifecycle:
+        rules:
+          - id: expire-snapshots
+            expirationDays: 3
+            abortIncompleteMultipartUploadDays: 1

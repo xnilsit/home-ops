@@ -6,4 +6,5 @@ resources:
   - ./dragonfly.yaml
   - ./grafanadashboard.yaml
   - ./podmonitor.yaml
+  - ./secret-garage.yaml
   - ./secret.sops.yaml

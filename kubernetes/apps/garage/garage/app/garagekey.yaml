@@ -59,3 +59,18 @@ items:
         name: garage-kopiur
       bucketPermissions:
         - {bucketRef: {name: kopiur}, read: true, write: true}
+  - <<: *key
+    metadata: {name: dragonfly-backup}
+    spec:
+      clusterRef: {name: nas}
+      neverExpires: true
+      secretTemplate:
+        # The anchor's key names are exactly what Dragonfly reads from its env.
+        <<: *template
+        # No namespace list: every Dragonfly built from the component snapshots
+        # into this bucket under its own ${APP} prefix, in its app's namespace.
+        annotations:
+          reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+        name: garage-dragonfly-backup
+      bucketPermissions:
+        - {bucketRef: {name: dragonfly-backup}, read: true, write: true}
