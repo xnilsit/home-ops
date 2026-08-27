@@ -18,10 +18,19 @@ spec:
     - pvc:
         name: ${APP}
   mover:
-    # Read uid/gid off the workload that mounts the PVC rather than hardcoding
-    # one per app - the four consumers do not agree on a uid.
-    inheritSecurityContextFrom:
-      pvcConsumer: {}
+    # Same pinned identity as the Restore, rather than pvcConsumer: inherit
+    # would hold a backup whenever the workload is scaled to zero, and the
+    # Restore has to carry an explicit uid anyway.
+    securityContext:
+      runAsUser: ${KOPIUR_PUID:=1000}
+      runAsGroup: ${KOPIUR_PGID:=1000}
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - "ALL"
+      seccompProfile:
+        type: RuntimeDefault
   # Retention is the only pruning mechanism: kopiur pins kopia's own retention
   # to effectively-infinite, and omitting this block never prunes.
   retention:

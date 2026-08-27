@@ -19,16 +19,12 @@ spec:
   policy:
     onMissingSnapshot: Continue
   mover:
-    # snapshot, not pvcConsumer: a populator runs before any workload exists, so
-    # the uid/gid come from what the backup mover recorded. Must be {}, since a
-    # bare `snapshot:` is null and rejected.
-    inheritSecurityContextFrom:
-      snapshot: {}
-    # Required, not optional hardening: with nothing recorded yet the inherit
-    # above HOLDS the Restore (MissingRecordedIdentity), which on a fresh
-    # repository never resolves - no PVC, so no app, so no snapshot to record.
-    # Pinning runAsUser turns that hold into InheritFallback and the volume
-    # comes up. The four consumers share no uid, hence a per-app override.
+    # Pinned, not inherited. A populator has no workload pod to read, and
+    # inheritSecurityContextFrom.snapshot holds on MissingRecordedIdentity until
+    # a backup exists - which on a fresh repository never happens, because
+    # nothing starts until this volume binds. An explicit uid is documented as
+    # the fallback for that hold; as of 0.10.4 it does not actually release it,
+    # so the inherit is left off entirely.
     securityContext:
       runAsUser: ${KOPIUR_PUID:=1000}
       runAsGroup: ${KOPIUR_PGID:=1000}
