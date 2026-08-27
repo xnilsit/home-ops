@@ -43,3 +43,19 @@ items:
         name: garage-timescale-backup
       bucketPermissions:
         - {bucketRef: {name: timescale-backup}, read: true, write: true}
+  - <<: *key
+    metadata: {name: kopiur}
+    spec:
+      clusterRef: {name: nas}
+      neverExpires: true
+      secretTemplate:
+        <<: *template
+        # annotations, not the anchor's: kopiur's ClusterRepository reads this
+        # from storage, and kopiur projects it onward into each mover namespace
+        # itself - so only the one hop needs reflecting.
+        annotations:
+          reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+          reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: storage
+        name: garage-kopiur
+      bucketPermissions:
+        - {bucketRef: {name: kopiur}, read: true, write: true}

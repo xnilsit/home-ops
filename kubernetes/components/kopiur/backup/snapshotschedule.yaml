@@ -1,0 +1,12 @@
+---
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotSchedule
+metadata:
+  name: ${APP}
+spec:
+  policyRef:
+    name: ${APP}
+  schedule:
+    # Jenkins-style H pins a deterministic per-schedule minute, spreading the
+    # apps across the hour instead of stampeding the NAS on the minute.
+    cron: "${KOPIUR_CRON:=H * * * *}"

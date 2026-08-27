@@ -36,7 +36,7 @@ spec:
   values:
     controller:
       replicaCount: 2
-      # Cluster-wide CSI snapshot machinery: every volsync backup and restore
+      # Cluster-wide CSI snapshot machinery: every kopiur backup and restore
       # goes through it, as does any Ceph snapshot. Not set on `webhook`, which
       # is disabled in this chart's defaults.
       priorityClassName: cluster-infra

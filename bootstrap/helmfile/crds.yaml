@@ -29,6 +29,13 @@ releases:
     inherit:
       - template: default
 
+  # Every backed-up app ships a PVC whose dataSourceRef names a kopiur Restore,
+  # so these have to exist before cluster-apps reconciles.
+  - name: kopiur
+    namespace: storage
+    inherit:
+      - template: default
+
   - name: prometheus-operator-crds
     namespace: observability
     chart: oci://ghcr.io/prometheus-community/charts/prometheus-operator-crds

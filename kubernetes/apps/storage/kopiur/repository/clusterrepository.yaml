@@ -1,0 +1,38 @@
+---
+# One kopia repository for the whole cluster. kopia dedups across writers and
+# separates them by snapshot identity (username@hostname:path, defaulting to
+# <policy>@<namespace>:/pvc/<pvc>), so a shared bucket needs no key prefixes.
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: ClusterRepository
+metadata:
+  name: nas
+spec:
+  allowedNamespaces:
+    list:
+      - storage
+      - flux-system
+      - observability
+  backend:
+    s3:
+      bucket: kopiur
+      # Straight at the NAS, not through s3.${SECRET_DOMAIN} - same reasoning as
+      # the barman ObjectStores: mover uploads never cross Envoy.
+      endpoint: 192.168.0.200:3900
+      # Garage checks the region in the SigV4 credential scope and rejects a
+      # mismatch.
+      region: eu-central-1
+      tls: {disableTls: true}
+      auth:
+        # A ClusterRepository is cluster-scoped, so every secretRef must carry
+        # an explicit namespace - webhook-enforced.
+        secretRef: {name: garage-kopiur, namespace: storage}
+  encryption:
+    passwordSecretRef: {name: kopiur-encryption, namespace: storage, key: KOPIA_PASSWORD}
+  # Owner half of the fail-closed projection gate; consumers still opt in.
+  credentialProjection: {allowed: true}
+  moverDefaults:
+    cache: {mode: Persistent, capacity: 5Gi, storageClassName: ceph-block}
+  scheduleDefaults: {timezone: "${TIMEZONE}"}
+  # spec.create is deliberately absent, which means create.enabled: true:
+  # bootstrap connects first and only initialises when the bucket holds no repo,
+  # so a wrong password fails AuthFailure instead of creating a second one.
