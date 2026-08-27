@@ -23,9 +23,15 @@ spec:
       region: eu-central-1
       tls: {disableTls: true}
       auth:
+        # Same Secret as the encryption password below, not the reflected
+        # garage-kopiur: the kopia-UI server pod env-injects only the Secret
+        # named by spec.encryption and never this one, so a split layout starts
+        # it without S3 credentials. Movers envFrom every distinct Secret and
+        # work either way, so this collapses to one for both.
+        #
         # A ClusterRepository is cluster-scoped, so every secretRef must carry
         # an explicit namespace - webhook-enforced.
-        secretRef: {name: garage-kopiur, namespace: storage}
+        secretRef: {name: kopiur-encryption, namespace: storage}
   encryption:
     passwordSecretRef: {name: kopiur-encryption, namespace: storage, key: KOPIA_PASSWORD}
   # Owner half of the fail-closed projection gate; consumers still opt in.
