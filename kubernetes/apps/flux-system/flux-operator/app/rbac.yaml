@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/clusterrolebinding-rbac-v1.json
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flux-web-anonymous
+subjects:
+  # The identity every UI request impersonates, set in ../app/helmrelease.yaml.
+  - kind: User
+    name: flux-web-anonymous
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  # Chart-provided (web.rbac.createRoles, on by default): get/list/watch only.
+  # flux-web-admin is the read-write counterpart - swapping it in here is what
+  # enables the reconcile/suspend/restart/delete buttons.
+  kind: ClusterRole
+  name: flux-web-user
+  apiGroup: rbac.authorization.k8s.io

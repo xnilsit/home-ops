@@ -1,0 +1,30 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/gateway.networking.k8s.io/httproute_v1.json
+# Fronts the kopia web UI that ../repository/clusterrepository.yaml turns on.
+# Deliberately here and not next to that CR: the repository Kustomization is
+# wait: true and gates every SnapshotPolicy in the cluster, so a route waiting on
+# the gateway would hold up backups. This one reconciles wait: false, and the
+# route simply 500s for the few seconds before nas-kopia-ui exists.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kopia-ui
+spec:
+  hostnames:
+    - "kopia.${SECRET_DOMAIN}"
+  parentRefs:
+    # envoy-internal only. kopia's own login guards the UI, but reaching it means
+    # read access to every backup in the repository.
+    - name: envoy-internal
+      namespace: network
+      sectionName: https
+  rules:
+    - backendRefs:
+        # kopia serves plain HTTP in the pod (the operator passes --insecure);
+        # TLS terminates at the gateway.
+        - name: nas-kopia-ui
+          port: 51515
+      matches:
+        - path:
+            type: PathPrefix
+            value: /

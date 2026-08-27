@@ -30,6 +30,23 @@ spec:
     passwordSecretRef: {name: kopiur-encryption, namespace: storage, key: KOPIA_PASSWORD}
   # Owner half of the fail-closed projection gate; consumers still opt in.
   credentialProjection: {allowed: true}
+  # Presence of this block is the on switch for the kopia web UI - the operator
+  # runs `kopia server start` in a long-lived Deployment plus Service, both named
+  # nas-kopia-ui. Routed at kopia.${SECRET_DOMAIN} from ../app/httproute.yaml.
+  server:
+    # Required on a ClusterRepository, which has no namespace of its own.
+    namespace: storage
+    # Browse and restore, no create/delete/policy edits. The pod holds the
+    # repository decryption key either way, so this is not a confidentiality
+    # boundary - it only stops the UI from destroying a backup.
+    readOnly: true
+    # auth omitted = Generate: credentials minted into Secret nas-kopia-ui-auth
+    # (keys username/password). It never defaults to no-auth.
+    resources:
+      limits:
+        memory: 1Gi
+      requests:
+        cpu: 10m
   moverDefaults:
     cache: {mode: Persistent, capacity: 5Gi, storageClassName: ceph-block}
   scheduleDefaults: {timezone: "${TIMEZONE}"}

@@ -7,3 +7,4 @@ resources:
   - ./secret.sops.yaml
   - ./secret-garage.yaml
   - ./helmrelease.yaml
+  - ./httproute.yaml
