@@ -9,7 +9,7 @@
   schedule: ["every weekend"],
   // ghcr.io / quay.io carry no releaseTimestamp, which parks them forever
   minimumReleaseAgeBehaviour: "timestamp-optional",
-  // override :automergeBranch from the preset, flux-local only reports on PRs
+  // override :automergeBranch from the preset, flate and konflate only report on PRs
   automergeType: "pr",
   lockFileMaintenance: {
     enabled: true,

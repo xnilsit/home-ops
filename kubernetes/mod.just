@@ -11,6 +11,17 @@ default:
 reconcile:
     flux --namespace flux-system reconcile kustomization flux-system --with-source
 
+[doc('Render every Kustomization and HelmRelease offline, as CI does')]
+[group('kube')]
+test:
+    flate test all --path '{{ source_directory() }}'
+
+[doc('Render the working tree against main and write the diff as a browsable page')]
+[group('kube')]
+diff out='/tmp/flate-diff.html':
+    flate diff all --path '{{ source_directory() }}' --base origin/main --output html > '{{ out }}'
+    just log info "Diff written" path '{{ out }}'
+
 # source_directory(), not justfile_directory(): inside a module the latter
 # resolves to the root justfile's directory, which would drop the `kubernetes/`
 # segment.
