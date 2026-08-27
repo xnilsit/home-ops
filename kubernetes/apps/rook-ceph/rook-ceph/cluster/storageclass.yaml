@@ -39,34 +39,3 @@ parameters:
   objectStoreName: ceph-objectstore
   objectStoreNamespace: rook-ceph
   region: us-east-1
----
-# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: ceph-bucket-cnpg-backup
-# Brownfield class: grants access to the ALREADY EXISTING cnpg-backup bucket
-# instead of creating one. The bucketName parameter is what switches Rook's
-# provisioner from Provision() to Grant() - the bucket name deliberately lives
-# here and NOT on the OBC, which must leave both bucketName and
-# generateBucketName unset.
-#
-# Why this exists at all: a barman ObjectStore is namespace-scoped and its
-# s3Credentials are SecretKeySelectors, so every namespace holding a CNPG
-# cluster needs bucket credentials locally. The OBC-generated Secret carries no
-# annotations, so reflector cannot mirror it. Grant() mints a per-OBC rgw user
-# and APPENDS a policy statement keyed on that user's SID, and Revoke() removes
-# only that user's statement - so any number of namespaces can share the one
-# bucket without disturbing each other.
-#
-# Do NOT reach for a second greenfield OBC on the same spec.bucketName instead:
-# Provision() calls LinkBucket to relink ownership when the current owner
-# differs, so two greenfield claims would fight over the bucket.
-reclaimPolicy: Retain
-provisioner: rook-ceph.ceph.rook.io/bucket
-volumeBindingMode: Immediate
-parameters:
-  objectStoreName: ceph-objectstore
-  objectStoreNamespace: rook-ceph
-  region: us-east-1
-  bucketName: cnpg-backup

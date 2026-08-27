@@ -15,10 +15,6 @@ spec:
     # The Cluster references the barman plugin, which must be running first
     - name: barman-cloud-plugin
       namespace: flux-system
-    # The retained ObjectBucketClaim still needs the ceph-bucket-retain
-    # StorageClass, which that Kustomization applies alongside the CephObjectStore
-    - name: rook-ceph-cluster
-      namespace: flux-system
     # Backups archive to Garage on the NAS; this is what guarantees the bucket
     # and the mirrored credentials exist before the Cluster starts archiving
     - name: garage
