@@ -27,6 +27,12 @@ spec:
         # namespace-local, so the shared ClusterRepository's Secrets have to be
         # copied in per run - and reaped again when the run ends.
         enabled: true
+      kopiaUi:
+        # Same secrets grant, needed again for the ClusterRepository's kopia web
+        # UI: the operator mints its login into nas-kopia-ui-auth and mirrors the
+        # repository credentials next to the server pod. Without the flag the
+        # ClusterRepository status reports a 403 naming it.
+        enabled: true
     monitoring:
       serviceMonitor:
         enabled: true
