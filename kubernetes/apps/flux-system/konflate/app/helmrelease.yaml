@@ -31,10 +31,11 @@ spec:
       hostnames:
         - "konflate.${SECRET_DOMAIN}"
     persistence:
-      # Keeps the source caches, git mirror and rendered diffs across restarts
+      # Keeps the source caches, git mirror and rendered diffs across restarts.
+      # The claim itself comes from the kopiur backup component, which populates
+      # it from the newest snapshot before this starts.
       enabled: true
-      storageClass: ceph-block
-      size: 5Gi
+      existingClaim: konflate
     monitoring:
       serviceMonitor:
         enabled: true
