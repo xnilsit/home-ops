@@ -32,7 +32,8 @@ spec:
   attachRequired: true
   deployCsiAddons: false
   cephFsClientType: kernel
-  kernelMountOptions: {}
+  kernelMountOptions:
+    ms_mode: secure
   fuseMountOptions: {}
   nodePlugin:
     serviceAccountName: rook-ceph-cephfs-csi-ceph-com-nodeplugin-sa

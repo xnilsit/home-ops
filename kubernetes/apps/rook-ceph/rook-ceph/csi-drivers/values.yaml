@@ -58,6 +58,10 @@ drivers:
     name: rook-ceph.cephfs.csi.ceph.com
     clusterName: rook-ceph
     snapshotPolicy: volumeSnapshot
+    # requireMsgr2 leaves only port 3300; without ms_mode the kernel client
+    # dials msgr v1 there and the mons drop it.
+    kernelMountOptions:
+      ms_mode: secure
     log:
       rotation:
         enabled: false
