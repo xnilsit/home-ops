@@ -124,16 +124,17 @@ spec:
         # component own the PVC and populate it on bootstrap.
         storageDataPath: /vm-data
         # null, not absent: the chart injects its own default storage block, and
-        # the operator refuses "storage and volume are not allowed to be set
-        # together". The volume is not called `data` for the same reason - that
-        # is the name the operator gives the storage volume it manages itself.
+        # the operator refuses "storage and \"data\" volume are not allowed to
+        # be set together".
         storage: null
+        # `data` is mandatory, not a choice: the operator reserves that name for
+        # whatever is mounted at storageDataPath and rejects any other.
         volumes:
-          - name: vmdata
+          - name: data
             persistentVolumeClaim:
               claimName: vmetrics
         volumeMounts:
-          - name: vmdata
+          - name: data
             mountPath: /vm-data
         useDefaultResources: false
         useStrictSecurity: true
