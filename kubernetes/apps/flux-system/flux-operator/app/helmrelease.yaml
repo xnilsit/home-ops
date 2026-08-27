@@ -16,3 +16,16 @@ spec:
     priorityClassName: system-cluster-critical
     serviceMonitor:
       create: true
+    web:
+      # The UI (port 9080) is on by default; the route is a plain manifest in
+      # ./httproute.yaml rather than web.httpRoute, because helmfile installs
+      # this chart at bootstrap, before the Gateway API CRDs exist.
+      config:
+        authentication:
+          # Without this the UI is unauthenticated AND unimpersonated, so every
+          # visitor acts as the operator's ServiceAccount - cluster-admin, with
+          # every GitOps action enabled. Impersonating a fixed user instead
+          # means the UI can do exactly what ./rbac.yaml grants it.
+          type: Anonymous
+          anonymous:
+            username: flux-web-anonymous
