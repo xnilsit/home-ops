@@ -119,12 +119,17 @@ spec:
         # from the dead node first, and k8s 1.36 has no force-detach timeout -
         # that needs the node.kubernetes.io/out-of-service taint or node delete.
         tolerations: *fastReschedule
-        storage:
-          accessModes:
-            - ReadWriteOnce
-          resources:
-            requests:
-              storage: 50Gi
+        # VMSingle has no existingClaim. storageDataPath disables spec.storage
+        # outright and leaves the volume to us - which is what lets the kopiur
+        # component own the PVC and populate it on bootstrap.
+        storageDataPath: /vm-data
+        volumes:
+          - name: data
+            persistentVolumeClaim:
+              claimName: vmetrics
+        volumeMounts:
+          - name: data
+            mountPath: /vm-data
         useDefaultResources: false
         useStrictSecurity: true
         resources:

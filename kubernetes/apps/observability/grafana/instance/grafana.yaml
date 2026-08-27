@@ -62,14 +62,9 @@ spec:
             fsGroupChangePolicy: OnRootMismatch
           volumes:
             - name: grafana-data
+              # Owned by the kopiur backup component, which populates it from
+              # the newest snapshot before this starts. spec.persistentVolumeClaim
+              # is deliberately absent so the operator provisions nothing.
               persistentVolumeClaim:
-                claimName: grafana-pvc
-  persistentVolumeClaim:
-    spec:
-      accessModes:
-        - ReadWriteOnce
-      resources:
-        requests:
-          storage: 10Gi
-      storageClassName: ceph-block
+                claimName: grafana
   disableDefaultSecurityContext: All

@@ -35,9 +35,10 @@ spec:
       retentionMaxDiskUsagePercent: 80
       persistentVolume:
         enabled: true
-        # existingClaim: *app
-        storageClassName: "ceph-block"
-        size: "20Gi"
+        # Owned by the kopiur backup component, which populates it from the
+        # newest snapshot before this starts. Setting it swaps the StatefulSet's
+        # volumeClaimTemplate for a plain volume.
+        existingClaim: *app
       route:
         enabled: true
         hostnames:
