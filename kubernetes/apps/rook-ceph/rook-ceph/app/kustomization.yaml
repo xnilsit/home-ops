@@ -6,3 +6,15 @@ resources:
   - ./helmrelease.yaml
   - ./secret.sops.yaml
   - ./grafanadashboard.yaml
+configMapGenerator:
+  - name: ceph-rgw-dashboard
+    files:
+      - ceph-rgw.json=./dashboards/ceph-rgw.json
+    options:
+      annotations:
+        # The JSON is full of $__rate_interval and ${datasource}, which the
+        # inherited postBuild.substituteFrom would replace with nothing.
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+generatorOptions:
+  # The GrafanaDashboard references this ConfigMap by name.
+  disableNameSuffixHash: true

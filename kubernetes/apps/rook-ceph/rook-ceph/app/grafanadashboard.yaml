@@ -46,3 +46,31 @@ spec:
       inputName: DS_PROMETHEUS
   grafanaCom:
     id: 5342
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/grafana.integreatly.org/grafanadashboard_v1beta1.json
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: ceph-rgw
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  # Hand-written rather than ceph-mixin's radosgw-overview/radosgw-detail: those
+  # multiply the RGW counters by ceph_rgw_metadata on instance_id to pick up
+  # ceph_daemon, and the two sides disagree here. ceph-exporter publishes the
+  # counters with instance_id="a" (the daemon name suffix) while ceph-mgr
+  # publishes the metadata with the numeric global id, so the join matches
+  # nothing: 5 of 12 overview panels and all 4 detail panels come out empty.
+  #
+  # The queries here read the exporter alone and identify each gateway by the
+  # node of the ceph-exporter reporting it - both pods are
+  # ceph_daemon="rgw.ceph.objectstore.a", so there is no per-daemon label to
+  # split them by anyway.
+  #
+  # No `datasources:` mapping: the JSON has no __inputs, it carries a
+  # datasource-type template variable that resolves to Grafana's default.
+  configMapRef:
+    name: ceph-rgw-dashboard
+    key: ceph-rgw.json
