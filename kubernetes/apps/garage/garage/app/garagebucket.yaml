@@ -1,10 +1,10 @@
 ---
-# The two CNPG backup buckets, named exactly as in Ceph RGW so the copied barman
-# catalogs and the ObjectStore destinationPaths carry over unchanged.
+# The two CNPG backup buckets are named exactly as in Ceph RGW so the copied
+# barman catalogs and the ObjectStore destinationPaths carry over unchanged.
 #
-# Deliberately NO quotas on either: barman archives WAL continuously, and a
-# bucket that starts rejecting writes leaves the primary's pg_wal growing until
-# its local disk fills.
+# Deliberately NO quotas on any of these: barman archives WAL continuously, and
+# a bucket that starts rejecting writes leaves the primary's pg_wal growing
+# until its local disk fills.
 apiVersion: v1
 kind: List
 items:
@@ -15,4 +15,9 @@ items:
     spec: &spec {clusterRef: {name: nas}, deletionPolicy: Retain}
   - <<: *bucket
     metadata: {name: timescale-backup}
+    spec: *spec
+  # One kopia repository shared by every kopiur SnapshotPolicy - kopia dedups
+  # across writers and separates them by snapshot identity, not by key prefix.
+  - <<: *bucket
+    metadata: {name: kopiur}
     spec: *spec

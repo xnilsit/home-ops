@@ -1,0 +1,26 @@
+---
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: ${APP}
+spec:
+  credentialProjection: {enabled: true}
+  source:
+    fromPolicy:
+      name: ${APP}
+      offset: 0
+  # A passive volume-populator source: it does nothing until a PVC names it in
+  # dataSourceRef, and re-applying it against a Bound PVC is a no-op. Restoring
+  # again means deleting the PVC, not touching this.
+  target:
+    populator: {}
+  # What makes a first deploy safe - with no snapshot yet, the volume comes up
+  # empty instead of failing.
+  policy:
+    onMissingSnapshot: Continue
+  mover:
+    # snapshot, not pvcConsumer: a populator runs before any workload exists, so
+    # the uid/gid come from what the backup mover recorded. Must be {}, since a
+    # bare `snapshot:` is null and rejected.
+    inheritSecurityContextFrom:
+      snapshot: {}

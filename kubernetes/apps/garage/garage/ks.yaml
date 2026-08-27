@@ -26,6 +26,8 @@ spec:
       name: cnpg-backup
     - <<: *key
       name: timescale-backup
+    - <<: *key
+      name: kopiur
   healthCheckExprs:
     # A management handle reports Running once the NAS Admin API answers - there
     # are no pods for it to derive readiness from. Buckets and keys do not start

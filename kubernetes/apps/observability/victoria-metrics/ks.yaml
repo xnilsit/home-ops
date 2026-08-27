@@ -14,6 +14,11 @@ spec:
   dependsOn:
     - name: vm-operator
       namespace: flux-system
+  postBuild:
+    substitute:
+      # The vmsingle TSDB volume, not the whole stack - fullnameOverride: vmetrics
+      APP: vmetrics
+      KOPIUR_CAPACITY: 50Gi
   prune: true
   sourceRef:
     kind: GitRepository

@@ -1,0 +1,31 @@
+---
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: ${APP}
+spec:
+  repository: {kind: ClusterRepository, name: nas}
+  # Consumer half of the fail-closed projection gate. The mover Job runs in this
+  # namespace and reads credentials with envFrom, which cannot cross namespaces.
+  credentialProjection: {enabled: true}
+  # Explicit, not defaulted: server-side re-defaulting on a chart upgrade would
+  # otherwise be free to flip a stored value under GitOps.
+  copyMethod: Snapshot
+  # Neither Ceph VolumeSnapshotClass is marked default, so this must be named.
+  volumeSnapshotClassName: ${KOPIUR_SNAPSHOTCLASS:=csi-ceph-blockpool}
+  compression: {compressor: zstd}
+  sources:
+    - pvc:
+        name: ${APP}
+  mover:
+    # Read uid/gid off the workload that mounts the PVC rather than hardcoding
+    # one per app - the four consumers do not agree on a uid.
+    inheritSecurityContextFrom:
+      pvcConsumer: {}
+  # Retention is the only pruning mechanism: kopiur pins kopia's own retention
+  # to effectively-infinite, and omitting this block never prunes.
+  retention:
+    keepLatest: 3
+    keepHourly: 24
+    keepDaily: 7
+    keepWeekly: 4

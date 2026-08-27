@@ -1,0 +1,16 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# Hourly backup of one PVC to the shared kopia repository, plus the PVC itself -
+# provisioned through a Restore volume populator, so a rebuilt cluster refills it
+# from the newest snapshot before the app starts, and comes up empty when the
+# repository is fresh. The same manifests cover both cases.
+#
+# The consuming app must stop provisioning its own volume and point at the PVC
+# this creates (persistence.existingClaim or equivalent), named ${APP}.
+resources:
+  - ./snapshotpolicy.yaml
+  - ./snapshotschedule.yaml
+  - ./pvc.yaml
+  - ./restore.yaml

@@ -67,8 +67,6 @@ spec:
   dependsOn:
     - name: rook-ceph-csi-drivers
       namespace: flux-system
-    - name: volsync
-      namespace: flux-system
   healthChecks:
     - kind: CephCluster
       apiVersion: ceph.rook.io/v1

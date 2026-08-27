@@ -50,6 +50,10 @@ spec:
       namespace: flux-system
   interval: 1h
   path: ./kubernetes/apps/observability/grafana/instance
+  postBuild:
+    substitute:
+      APP: grafana
+      KOPIUR_CAPACITY: 10Gi
   prune: true
   sourceRef:
     kind: GitRepository

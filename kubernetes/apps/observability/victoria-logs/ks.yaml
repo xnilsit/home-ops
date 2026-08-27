@@ -11,6 +11,10 @@ spec:
     labels:
       app.kubernetes.io/name: *app
   path: ./kubernetes/apps/observability/victoria-logs/app
+  postBuild:
+    substitute:
+      APP: *app
+      KOPIUR_CAPACITY: 20Gi
   prune: true
   sourceRef:
     kind: GitRepository
