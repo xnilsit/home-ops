@@ -59,7 +59,7 @@ spec:
 
     cephImage:
       repository: quay.io/ceph/ceph
-      tag: v20.2.3
+      tag: v20.2.4
 
     cephClusterSpec:
       dashboard:
