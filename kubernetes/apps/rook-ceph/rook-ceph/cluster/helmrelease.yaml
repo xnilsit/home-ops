@@ -99,6 +99,8 @@ spec:
           rgw_realm: ceph-objectstore
           rgw_zonegroup: ceph-objectstore
           rgw_zone: ceph-objectstore
+          # Too strict for many clients otherwise
+          rgw_sigv4_insecure: "true"
       cleanupPolicy:
         wipeDevicesFromOtherClusters: true
         # confirmation: "yes-really-destroy-data"
