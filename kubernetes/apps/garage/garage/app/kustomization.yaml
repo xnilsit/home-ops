@@ -10,3 +10,17 @@ resources:
   - ./garagebucket.yaml
   - ./garagekey.yaml
   - ./httproute.yaml
+  - ./vmscrapeconfig.yaml
+  - ./grafanadashboard.yaml
+configMapGenerator:
+  - name: garage-dashboard
+    files:
+      - garage.json=./dashboards/garage.json
+    options:
+      annotations:
+        # The JSON is full of $__rate_interval and ${datasource}, which the
+        # inherited postBuild.substituteFrom would replace with nothing.
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+generatorOptions:
+  # The GrafanaDashboard references this ConfigMap by name.
+  disableNameSuffixHash: true

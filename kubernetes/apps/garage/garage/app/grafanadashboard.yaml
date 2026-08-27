@@ -1,0 +1,22 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/grafana.integreatly.org/grafanadashboard_v1beta1.json
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: garage
+spec:
+  # The Grafana instance lives in observability, this dashboard in garage.
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  # Hand-written, not upstream's script/telemetry dashboard: that one plots
+  # neither cluster health, disk space, S3 latency nor table sizes, and two of
+  # its ten panels are permanently empty here (the web API is off).
+  #
+  # No `datasources:` mapping - the JSON has no __inputs, it carries a
+  # datasource-type template variable that resolves to Grafana's default, which
+  # is the `prometheus` GrafanaDatasource.
+  configMapRef:
+    name: garage-dashboard
+    key: garage.json

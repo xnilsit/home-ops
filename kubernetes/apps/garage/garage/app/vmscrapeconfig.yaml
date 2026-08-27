@@ -1,0 +1,21 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/operator.victoriametrics.com/vmscrapeconfig_v1beta1.json
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMScrapeConfig
+metadata:
+  name: garage
+spec:
+  staticConfigs:
+    # Garage's Admin API port on the NAS, the same endpoint the GarageCluster
+    # handle talks to. No auth: garage.toml sets no metrics_token, so /metrics
+    # answers unauthenticated on the LAN.
+    - targets:
+        - "192.168.0.200:3903"
+      labels:
+        # Static labels win over the job_name default, which would otherwise be
+        # scrapeConfig/garage/garage. Upstream Garage dashboards hardcode
+        # job="garage", so this keeps them usable as a cross-check.
+        job: garage
+        instance: nas
+  path: /metrics
+  scheme: HTTP
