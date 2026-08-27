@@ -15,6 +15,10 @@ spec:
     substitute:
       APP: *app
       KOPIUR_CAPACITY: 20Gi
+      KOPIUR_PUID: "1000"
+      # The chart pins fsGroup 2000 and no runAsGroup, so 2000 is what the app
+      # can actually write as.
+      KOPIUR_PGID: "2000"
   prune: true
   sourceRef:
     kind: GitRepository

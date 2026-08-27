@@ -19,6 +19,9 @@ spec:
       # The vmsingle TSDB volume, not the whole stack - fullnameOverride: vmetrics
       APP: vmetrics
       KOPIUR_CAPACITY: 50Gi
+      # useStrictSecurity runs vmsingle as nobody
+      KOPIUR_PUID: "65534"
+      KOPIUR_PGID: "65534"
   prune: true
   sourceRef:
     kind: GitRepository

@@ -11,6 +11,8 @@ spec:
     substitute:
       APP: konflate
       KOPIUR_CAPACITY: 5Gi
+      KOPIUR_PUID: "65532"
+      KOPIUR_PGID: "65532"
   prune: true
   sourceRef:
     kind: GitRepository

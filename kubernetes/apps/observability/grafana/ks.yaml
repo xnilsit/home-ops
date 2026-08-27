@@ -54,6 +54,8 @@ spec:
     substitute:
       APP: grafana
       KOPIUR_CAPACITY: 10Gi
+      KOPIUR_PUID: "1000"
+      KOPIUR_PGID: "1000"
   prune: true
   sourceRef:
     kind: GitRepository
