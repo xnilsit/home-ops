@@ -15,6 +15,12 @@ configMapGenerator:
   - name: blocky-config
     files:
       - config.yml=./config.yaml
+  - name: blocky-dashboard
+    files:
+      - dashboard.json=./dashboard.json
+    options:
+      annotations:
+        kustomize.toolkit.fluxcd.io/substitute: disabled
   - name: blocky-client-analysis
     files:
       - dashboard.json=./dashboard-client-analysis.json

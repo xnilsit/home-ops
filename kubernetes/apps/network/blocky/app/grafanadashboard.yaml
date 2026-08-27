@@ -14,4 +14,8 @@ spec:
       inputName: DS_PROMETHEUS
     - datasourceName: https://blocky.${SECRET_DOMAIN}
       inputName: VAR_BLOCKY_URL
-  url: https://grafana.com/api/dashboards/13768/revisions/8/download
+  # Vendored copy of grafana.com dashboard 13768 rev 8, with the job/instance
+  # variables pinned to allValue ".*" so pod-IP churn stops truncating history.
+  configMapRef:
+    name: blocky-dashboard
+    key: dashboard.json
