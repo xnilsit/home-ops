@@ -1,0 +1,58 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: crd-schema-publisher
+spec:
+  interval: 1h
+  chartRef:
+    kind: OCIRepository
+    name: crd-schema-publisher
+  values:
+    # No Cloudflare credentials: extract-only, served in-cluster by the
+    # built-in static server below.
+    mode: controller
+    # serve.enabled requires a single replica and forces strategy Recreate
+    replicaCount: 1
+    config:
+      # The schemas these manifests already reference from kubernetes-schemas.pages.dev
+      includeBuiltins: true
+      includeKustomize: true
+    serve:
+      enabled: true
+      httpRoute:
+        enabled: true
+        parentRefs:
+          # envoy-internal only: unauthenticated, and it lists every CRD installed
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        hostnames:
+          - "crd.${SECRET_DOMAIN}"
+    persistence:
+      # Keeps the site up across restarts instead of blank until the first publish
+      enabled: true
+      storageClass: ceph-block
+      size: 1Gi
+    resources:
+      requests:
+        cpu: 50m
+        memory: 512Mi
+      limits:
+        # null, not absent: drops the chart's 500m ceiling, which would throttle
+        # a full re-extract
+        cpu: null
+        memory: 1Gi
+    metrics:
+      podMonitor:
+        enabled: true
+      prometheusRule:
+        enabled: true
+    grafana:
+      dashboard:
+        operator:
+          enabled: true
+          datasources:
+            - inputName: DS_PROMETHEUS
+              datasourceName: prometheus
