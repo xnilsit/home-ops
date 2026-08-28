@@ -1,0 +1,9 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # The OBC first: both rclone workloads read the credentials Secret it writes.
+  - ./objectbucketclaim.yaml
+  - ./secret-garage.yaml
+  - ./rclone.yaml

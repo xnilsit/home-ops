@@ -1,0 +1,69 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/infra.contrib.fluxcd.io/terraform_v1alpha2.json
+apiVersion: infra.contrib.fluxcd.io/v1alpha2
+kind: Terraform
+metadata:
+  name: authentik-oidc
+spec:
+  path: ./tofu/authentik
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+    # Cross-namespace, which is why the HelmRelease sets allowCrossNamespaceRefs.
+    namespace: flux-system
+  approvePlan: auto
+  interval: 1h
+  # authentik is shared with another cluster, so reconcile against what is there.
+  refreshBeforeApply: true
+  # Deleting this CR must NOT delete live applications out of an authentik that
+  # another cluster also depends on.
+  destroyResourcesOnDeletion: false
+  serviceAccountName: tofu-authentik
+  vars:
+    - name: authentik_url
+      value: ${AUTHENTIK_URL}
+    - name: domain
+      value: ${SECRET_DOMAIN}
+    - name: secret_namespace
+      value: tofu-controller
+  varsFrom:
+    - kind: Secret
+      name: authentik-tofu
+  backendConfig:
+    # RGW rather than the default state-in-a-Secret: the state describes objects
+    # in someone else's cluster, so it gets a bucket that is synced off-cluster
+    # (../state/rclone.yaml).
+    customConfiguration: |
+      backend "s3" {
+        bucket = "tofu-state"
+        key    = "authentik/terraform.tfstate"
+        region = "us-east-1"
+        endpoints = {
+          s3 = "http://rook-ceph-rgw-ceph-objectstore.rook-ceph.svc:80"
+        }
+        use_path_style = true
+        # Needs If-None-Match PutObject, which RGW has had since Squid. Keep the
+        # bucket UNVERSIONED - conditional put on versioned buckets is buggy.
+        use_lockfile = true
+        # No STS, no IMDS, and us-east-1 here is not an AWS region.
+        skip_credentials_validation = true
+        skip_metadata_api_check     = true
+        skip_region_validation      = true
+        skip_requesting_account_id  = true
+      }
+  runnerPodTemplate:
+    spec:
+      priorityClassName: cluster-platform
+      env:
+        # Bucket credentials for the s3 backend, written by the OBC.
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef: {name: tofu-state, key: AWS_ACCESS_KEY_ID}
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef: {name: tofu-state, key: AWS_SECRET_ACCESS_KEY}
+      resources:
+        requests:
+          cpu: 100m
+        limits:
+          memory: 512Mi

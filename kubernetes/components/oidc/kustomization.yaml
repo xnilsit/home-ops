@@ -1,0 +1,19 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# Puts one HTTPRoute behind OIDC against the authentik in the other cluster.
+# Both halves must land in the app's own namespace: SecurityPolicy resolves
+# clientIDRef in its own namespace, and targetRefs cannot cross one without a
+# ReferenceGrant.
+#
+# Required in the app's ks.yaml postBuild.substitute:
+#   APP         the app name; also the authentik provider/application suffix
+#   OIDC_HOST   the hostname on the route, e.g. echo.${SECRET_DOMAIN}
+#   OIDC_ROUTE  the HTTPRoute's metadata.name
+#
+# The app Kustomization must also dependsOn authentik-oidc, which is what
+# creates the credentials this reflects.
+resources:
+  - ./secret.yaml
+  - ./securitypolicy.yaml

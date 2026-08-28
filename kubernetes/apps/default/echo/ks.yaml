@@ -1,20 +1,56 @@
 ---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: echo
+  name: &app echo
   namespace: flux-system
 spec:
-  interval: 1h
+  targetNamespace: default
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
   path: ./kubernetes/apps/default/echo/app
+  dependsOn:
+    # echo-oidc is reflected from the Secret the tofu module writes; without it
+    # the SecurityPolicy stays rejected for a missing client secret
+    - name: authentik-oidc
+      namespace: flux-system
+    # The SecurityPolicy needs the envoy gateway CRDs and envoy-external
+    - name: envoy-gateway
+      namespace: flux-system
   postBuild:
-    substituteFrom:
-      - name: cluster-secrets
-        kind: Secret
+    # substituteFrom is NOT set here: cluster-apps patches cluster-settings and
+    # cluster-secrets onto every child Kustomization, and being a list it is
+    # replaced wholesale rather than merged.
+    substitute:
+      APP: *app
+      OIDC_HOST: echo.${SECRET_DOMAIN}
+      # app-template 5.1.0 does not append the `app` identifier to a single route
+      OIDC_ROUTE: *app
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: default
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: SecurityPolicy
+      name: echo-oidc
+      namespace: default
+  healthCheckExprs:
+    # SecurityPolicy reports Gateway API PolicyStatus - status.ancestors[], one
+    # entry per attached parent - not the flat status.conditions kstatus reads.
+    # With no ancestors yet neither expr matches, which is the InProgress that
+    # lets Flux retry while reflector is still filling in the Secret.
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: SecurityPolicy
+      failed: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'False'))
+      current: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'True'))
   prune: true
   sourceRef:
     kind: GitRepository
     name: flux-system
-    namespace: flux-system
-  targetNamespace: default
+  # wait: false, since wait: true would ignore the healthCheckExprs above.
   wait: false
+  interval: 1h
+  timeout: 5m

@@ -1,6 +1,12 @@
 ---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+components:
+  # Proof of the OIDC mechanism. echo is the target on purpose: it echoes every
+  # request header back as JSON, so the response body is the evidence that the
+  # oauth2 filter ran, and nothing else depends on echo.
+  - ../../../../components/oidc
 resources:
   - ./helmrelease.yaml
   - ./ocirepository.yaml

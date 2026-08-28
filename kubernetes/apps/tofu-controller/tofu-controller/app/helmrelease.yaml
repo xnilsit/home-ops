@@ -1,0 +1,33 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tofu-controller
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: tofu-controller
+  interval: 1h
+  values:
+    # The Terraform CRs live here, the GitRepository lives in flux-system.
+    allowCrossNamespaceRefs: true
+    priorityClassName: cluster-platform
+    # Chart default 24 is sized for fleets; this cluster has one Terraform CR.
+    concurrency: 4
+    # Off by default; never turn on. It lets the controller rewrite tfstate.
+    allowBreakTheGlass: false
+    awsPackage:
+      # An OCIRepository of AWS primitive modules that nothing here consumes.
+      install: false
+    resources:
+      requests:
+        cpu: 50m
+      limits:
+        memory: 512Mi
+    runner:
+      serviceAccount:
+        # The chart's tf-runner ClusterRole grants secrets and configmaps
+        # cluster-wide, which would let a runner read flux-system/sops-age.
+        # Each Terraform CR brings its own ServiceAccount and namespaced Role.
+        create: false
