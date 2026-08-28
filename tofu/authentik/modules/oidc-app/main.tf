@@ -37,9 +37,12 @@ resource "authentik_provider_oauth2" "this" {
   authorization_flow = var.authorization_flow
   invalidation_flow  = var.invalidation_flow
 
-  property_mappings = var.property_mappings
-  signing_key       = var.signing_key
-  sub_mode          = var.sub_mode
+  # Appended, so an app-specific mapping is additive and the shared four are
+  # always present.
+  property_mappings          = concat(var.property_mappings, var.extra_property_mappings)
+  signing_key                = var.signing_key
+  sub_mode                   = var.sub_mode
+  include_claims_in_id_token = var.include_claims_in_id_token
 
   allowed_redirect_uris = local.redirect_uris
 }

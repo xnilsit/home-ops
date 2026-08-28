@@ -88,3 +88,84 @@ spec:
   # outlasted the previous 5m and failed this Kustomization, which stalls
   # everything gated on it - grafana dependsOn rook-ceph-cluster.
   timeout: 15m
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: rook-ceph-oidc
+  namespace: flux-system
+spec:
+  targetNamespace: rook-ceph
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: rook-ceph
+  path: ./kubernetes/apps/rook-ceph/rook-ceph/oidc
+  dependsOn:
+    # The HTTPRoute this attaches to; the rook-ceph-cluster chart renders it
+    - name: rook-ceph-cluster
+      namespace: flux-system
+    # The SecurityPolicy needs the envoy gateway CRDs
+    - name: envoy-gateway
+      namespace: flux-system
+    # rook-oidc is reflected from the Secret the tofu module writes
+    - name: authentik-oidc
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: rook
+      OIDC_HOST: rook.${SECRET_DOMAIN}
+      # The chart's own name for the route, not ${APP}
+      OIDC_ROUTE: rook-ceph-dashboard
+  healthChecks:
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: SecurityPolicy
+      name: rook-oidc
+      namespace: rook-ceph
+  healthCheckExprs:
+    # SecurityPolicy reports Gateway API PolicyStatus - status.ancestors[] - not
+    # the flat status.conditions kstatus reads. With no ancestors yet neither
+    # expr matches, which is the InProgress that lets Flux retry while reflector
+    # is still filling in the Secret.
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: SecurityPolicy
+      failed: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'False'))
+      current: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'True'))
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # wait: false, since wait: true would ignore the healthCheckExprs above.
+  wait: false
+  interval: 1h
+  timeout: 5m
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: rook-ceph-sso
+  namespace: flux-system
+spec:
+  targetNamespace: rook-ceph
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: rook-ceph
+  path: ./kubernetes/apps/rook-ceph/rook-ceph/sso
+  dependsOn:
+    # Order matters, not just readiness: with OAuth2 SSO on, the dashboard stops
+    # serving its own login form and expects the X-Access-Token the gate injects,
+    # so enabling it first would leave the dashboard unusable in between.
+    - name: rook-ceph-oidc
+      namespace: flux-system
+  # A Job's pod spec is immutable, so editing the script means Flux has to
+  # replace it rather than patch it. Scoped to its own Kustomization on purpose -
+  # force must never apply to the CephCluster.
+  force: true
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  interval: 1h
+  timeout: 5m

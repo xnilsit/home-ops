@@ -81,6 +81,24 @@ variable "property_mappings" {
   type = list(string)
 }
 
+variable "include_claims_in_id_token" {
+  # Sent explicitly, and the default matches what the provider already sends: the
+  # attribute is Optional but NOT Computed, so an unset bool reaches authentik as
+  # false rather than as authentik's own default. Only an app that reads the id
+  # token itself needs it on - a gateway-only gate never looks inside.
+  description = "Put the mapped claims in the id token, not only in userinfo."
+  type        = bool
+  default     = false
+}
+
+variable "extra_property_mappings" {
+  # Separate from property_mappings so the shared four stay one list in data.tf
+  # and an app-specific mapping cannot accidentally replace them.
+  description = "Scope mappings bound to this provider only, on top of the shared ones."
+  type        = list(string)
+  default     = []
+}
+
 variable "signing_key" {
   type = string
 }
