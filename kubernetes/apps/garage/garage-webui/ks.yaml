@@ -16,11 +16,36 @@ spec:
     # Kustomization creates - same namespace, so no reflector involved
     - name: garage
       namespace: flux-system
+    # garage-webui-oidc is reflected from the Secret the tofu module writes
+    - name: authentik-oidc
+      namespace: flux-system
+    # The SecurityPolicy needs the envoy gateway CRDs
+    - name: envoy-gateway
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: *app
+      OIDC_HOST: garage.${SECRET_DOMAIN}
+      # app-template 5.1.0 does not append the `app` identifier to a single route
+      OIDC_ROUTE: *app
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease
       name: *app
       namespace: garage
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: SecurityPolicy
+      name: garage-webui-oidc
+      namespace: garage
+  healthCheckExprs:
+    # SecurityPolicy reports Gateway API PolicyStatus - status.ancestors[] - not
+    # the flat status.conditions kstatus reads. With no ancestors yet neither
+    # expr matches, which is the InProgress that lets Flux retry while reflector
+    # is still filling in the Secret.
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: SecurityPolicy
+      failed: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'False'))
+      current: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'True'))
   prune: true
   sourceRef:
     kind: GitRepository

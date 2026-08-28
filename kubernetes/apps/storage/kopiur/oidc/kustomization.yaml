@@ -3,8 +3,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 components:
-  # The only login the webui has - AUTH_USER_PASS was dropped with it.
+  # Split out of ../app so the authentik chain does not end up gating backups:
+  # kopiur-repository dependsOn kopiur and is what every SnapshotPolicy waits on.
   - ../../../../components/oidc
-resources:
-  - ./helmrelease.yaml
-  - ./ocirepository.yaml

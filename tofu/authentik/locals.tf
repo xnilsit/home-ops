@@ -75,6 +75,38 @@ locals {
       namespaces   = ["network"]
       groups       = ["home-ops"]
     }
+
+    # ── the cluster's own admin UIs ───────────────────────────────────────────
+    # Each pairs with the components/oidc component in the app's own tree. All
+    # three stay on envoy-internal, so authentik is the only auth they have -
+    # their built-in logins were removed once these existed.
+    flux = {
+      display_name = "Flux"
+      description  = "GitOps control plane."
+      hostnames    = ["flux.${var.domain}"]
+      # selfh.st carries no flux mark; this is the CNCF project artwork.
+      icon       = "https://raw.githubusercontent.com/cncf/artwork/main/projects/flux/icon/color/flux-icon-color.svg"
+      namespaces = ["flux-system"]
+      groups     = ["home-ops"]
+    }
+    # Quoted: an HCL object key cannot carry a hyphen unquoted. The key drives
+    # the Secret name, so it must stay equal to ${APP} in the component.
+    "garage-webui" = {
+      display_name = "Garage"
+      description  = "S3 object store administration."
+      hostnames    = ["garage.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/garage.svg"
+      namespaces   = ["garage"]
+      groups       = ["home-ops"]
+    }
+    kopia = {
+      display_name = "Kopia"
+      description  = "Backup repository browser."
+      hostnames    = ["kopia.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/kopia.svg"
+      namespaces   = ["storage"]
+      groups       = ["home-ops"]
+    }
   }
 
   group_ids = { for k, g in authentik_group.this : k => g.id }

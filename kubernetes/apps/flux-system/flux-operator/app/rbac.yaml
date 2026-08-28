@@ -10,9 +10,9 @@ subjects:
     name: flux-web-anonymous
     apiGroup: rbac.authorization.k8s.io
 roleRef:
-  # Chart-provided (web.rbac.createRoles, on by default): get/list/watch only.
-  # flux-web-admin is the read-write counterpart - swapping it in here is what
-  # enables the reconcile/suspend/restart/delete buttons.
+  # Chart-provided (web.rbac.createRoles, on by default). flux-web-admin is the
+  # read-write half: reconcile/suspend/restart/delete buttons enabled. Reaching
+  # the UI at all needs an authentik session - see ../oidc.
   kind: ClusterRole
-  name: flux-web-user
+  name: flux-web-admin
   apiGroup: rbac.authorization.k8s.io

@@ -17,7 +17,7 @@ spec:
         # out. Single replica, and Recreate rather than RollingUpdate.
         strategy: Recreate
         annotations:
-          secret.reloader.stakater.com/reload: garage-webui-auth,garage-credentials
+          secret.reloader.stakater.com/reload: garage-credentials
         containers:
           app:
             image:
@@ -28,6 +28,12 @@ spec:
               # /etc/garage.toml. That file is on the NAS, not here, so the
               # startup log carries one "Cannot load garage config!" line - the
               # four values below are everything it reads out of it.
+              #
+              # AUTH_USER_PASS deliberately unset: the SecurityPolicy from
+              # components/oidc is the only login now, so the second one is
+              # noise. The trade is that the pod answers anything that can reach
+              # the Service in-cluster, unauthenticated - including reading every
+              # S3 secret key via GetKeyInfo?showSecretKey=true.
               API_BASE_URL: http://192.168.0.200:3903
               S3_ENDPOINT_URL: http://192.168.0.200:3900
               S3_REGION: eu-central-1
@@ -36,13 +42,6 @@ spec:
                   secretKeyRef:
                     name: garage-credentials
                     key: admin-token
-              # Without this the API layer is unauthenticated - and it can read
-              # every S3 secret key in Garage via GetKeyInfo?showSecretKey=true.
-              AUTH_USER_PASS:
-                valueFrom:
-                  secretKeyRef:
-                    name: garage-webui-auth
-                    key: AUTH_USER_PASS
             probes:
               liveness: &probes
                 enabled: true
@@ -81,8 +80,9 @@ spec:
       app:
         hostnames:
           - "garage.${SECRET_DOMAIN}"
-        # envoy-internal only: this is full administrative control of Garage,
-        # including read access to every S3 credential it holds.
+        # envoy-internal only, behind the OIDC SecurityPolicy: this is full
+        # administrative control of Garage, including read access to every S3
+        # credential it holds.
         parentRefs:
           - name: envoy-internal
             namespace: network
