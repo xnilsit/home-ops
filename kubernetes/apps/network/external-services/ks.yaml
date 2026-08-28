@@ -8,6 +8,10 @@ spec:
   dependsOn:
     - name: envoy-gateway
       namespace: flux-system
+    # Creates the authentik objects and the credential Secrets ./app/oidc.yaml
+    # reflects; without it every SecurityPolicy here is rejected
+    - name: authentik-oidc
+      namespace: flux-system
   interval: 1h
   path: ./kubernetes/apps/network/external-services/app
   prune: true
