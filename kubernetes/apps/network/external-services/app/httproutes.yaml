@@ -86,18 +86,15 @@ items:
                 path: {type: ReplaceFullPath, replaceFullPath: "/stats/public-dashboards/7549ee6cafba41f8930ffa88c541e7cd?orgId=1&refresh=30s"}
         - {name: proxy, matches: *root, backendRefs: [{<<: *ref, name: solar}],}
 
-  # ── envoy-internal — everything that sat behind traefik-forward-auth ────────
-  # home-ops has no auth provider yet, so these are LAN-only: envoy-internal is
-  # 192.168.1.150 and cloudflare-dns runs with --gateway-name=envoy-external, so
-  # nothing here is published publicly. Flip the parentRef back to *external
-  # once a SecurityPolicy with oidc/extAuth exists.
+  # ── envoy-external, behind OIDC — what sat behind traefik-forward-auth ──────
+  # Each carries a SecurityPolicy in ./oidc.yaml. These were LAN-only on
+  # envoy-internal until an auth provider existed.
   - <<: *route
     metadata: {name: code}
     spec:
       hostnames:
         - "code.${SECRET_DOMAIN}"
-      parentRefs: &internal
-        - {name: envoy-internal, namespace: network, sectionName: https}
+      parentRefs: *external
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: code}]}
   - <<: *route
@@ -105,7 +102,7 @@ items:
     spec:
       hostnames:
         - "backup.${SECRET_DOMAIN}"
-      parentRefs: *internal
+      parentRefs: *external
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: duplicacy}]}
   - <<: *route
@@ -113,7 +110,7 @@ items:
     spec:
       hostnames:
         - "oni.${SECRET_DOMAIN}"
-      parentRefs: *internal
+      parentRefs: *external
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: oni}]}
   - <<: *route
@@ -125,7 +122,7 @@ items:
     spec:
       hostnames:
         - "ost.${SECRET_DOMAIN}"
-      parentRefs: *internal
+      parentRefs: *external
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: openspeedtest}]}
   - <<: *route
@@ -133,7 +130,7 @@ items:
     spec:
       hostnames:
         - "scrutiny.${SECRET_DOMAIN}"
-      parentRefs: *internal
+      parentRefs: *external
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: scrutiny}]}
   - <<: *route
@@ -141,7 +138,7 @@ items:
     spec:
       hostnames:
         - "unbalanced.${SECRET_DOMAIN}"
-      parentRefs: *internal
+      parentRefs: *external
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: unbalanced}]}
   - <<: *route
@@ -149,6 +146,6 @@ items:
     spec:
       hostnames:
         - "unraid.${SECRET_DOMAIN}"
-      parentRefs: *internal
+      parentRefs: *external
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: unraid}]}

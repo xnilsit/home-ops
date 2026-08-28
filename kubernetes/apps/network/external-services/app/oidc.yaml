@@ -1,0 +1,150 @@
+---
+# OIDC for the LAN services in ./httproutes.yaml. The components/oidc component
+# takes one ${APP} per Kustomization, so these seven are written out instead.
+#
+# Credentials come from tofu/authentik/locals.tf via reflector; the provider and
+# application are named home-ops-<app>.
+apiVersion: v1
+kind: List
+items:
+  # ── reflected credential stubs ──────────────────────────────────────────────
+  - <<: &secret {apiVersion: v1, kind: Secret, type: Opaque}
+    metadata:
+      name: code-oidc
+      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/code-oidc}
+  - <<: *secret
+    metadata:
+      name: duplicacy-oidc
+      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/duplicacy-oidc}
+  - <<: *secret
+    metadata:
+      name: oni-oidc
+      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/oni-oidc}
+  - <<: *secret
+    metadata:
+      name: openspeedtest-oidc
+      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/openspeedtest-oidc}
+  - <<: *secret
+    metadata:
+      name: scrutiny-oidc
+      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/scrutiny-oidc}
+  - <<: *secret
+    metadata:
+      name: unbalanced-oidc
+      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/unbalanced-oidc}
+  - <<: *secret
+    metadata:
+      name: unraid-oidc
+      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/unraid-oidc}
+
+  # ── policies ────────────────────────────────────────────────────────────────
+  # cookieDomain stays unset so each cookie is scoped to its own host.
+  - <<: &policy {apiVersion: gateway.envoyproxy.io/v1alpha1, kind: SecurityPolicy}
+    metadata: {name: code-oidc}
+    spec:
+      oidc:
+        # openid is added by Envoy Gateway; offline_access is what makes
+        # refreshToken issue an actually usable refresh token.
+        <<: &oidc
+          scopes:
+            - offline_access
+            - email
+            - profile
+          refreshToken: true
+          logoutPath: /oauth2/logout
+        clientIDRef: {kind: Secret, name: code-oidc}
+        clientSecret: {name: code-oidc}
+        redirectURL: https://code.${SECRET_DOMAIN}/oauth2/callback
+        provider:
+          # Pinned, so the envoy-gateway controller needs no egress to authentik.
+          <<: &endpoints
+            authorizationEndpoint: ${AUTHENTIK_URL}/application/o/authorize/
+            tokenEndpoint: ${AUTHENTIK_URL}/application/o/token/
+          issuer: ${AUTHENTIK_URL}/application/o/home-ops-code/
+          endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-code/end-session/
+      targetRefs:
+        - {<<: &target {group: gateway.networking.k8s.io, kind: HTTPRoute}, name: code}
+  - <<: *policy
+    metadata: {name: duplicacy-oidc}
+    spec:
+      oidc:
+        <<: *oidc
+        clientIDRef: {kind: Secret, name: duplicacy-oidc}
+        clientSecret: {name: duplicacy-oidc}
+        redirectURL: https://backup.${SECRET_DOMAIN}/oauth2/callback
+        provider:
+          <<: *endpoints
+          issuer: ${AUTHENTIK_URL}/application/o/home-ops-duplicacy/
+          endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-duplicacy/end-session/
+      targetRefs:
+        - {<<: *target, name: duplicacy}
+  - <<: *policy
+    metadata: {name: oni-oidc}
+    spec:
+      oidc:
+        <<: *oidc
+        clientIDRef: {kind: Secret, name: oni-oidc}
+        clientSecret: {name: oni-oidc}
+        redirectURL: https://oni.${SECRET_DOMAIN}/oauth2/callback
+        provider:
+          <<: *endpoints
+          issuer: ${AUTHENTIK_URL}/application/o/home-ops-oni/
+          endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-oni/end-session/
+      targetRefs:
+        - {<<: *target, name: oni}
+  - <<: *policy
+    metadata: {name: openspeedtest-oidc}
+    spec:
+      oidc:
+        <<: *oidc
+        clientIDRef: {kind: Secret, name: openspeedtest-oidc}
+        clientSecret: {name: openspeedtest-oidc}
+        redirectURL: https://ost.${SECRET_DOMAIN}/oauth2/callback
+        provider:
+          <<: *endpoints
+          issuer: ${AUTHENTIK_URL}/application/o/home-ops-openspeedtest/
+          endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-openspeedtest/end-session/
+      targetRefs:
+        - {<<: *target, name: openspeedtest}
+  - <<: *policy
+    metadata: {name: scrutiny-oidc}
+    spec:
+      oidc:
+        <<: *oidc
+        clientIDRef: {kind: Secret, name: scrutiny-oidc}
+        clientSecret: {name: scrutiny-oidc}
+        redirectURL: https://scrutiny.${SECRET_DOMAIN}/oauth2/callback
+        provider:
+          <<: *endpoints
+          issuer: ${AUTHENTIK_URL}/application/o/home-ops-scrutiny/
+          endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-scrutiny/end-session/
+      targetRefs:
+        - {<<: *target, name: scrutiny}
+  - <<: *policy
+    metadata: {name: unbalanced-oidc}
+    spec:
+      oidc:
+        <<: *oidc
+        clientIDRef: {kind: Secret, name: unbalanced-oidc}
+        clientSecret: {name: unbalanced-oidc}
+        redirectURL: https://unbalanced.${SECRET_DOMAIN}/oauth2/callback
+        provider:
+          <<: *endpoints
+          issuer: ${AUTHENTIK_URL}/application/o/home-ops-unbalanced/
+          endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-unbalanced/end-session/
+      targetRefs:
+        - {<<: *target, name: unbalanced}
+  - <<: *policy
+    metadata: {name: unraid-oidc}
+    spec:
+      oidc:
+        <<: *oidc
+        clientIDRef: {kind: Secret, name: unraid-oidc}
+        clientSecret: {name: unraid-oidc}
+        redirectURL: https://unraid.${SECRET_DOMAIN}/oauth2/callback
+        provider:
+          <<: *endpoints
+          issuer: ${AUTHENTIK_URL}/application/o/home-ops-unraid/
+          endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-unraid/end-session/
+      targetRefs:
+        - {<<: *target, name: unraid}

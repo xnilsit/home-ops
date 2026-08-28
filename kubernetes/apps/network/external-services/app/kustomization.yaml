@@ -7,4 +7,5 @@ labels:
 resources:
   - ./backends.yaml
   - ./httproutes.yaml
+  - ./oidc.yaml
   - ./policies.yaml
