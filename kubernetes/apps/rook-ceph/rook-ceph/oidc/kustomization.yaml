@@ -1,0 +1,34 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Split out of ../cluster so the authentik chain does not end up gating
+  # storage: rook-ceph-cluster is wait: true and half the cluster dependsOn it.
+  - ../../../../components/oidc
+patches:
+  # Targeted by kind rather than name: postBuild substitution has not run yet at
+  # build time, so the SecurityPolicy is still literally named ${APP}-oidc. This
+  # overlay renders exactly one.
+  - target:
+      kind: SecurityPolicy
+    patch: |-
+      # The ceph dashboard is the only app here that logs the user in itself
+      # rather than just sitting behind the gate. It reads the IdP's JWT from
+      # X-Access-Token, the same header cephadm's mgmt-gateway nginx feeds it,
+      # and any header other than Authorization gets the raw token with no
+      # "Bearer " prefix - which is what its decoder expects.
+      - op: add
+        path: /spec/oidc/forwardIDToken
+        value:
+          header: X-Access-Token
+      # Carries the roles claim from tofu/authentik/ceph_roles.tf. The dashboard
+      # answers 403 to a user whose token names no role it recognises.
+      - op: add
+        path: /spec/oidc/scopes/-
+        value: ceph_roles
+      # The dashboard's own logout button 302s to /oauth2/sign_out, so that is
+      # the path the filter has to own here.
+      - op: replace
+        path: /spec/oidc/logoutPath
+        value: /oauth2/sign_out

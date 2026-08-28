@@ -6,6 +6,12 @@ locals {
   #   hostnames     must match the HTTPRoute's hostnames exactly
   #   namespaces    where the credential Secret is reflected to
   #   groups        allowed in; EMPTY MEANS EVERY AUTHENTICATED USER
+  #   sub_mode      claim authentik puts in `sub`; only set when the app makes a
+  #                 user record out of it
+  #   extra_property_mappings
+  #                 scope mappings on top of the four shared ones
+  #   include_claims_in_id_token
+  #                 only for an app that reads the id token itself
   apps = {
     echo = {
       display_name = "Echo"
@@ -78,8 +84,9 @@ locals {
 
     # ── the cluster's own admin UIs ───────────────────────────────────────────
     # Each pairs with the components/oidc component in the app's own tree. All
-    # three stay on envoy-internal, so authentik is the only auth they have -
-    # their built-in logins were removed once these existed.
+    # of them stay on envoy-internal, so authentik is the only auth they have -
+    # their built-in logins were removed once these existed. rook is the one
+    # exception: see its entry.
     flux = {
       display_name = "Flux"
       description  = "GitOps control plane."
@@ -107,7 +114,32 @@ locals {
       namespaces   = ["storage"]
       groups       = ["home-ops"]
     }
+    # The ceph dashboard keeps its own admin password as break-glass: while its
+    # OAuth2 SSO is on, local login is broken, so recovering from an authentik
+    # outage means `ceph dashboard sso disable` first.
+    rook = {
+      display_name = "Ceph"
+      description  = "Storage cluster administration."
+      hostnames    = ["rook.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/ceph.svg"
+      namespaces   = ["rook-ceph"]
+      groups       = ["home-ops"]
+      # The dashboard creates a user record per login, named after `sub` - a
+      # hashed_user_id would be a hex blob in the user list and in the audit log.
+      sub_mode = "user_username"
+      # It reads its roles out of the token; without them every request is 403.
+      # Envoy forwards the ID TOKEN to it, so the claim has to be in there and
+      # not only behind userinfo.
+      extra_property_mappings    = ["ceph_roles"]
+      include_claims_in_id_token = true
+    }
   }
 
   group_ids = { for k, g in authentik_group.this : k => g.id }
+
+  # Same name-to-id indirection as group_ids, and for the same reason: `apps` is
+  # the for_each argument, so nothing in it may depend on a resource attribute.
+  property_mapping_ids = {
+    ceph_roles = authentik_property_mapping_provider_scope.ceph_roles.id
+  }
 }

@@ -1,0 +1,114 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/job-batch-v1.json
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rook-ceph-sso
+  annotations:
+    # The script is not a Flux substitution target, and exempting it means a
+    # later edit cannot lose a shell $VAR to envsubst.
+    kustomize.toolkit.fluxcd.io/substitute: disabled
+spec:
+  backoffLimit: 6
+  # No ttlSecondsAfterFinished: if the Job were garbage-collected, Flux would
+  # recreate it on the next reconcile and it would re-run every hour.
+  template:
+    spec:
+      restartPolicy: OnFailure
+      # The same account the toolbox runs under; nothing here touches the API.
+      serviceAccountName: rook-ceph-default
+      securityContext:
+        runAsNonRoot: true
+        # 167 is the ceph uid in quay.io/ceph/ceph
+        runAsUser: 167
+        runAsGroup: 167
+        fsGroup: 167
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ceph
+          # Client major must match the mons. Kept in step with the cephImage in
+          # ../cluster/helmrelease.yaml - it is the same package, so Renovate
+          # bumps both in one PR.
+          image: quay.io/ceph/ceph:v20.2.4
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+
+              # Same two inputs the toolbox assembles a client config from: the
+              # mon endpoints ConfigMap, whose value is `<name>=<ip:port>` pairs
+              # that ceph wants without the names, and the admin key. Both are
+              # written under /tmp and passed explicitly, so the root filesystem
+              # can stay read-only.
+              cat >/tmp/ceph.conf <<EOF
+              [global]
+              mon_host = $(sed 's/[a-z0-9_-]\+=//g' /etc/rook/mon-endpoints)
+              EOF
+
+              cat >/tmp/keyring <<EOF
+              [$(cat /var/lib/rook-ceph-mon/username)]
+              key = $(cat /var/lib/rook-ceph-mon/secret.keyring)
+              EOF
+
+              # Idempotent: it rewrites the SSO DB in the mon config-key store
+              # and sets the mgr/dashboard/sso_oauth2 module option, both of
+              # which already survive a mgr restart.
+              #
+              # No roles_path argument on purpose. Left unset, the dashboard
+              # falls through to the plain `roles` claim, which is what
+              # tofu/authentik/ceph_roles.tf emits.
+              ceph -c /tmp/ceph.conf \
+                -n "$(cat /var/lib/rook-ceph-mon/username)" \
+                -k /tmp/keyring \
+                dashboard sso enable oauth2
+
+              ceph -c /tmp/ceph.conf \
+                -n "$(cat /var/lib/rook-ceph-mon/username)" \
+                -k /tmp/keyring \
+                dashboard sso status
+          env:
+            # The image's home for uid 167 is /var/lib/ceph, which is not
+            # writable here. Nothing should want a home, but readOnlyRootFilesystem
+            # turns "should not" into a crash.
+            - name: HOME
+              value: /tmp
+          volumeMounts:
+            - name: mon-endpoint-volume
+              mountPath: /etc/rook
+              readOnly: true
+            - name: ceph-admin-secret
+              mountPath: /var/lib/rook-ceph-mon
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - "ALL"
+          resources:
+            limits:
+              memory: 256Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+      volumes:
+        - name: mon-endpoint-volume
+          configMap:
+            name: rook-ceph-mon-endpoints
+            items:
+              - key: data
+                path: mon-endpoints
+        - name: ceph-admin-secret
+          secret:
+            secretName: rook-ceph-mon
+            items:
+              - key: ceph-username
+                path: username
+              - key: ceph-secret
+                path: secret.keyring
+        - name: tmp
+          emptyDir: {}
