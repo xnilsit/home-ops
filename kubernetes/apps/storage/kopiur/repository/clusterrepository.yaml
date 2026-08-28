@@ -42,12 +42,16 @@ spec:
   server:
     # Required on a ClusterRepository, which has no namespace of its own.
     namespace: storage
-    # Browse and restore, no create/delete/policy edits. The pod holds the
-    # repository decryption key either way, so this is not a confidentiality
-    # boundary - it only stops the UI from destroying a backup.
-    readOnly: true
-    # auth omitted = Generate: credentials minted into Secret nas-kopia-ui-auth
-    # (keys username/password). It never defaults to no-auth.
+    # Read-write: create, delete and policy edits from the UI. Only the
+    # SecurityPolicy in ../oidc stands between a visitor and destroying a backup.
+    readOnly: false
+    auth:
+      # No kopia login - the OIDC SecurityPolicy in ../oidc is the only gate, and
+      # a second one would just be a password to keep. In-cluster traffic to the
+      # nas-kopia-ui Service bypasses it, though: anything in the cluster that
+      # can reach port 51515 now has the repository.
+      insecure:
+        acknowledgeInsecure: true
     resources:
       limits:
         memory: 1Gi

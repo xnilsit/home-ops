@@ -1,0 +1,10 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Split out of ../app on purpose. The flux-operator Kustomization is wait: true
+  # and gates flux-instance, so pulling authentik-oidc into its dependsOn would
+  # deadlock a fresh cluster: that chain runs through tofu-controller and
+  # rook-ceph, which need the very controllers flux-instance creates.
+  - ../../../../components/oidc

@@ -3,16 +3,19 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: flux-web-anonymous
+  # Carries the bound role, because roleRef is immutable: changing it in place
+  # fails the apply, so switching roles means a new name and letting Flux prune
+  # the old binding. Renamed from flux-web-anonymous, which bound flux-web-user.
+  name: flux-web-anonymous-admin
 subjects:
   # The identity every UI request impersonates, set in ../app/helmrelease.yaml.
   - kind: User
     name: flux-web-anonymous
     apiGroup: rbac.authorization.k8s.io
 roleRef:
-  # Chart-provided (web.rbac.createRoles, on by default): get/list/watch only.
-  # flux-web-admin is the read-write counterpart - swapping it in here is what
-  # enables the reconcile/suspend/restart/delete buttons.
+  # Chart-provided (web.rbac.createRoles, on by default). flux-web-admin is the
+  # read-write half: reconcile/suspend/restart/delete buttons enabled. Reaching
+  # the UI at all needs an authentik session - see ../oidc.
   kind: ClusterRole
-  name: flux-web-user
+  name: flux-web-admin
   apiGroup: rbac.authorization.k8s.io

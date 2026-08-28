@@ -8,8 +8,8 @@ spec:
   hostnames:
     - "flux.${SECRET_DOMAIN}"
   parentRefs:
-    # envoy-internal only: read-only, but it still renders every Flux resource
-    # in the cluster, including source URLs and reconciliation errors.
+    # envoy-internal only, guarded by the SecurityPolicy in ../oidc: read-write
+    # over every Flux resource in the cluster.
     - name: envoy-internal
       namespace: network
       sectionName: https

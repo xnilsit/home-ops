@@ -13,8 +13,8 @@ spec:
   hostnames:
     - "kopia.${SECRET_DOMAIN}"
   parentRefs:
-    # envoy-internal only. kopia's own login guards the UI, but reaching it means
-    # read access to every backup in the repository.
+    # envoy-internal only, guarded by the SecurityPolicy in ../oidc - kopia's own
+    # login is off. Reaching it means read AND write on every backup.
     - name: envoy-internal
       namespace: network
       sectionName: https
