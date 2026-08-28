@@ -31,3 +31,29 @@ spec:
         # cluster-wide, which would let a runner read flux-system/sops-age.
         # Each Terraform CR brings its own ServiceAccount and namespaced Role.
         create: false
+  postRenderers:
+    # create: false above drops the tf-runner ServiceAccounts but NOT the
+    # ClusterRole and ClusterRoleBinding, which stay behind bound to names that
+    # no longer exist. Inert today, but anything that later creates a
+    # ServiceAccount called tf-runner in flux-system or tofu-controller would
+    # silently inherit cluster-wide secrets and configmaps.
+    - kustomize:
+        patches:
+          - target:
+              kind: ClusterRoleBinding
+              name: tf-runner-rolebinding
+            patch: |
+              $patch: delete
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRoleBinding
+              metadata:
+                name: tf-runner-rolebinding
+          - target:
+              kind: ClusterRole
+              name: tf-runner-role
+            patch: |-
+              $patch: delete
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: tf-runner-role
