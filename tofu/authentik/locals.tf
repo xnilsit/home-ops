@@ -8,8 +8,6 @@ locals {
   #   groups        allowed in; EMPTY MEANS EVERY AUTHENTICATED USER
   #   sub_mode      claim authentik puts in `sub`; only set when the app makes a
   #                 user record out of it
-  #   extra_property_mappings
-  #                 scope mappings on top of the four shared ones
   #   include_claims_in_id_token
   #                 only for an app that reads the id token itself
   apps = {
@@ -127,19 +125,12 @@ locals {
       # The dashboard creates a user record per login, named after `sub` - a
       # hashed_user_id would be a hex blob in the user list and in the audit log.
       sub_mode = "user_username"
-      # It reads its roles out of the token; without them every request is 403.
-      # Envoy forwards the ID TOKEN to it, so the claim has to be in there and
-      # not only behind userinfo.
-      extra_property_mappings    = ["ceph_roles"]
+      # It builds a user record out of name and email, and envoy forwards it the
+      # ID TOKEN, so those claims have to be in there and not only behind
+      # userinfo. Its roles come from the roles_path in the rook-ceph-sso Job.
       include_claims_in_id_token = true
     }
   }
 
   group_ids = { for k, g in authentik_group.this : k => g.id }
-
-  # Same name-to-id indirection as group_ids, and for the same reason: `apps` is
-  # the for_each argument, so nothing in it may depend on a resource attribute.
-  property_mapping_ids = {
-    ceph_roles = authentik_property_mapping_provider_scope.ceph_roles.id
-  }
 }

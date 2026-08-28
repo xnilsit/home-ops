@@ -22,11 +22,6 @@ patches:
         path: /spec/oidc/forwardIDToken
         value:
           header: X-Access-Token
-      # Carries the roles claim from tofu/authentik/ceph_roles.tf. The dashboard
-      # answers 403 to a user whose token names no role it recognises.
-      - op: add
-        path: /spec/oidc/scopes/-
-        value: ceph_roles
       # The dashboard's own logout button 302s to /oauth2/sign_out, so that is
       # the path the filter has to own here.
       - op: replace
