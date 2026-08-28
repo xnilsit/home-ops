@@ -32,7 +32,7 @@ locals {
       description  = "Backup console."
       hostnames    = ["backup.${var.domain}"]
       # Vendor logo: selfh.st has duplicati, a different product.
-      icon       = "https://duplicacy.com/images/logo.png"
+      icon       = "https://duplicacy.com/img/duplicacy.png"
       namespaces = ["network"]
       groups     = ["home-ops"]
     }
