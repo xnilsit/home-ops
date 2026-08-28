@@ -16,6 +16,7 @@ talosconfig
 # Misc.
 .claude/
 .private/
+.terraform/
 .venv/
 .DS_Store
 Thumbs.db

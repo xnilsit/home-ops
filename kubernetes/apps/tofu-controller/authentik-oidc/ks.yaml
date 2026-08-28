@@ -1,0 +1,67 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app authentik-oidc-state
+  namespace: flux-system
+spec:
+  targetNamespace: tofu-controller
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/tofu-controller/authentik-oidc/state
+  dependsOn:
+    # Creates the ceph-bucket-retain StorageClass the OBC claims through
+    - name: rook-ceph-cluster
+      namespace: flux-system
+    # The tofu-state GarageKey, whose Secret reflector mirrors in here
+    - name: garage
+      namespace: flux-system
+  # wait: true so the restore Job must COMPLETE before the Terraform below runs.
+  # Without it a fresh cluster would apply against an empty bucket and re-create
+  # authentik objects that already exist.
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  interval: 1h
+  timeout: 10m
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app authentik-oidc
+  namespace: flux-system
+spec:
+  targetNamespace: tofu-controller
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/tofu-controller/authentik-oidc/app
+  dependsOn:
+    - name: tofu-controller
+      namespace: flux-system
+    - name: authentik-oidc-state
+      namespace: flux-system
+  healthChecks:
+    - apiVersion: infra.contrib.fluxcd.io/v1alpha2
+      kind: Terraform
+      name: *app
+      namespace: tofu-controller
+  healthCheckExprs:
+    - apiVersion: infra.contrib.fluxcd.io/v1alpha2
+      kind: Terraform
+      failed: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'False')
+      current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # wait: false, since wait: true would ignore the healthCheckExprs above.
+  wait: false
+  interval: 1h
+  # The first apply pulls two providers before it can create anything.
+  timeout: 15m

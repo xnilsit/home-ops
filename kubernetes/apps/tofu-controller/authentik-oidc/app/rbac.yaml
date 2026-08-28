@@ -1,0 +1,55 @@
+---
+# The chart's tf-runner ServiceAccount is disabled (see ../../tofu-controller):
+# its ClusterRole grants secrets and configmaps CLUSTER-WIDE, which would let a
+# runner read flux-system/sops-age. This is the same rule set as a namespaced
+# Role, so the runner can only reach this namespace.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tofu-authentik
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tofu-authentik
+rules:
+  # secrets: the per-app <app>-oidc Secrets this tofu module writes, plus
+  # whatever the runner itself stores. configmaps and leases are what the
+  # chart's own tf-runner role grants.
+  - apiGroups:
+      - ""
+    resources:
+      - "configmaps"
+      - "secrets"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+      - "create"
+      - "update"
+      - "patch"
+      - "delete"
+  - apiGroups:
+      - "coordination.k8s.io"
+    resources:
+      - "leases"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+      - "create"
+      - "update"
+      - "patch"
+      - "delete"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tofu-authentik
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tofu-authentik
+subjects:
+  - kind: ServiceAccount
+    name: tofu-authentik

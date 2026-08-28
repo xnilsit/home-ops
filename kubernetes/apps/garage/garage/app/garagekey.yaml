@@ -74,3 +74,18 @@ items:
         name: garage-dragonfly-backup
       bucketPermissions:
         - {bucketRef: {name: dragonfly-backup}, read: true, write: true}
+  - <<: *key
+    metadata: {name: tofu-state}
+    spec:
+      clusterRef: {name: nas}
+      neverExpires: true
+      secretTemplate:
+        <<: *template
+        # read as well as write: the restore Job copies Garage -> RGW when a
+        # rebootstrap leaves the RGW bucket empty.
+        annotations:
+          reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+          reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: tofu-controller
+        name: garage-tofu-state
+      bucketPermissions:
+        - {bucketRef: {name: tofu-state}, read: true, write: true}

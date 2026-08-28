@@ -31,3 +31,17 @@ items:
           - id: expire-snapshots
             expirationDays: 3
             abortIncompleteMultipartUploadDays: 1
+  # The off-cluster copy of the tofu state that owns the authentik OIDC objects.
+  # Written hourly by the CronJob in
+  # kubernetes/apps/tofu-controller/authentik-oidc/state/rclone.yaml.
+  - <<: *bucket
+    metadata: {name: tofu-state}
+    spec:
+      <<: *spec
+      # Expires the superseded copies under history/ only - the live object is
+      # overwritten in place each hour, so it never ages out.
+      lifecycle:
+        rules:
+          - id: expire-history
+            expirationDays: 30
+            abortIncompleteMultipartUploadDays: 1

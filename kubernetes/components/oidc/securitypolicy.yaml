@@ -1,0 +1,56 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/gateway.envoyproxy.io/securitypolicy_v1alpha1.json
+# v1alpha1 is the only served version in Envoy Gateway 1.9.0.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: ${APP}-oidc
+spec:
+  oidc:
+    clientIDRef:
+      kind: Secret
+      name: ${APP}-oidc
+    clientSecret:
+      name: ${APP}-oidc
+    provider:
+      # All four pinned rather than discovered from the issuer: the envoy-gateway
+      # CONTROLLER then never needs egress to authentik, so an authentik outage
+      # cannot stop a valid policy from translating. The path segment is the
+      # authentik APPLICATION SLUG, which tofu/authentik keeps equal to
+      # home-ops-${APP}.
+      issuer: ${AUTHENTIK_URL}/application/o/home-ops-${APP}/
+      authorizationEndpoint: ${AUTHENTIK_URL}/application/o/authorize/
+      tokenEndpoint: ${AUTHENTIK_URL}/application/o/token/
+      endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-${APP}/end-session/
+    # openid is added by Envoy Gateway whether listed or not. offline_access is
+    # the load-bearing one: authentik only issues a refresh token when it is
+    # requested, and without one refreshToken below is a no-op - the session dies
+    # at the access-token TTL and the user is bounced every few minutes.
+    scopes:
+      - offline_access
+      - email
+      - profile
+    # Explicit although the CRD already defaults it to true, so a server-side
+    # re-default on an Envoy Gateway upgrade cannot flip a stored value.
+    refreshToken: true
+    # Pinned rather than left to Envoy Gateway's
+    # "%REQ(x-forwarded-proto)%://%REQ(:authority)%/oauth2/callback": it must
+    # byte-match an entry in the provider's allowed_redirect_uris, and public
+    # traffic arrives via cloudflared, so trusting a Cloudflare-set
+    # x-forwarded-proto is a dependency worth not having.
+    redirectURL: https://${OIDC_HOST}/oauth2/callback
+    # /oauth2/logout rather than the default /logout, which real apps serve and
+    # the oauth2 filter would swallow before the backend sees it.
+    logoutPath: /oauth2/logout
+    # cookieDomain deliberately unset, so cookies scope to ${OIDC_HOST} alone.
+    # Setting it to ${SECRET_DOMAIN} would buy cross-subdomain SSO at the price
+    # of shipping the encrypted id-token cookie to every other host under the
+    # apex, including the unraid and proxmox boxes behind external-services.
+  targetRefs:
+    # By name, not the targetSelectors form the gateway-wide policies in
+    # envoy-gateway/app/envoy.yaml use: app.kubernetes.io/name is not reliably
+    # present on hand-written routes, and a label selector would also sweep in
+    # every other route an app owns.
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: ${OIDC_ROUTE}

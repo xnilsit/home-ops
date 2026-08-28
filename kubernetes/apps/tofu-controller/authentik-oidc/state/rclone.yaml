@@ -1,0 +1,135 @@
+---
+# The tofu state lives in the RGW bucket the OBC above claims. RGW is in-cluster,
+# so a rebootstrap loses it - hence a copy on Garage and a restore that runs
+# before the Terraform CR.
+#
+# Both workloads share one env block, so the two credential sets and the two
+# regions are written once. Recovered from the RGW-to-Garage migration Job
+# deleted in 8bf5e41.
+apiVersion: v1
+kind: List
+items:
+  # ── restore: Garage -> RGW, only when RGW has no state ──────────────────────
+  - apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: tofu-state-restore
+    spec:
+      backoffLimit: 6
+      # No ttlSecondsAfterFinished: this Job is Flux-owned, so a garbage-collected
+      # one is recreated and re-runs on the next reconcile. Harmless here only
+      # because the guard below makes a re-run a no-op.
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: tofu-state-restore
+        spec:
+          restartPolicy: OnFailure
+          securityContext: &podSecurity
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - <<: &container
+                name: rclone
+                image: mirror.gcr.io/rclone/rclone:1.75.0
+                command:
+                  - "/bin/sh"
+                  - "-c"
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+                  capabilities:
+                    drop:
+                      - "ALL"
+                resources:
+                  requests:
+                    cpu: 25m
+                  limits:
+                    memory: 128Mi
+              args:
+                - |
+                  set -eu
+                  # The guard IS the safety: unconditional, this would overwrite
+                  # live state with an up-to-an-hour-old copy on every reconcile.
+                  if rclone lsf rgw:tofu-state/authentik/ 2>/dev/null | grep -q .; then
+                    echo "RGW already holds state; refusing to restore over it"
+                    exit 0
+                  fi
+                  echo "RGW state is empty; restoring from Garage"
+                  exec rclone copy garage:tofu-state/authentik rgw:tofu-state/authentik \
+                    --s3-no-check-bucket \
+                    --stats-one-line
+              env: &rcloneEnv
+                - name: RCLONE_CONFIG_RGW_TYPE
+                  value: s3
+                - name: RCLONE_CONFIG_RGW_PROVIDER
+                  value: Ceph
+                - name: RCLONE_CONFIG_RGW_ENDPOINT
+                  value: http://rook-ceph-rgw-ceph-objectstore.rook-ceph.svc:80
+                - name: RCLONE_CONFIG_RGW_REGION
+                  value: us-east-1
+                - name: RCLONE_CONFIG_RGW_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef: {name: tofu-state, key: AWS_ACCESS_KEY_ID}
+                - name: RCLONE_CONFIG_RGW_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef: {name: tofu-state, key: AWS_SECRET_ACCESS_KEY}
+                - name: RCLONE_CONFIG_GARAGE_TYPE
+                  value: s3
+                # Garage is not a known rclone provider; Other keeps it off
+                # request shapes only RGW accepts.
+                - name: RCLONE_CONFIG_GARAGE_PROVIDER
+                  value: Other
+                - name: RCLONE_CONFIG_GARAGE_ENDPOINT
+                  value: "http://192.168.0.200:3900"
+                # Garage rejects a SigV4 scope with the wrong region outright.
+                - name: RCLONE_CONFIG_GARAGE_REGION
+                  value: eu-central-1
+                - name: RCLONE_CONFIG_GARAGE_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef: {name: garage-tofu-state, key: AWS_ACCESS_KEY_ID}
+                - name: RCLONE_CONFIG_GARAGE_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef: {name: garage-tofu-state, key: AWS_SECRET_ACCESS_KEY}
+  # ── sync: RGW -> Garage, hourly ─────────────────────────────────────────────
+  - apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      name: tofu-state-sync
+    spec:
+      # Off the hour, clear of the CNPG backup windows at 03:30 and 04:00.
+      schedule: "17 * * * *"
+      timeZone: "${TIMEZONE}"
+      concurrencyPolicy: Forbid
+      successfulJobsHistoryLimit: 1
+      failedJobsHistoryLimit: 3
+      jobTemplate:
+        spec:
+          backoffLimit: 2
+          template:
+            metadata:
+              labels:
+                app.kubernetes.io/name: tofu-state-sync
+            spec:
+              restartPolicy: OnFailure
+              securityContext: *podSecurity
+              containers:
+                - <<: *container
+                  args:
+                    - |
+                      set -eu
+                      # copy, never sync: copy does not delete at the destination.
+                      #
+                      # --backup-dir files the previous state under history/
+                      # instead of destroying it - without it a corrupted state
+                      # reaches the only other copy within the hour and there is
+                      # nothing to roll back to.
+                      exec rclone copy rgw:tofu-state/authentik garage:tofu-state/authentik \
+                        --backup-dir "garage:tofu-state/history/$(date -u +%Y%m%dT%H%M%SZ)" \
+                        --s3-no-check-bucket \
+                        --stats 30s \
+                        --stats-one-line
+                  env: *rcloneEnv

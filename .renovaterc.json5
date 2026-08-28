@@ -106,6 +106,12 @@
       matchDepNames: ["kubectl"],
       automerge: false,
     },
+    {
+      description: "Never auto-merge the authentik provider, it writes to a shared authentik and needs `tofu providers lock` plus a plan",
+      matchDatasources: ["terraform-provider"],
+      matchPackageNames: ["goauthentik/authentik"],
+      automerge: false,
+    },
     // ---------------------------------------------------------------------
     // Labels
     // ---------------------------------------------------------------------
@@ -140,6 +146,10 @@
     {
       matchDatasources: ["github-releases"],
       addLabels: ["renovate/github-release"],
+    },
+    {
+      matchDatasources: ["terraform-provider"],
+      addLabels: ["renovate/terraform"],
     },
   ],
 }

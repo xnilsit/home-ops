@@ -1,0 +1,12 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/objectbucket.io/objectbucketclaim_v1alpha1.json
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: tofu-state
+spec:
+  # Explicit bucketName, not generateBucketName: the s3 backend block in
+  # ../app/terraform.yaml needs a literal bucket, which a random suffix rules out.
+  bucketName: tofu-state
+  # Retain: a deleted claim must cost a manual cleanup, not the tofu state.
+  storageClassName: ceph-bucket-retain
