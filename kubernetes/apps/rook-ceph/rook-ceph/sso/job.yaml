@@ -56,13 +56,17 @@ spec:
               # and sets the mgr/dashboard/sso_oauth2 module option, both of
               # which already survive a mgr restart.
               #
-              # No roles_path argument on purpose. Left unset, the dashboard
-              # falls through to the plain `roles` claim, which is what
-              # tofu/authentik/ceph_roles.tf emits.
+              # The argument is roles_path, a jmespath expression the dashboard
+              # runs over the token to decide the user's roles. A constant list
+              # rather than a lookup into the token: authentik's policy binding
+              # already decides who arrives, and reading a group claim here
+              # would answer 403 whenever that claim went missing. The inner
+              # quotes are jmespath's raw-string literal, so the shell quoting
+              # around them has to be the double kind.
               ceph -c /tmp/ceph.conf \
                 -n "$(cat /var/lib/rook-ceph-mon/username)" \
                 -k /tmp/keyring \
-                dashboard sso enable oauth2
+                dashboard sso enable oauth2 "['administrator']"
 
               ceph -c /tmp/ceph.conf \
                 -n "$(cat /var/lib/rook-ceph-mon/username)" \

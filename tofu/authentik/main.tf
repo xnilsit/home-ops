@@ -23,9 +23,4 @@ module "app" {
   signing_key        = data.authentik_certificate_key_pair.signing.id
 
   include_claims_in_id_token = try(each.value.include_claims_in_id_token, false)
-
-  # Name to id as above, against local.property_mapping_ids.
-  extra_property_mappings = [
-    for m in try(each.value.extra_property_mappings, []) : local.property_mapping_ids[m]
-  ]
 }
