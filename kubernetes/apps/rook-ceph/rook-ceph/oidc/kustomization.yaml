@@ -14,14 +14,26 @@ patches:
       kind: SecurityPolicy
     patch: |-
       # The ceph dashboard is the only app here that logs the user in itself
-      # rather than just sitting behind the gate. It reads the IdP's JWT from
-      # X-Access-Token, the same header cephadm's mgmt-gateway nginx feeds it,
-      # and any header other than Authorization gets the raw token with no
-      # "Bearer " prefix - which is what its decoder expects.
+      # rather than just sitting behind the gate, so it needs the IdP's token -
+      # and specifically the ACCESS token. Envoy re-issues that one on every
+      # refresh; the id token it keeps as first issued, and the dashboard
+      # rejects an expired token on every secured endpoint while still
+      # accepting it at /auth/oauth2/login, which turns into a login loop.
+      #
+      # Handed over as the cookie named `token`, the first place the dashboard
+      # looks. There is no way to put the access token in a header of our
+      # choosing: forwardAccessToken only ever writes Authorization, which the
+      # dashboard does not read in this mode.
       - op: add
-        path: /spec/oidc/forwardIDToken
+        path: /spec/oidc/cookieNames
         value:
-          header: X-Access-Token
+          accessToken: token
+      # Envoy encrypts cookie values by default, and the dashboard has to be
+      # able to decode the JWT. The cookie stays HttpOnly, Secure and scoped to
+      # this host, which is what the dashboard's own session cookie would be.
+      - op: add
+        path: /spec/oidc/disableTokenEncryption
+        value: true
       # The dashboard's own logout button 302s to /oauth2/sign_out, so that is
       # the path the filter has to own here.
       - op: replace
