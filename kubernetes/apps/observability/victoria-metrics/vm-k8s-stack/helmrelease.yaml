@@ -185,6 +185,23 @@ spec:
 
     kubeApiServer:
       enabled: true
+      vmScrape:
+        spec:
+          endpoints:
+            - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+              port: https
+              scheme: https
+              tlsConfig:
+                caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                serverName: kubernetes
+              # kube-srv-02 serves ~18MB of /metrics, over vmagent's 16MB default
+              max_scrape_size: 64MB
+              # ~2/3 of the payload, and no rule or dashboard reads them
+              metricRelabelConfigs:
+                - action: drop
+                  sourceLabels:
+                    - "__name__"
+                  regex: (apiserver_request_duration_seconds|apiserver_request_body_size_bytes|apiserver_response_sizes|apiserver_watch_events_sizes|apiserver_watch_list_duration_seconds|apiserver_watch_cache_read_wait_seconds|apiserver_admission_controller_admission_duration_seconds|etcd_request_duration_seconds)_bucket
 
     kubeControllerManager:
       enabled: true
