@@ -28,6 +28,12 @@ resource "authentik_provider_oauth2" "this" {
   # source of truth for a live credential.
   client_type = "confidential"
 
+  # Must be set explicitly. The provider documents grant_types as optional and
+  # "Generated", but it sends an empty list and authentik stores it empty, which
+  # makes every authorize request fail with invalid_request / "The request is
+  # otherwise malformed". refresh_token is what makes offline_access usable.
+  grant_types = ["authorization_code", "refresh_token"]
+
   authorization_flow = var.authorization_flow
   invalidation_flow  = var.invalidation_flow
 
