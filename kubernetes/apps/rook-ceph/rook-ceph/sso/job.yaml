@@ -42,36 +42,62 @@ spec:
               # that ceph wants without the names, and the admin key. Both are
               # written under /tmp and passed explicitly, so the root filesystem
               # can stay read-only.
+              #
+              # Read into variables first, on their own lines: a $(...) that
+              # fails inside a heredoc does not trip errexit, so an unreadable
+              # secret would otherwise write a malformed keyring and surface as
+              # a confusing parse error further down. Shell variables are safe
+              # here because the substitute annotation keeps envsubst off this
+              # script.
+              CEPH_USER="$(cat /var/lib/rook-ceph-mon/username)"
+              CEPH_KEY="$(cat /var/lib/rook-ceph-mon/secret.keyring)"
+              MON_HOST="$(sed 's/[a-z0-9_-]\+=//g' /etc/rook/mon-endpoints)"
+
               cat >/tmp/ceph.conf <<EOF
               [global]
-              mon_host = $(sed 's/[a-z0-9_-]\+=//g' /etc/rook/mon-endpoints)
+              mon_host = $MON_HOST
               EOF
 
               cat >/tmp/keyring <<EOF
-              [$(cat /var/lib/rook-ceph-mon/username)]
-              key = $(cat /var/lib/rook-ceph-mon/secret.keyring)
+              [$CEPH_USER]
+              key = $CEPH_KEY
               EOF
 
-              # Idempotent: it rewrites the SSO DB in the mon config-key store
-              # and sets the mgr/dashboard/sso_oauth2 module option, both of
-              # which already survive a mgr restart.
-              #
-              # The argument is roles_path, a jmespath expression the dashboard
-              # runs over the token to decide the user's roles. A constant list
-              # rather than a lookup into the token: authentik's policy binding
-              # already decides who arrives, and reading a group claim here
-              # would answer 403 whenever that claim went missing. The inner
-              # quotes are jmespath's raw-string literal, so the shell quoting
-              # around them has to be the double kind.
-              ceph -c /tmp/ceph.conf \
-                -n "$(cat /var/lib/rook-ceph-mon/username)" \
-                -k /tmp/keyring \
-                dashboard sso enable oauth2 "['administrator']"
+              ceph() {
+                command ceph -c /tmp/ceph.conf -n "$CEPH_USER" \
+                  -k /tmp/keyring "$@"
+              }
 
-              ceph -c /tmp/ceph.conf \
-                -n "$(cat /var/lib/rook-ceph-mon/username)" \
-                -k /tmp/keyring \
-                dashboard sso status
+              # roles_path is a jmespath expression the dashboard runs over the
+              # token to decide the user's roles. A constant list rather than a
+              # lookup into the token: authentik's policy binding already decides
+              # who arrives, and reading a group claim would answer 403 whenever
+              # that claim went missing. The inner quotes are jmespath's
+              # raw-string literal.
+              ROLES_PATH="['administrator']"
+
+              # Sets protocol plus the mgr/dashboard/sso_oauth2 module option,
+              # and applies ROLES_PATH to the running mgr.
+              ceph dashboard sso enable oauth2 "$ROLES_PATH"
+
+              # ...but does not persist it. SsoDB.save() serialises
+              # self.config, which `sso enable oauth2` leaves as the Saml2
+              # instance loaded at startup, and Saml2.to_dict() returns only
+              # onelogin_settings - so roles_path lives in memory and dies with
+              # the mgr, after which every request is a 403. Write the record
+              # the shape SsoDB.load() expects instead.
+              python3 - "$ROLES_PATH" >/tmp/ssodb.json <<'PY'
+              import json, sys
+              json.dump({
+                  "protocol": "oauth2",
+                  "saml2": {"onelogin_settings": {}},
+                  "oauth2": {"roles_path": sys.argv[1]},
+                  "version": 1,
+              }, sys.stdout)
+              PY
+              ceph config-key set mgr/dashboard/ssodb_v1 -i /tmp/ssodb.json
+
+              ceph dashboard sso status
           env:
             # The image's home for uid 167 is /var/lib/ceph, which is not
             # writable here. Nothing should want a home, but readOnlyRootFilesystem
