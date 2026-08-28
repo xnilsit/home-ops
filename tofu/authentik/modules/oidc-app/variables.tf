@@ -25,6 +25,22 @@ variable "hostnames" {
   type        = list(string)
 }
 
+variable "icon" {
+  # Empty is passed to authentik as null rather than "", so an app without an
+  # icon does not produce a perpetual diff.
+  description = "URL of the dashboard tile icon."
+  type        = string
+  default     = ""
+}
+
+variable "open_in_new_tab" {
+  # These are all separate admin UIs, so the dashboard should not navigate away
+  # from itself.
+  description = "Open the app in a new tab from authentik's dashboard."
+  type        = bool
+  default     = true
+}
+
 variable "groups" {
   # Keyed by NAME, not id: the ids are only known after apply, and for_each
   # cannot build a resource graph from unknown keys.

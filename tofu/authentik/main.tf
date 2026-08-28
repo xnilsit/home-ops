@@ -8,6 +8,7 @@ module "app" {
   description  = try(each.value.description, "")
   hostnames    = each.value.hostnames
   sub_mode     = try(each.value.sub_mode, "hashed_user_id")
+  icon         = try(each.value.icon, "")
 
   # Name to id via groups.tf, so a typo in locals.tf fails at plan time rather
   # than producing an application nobody can reach. Keyed by name, because the

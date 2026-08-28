@@ -22,25 +22,32 @@ locals {
       display_name = "Code"
       description  = "code-server on the NAS."
       hostnames    = ["code.${var.domain}"]
-      namespaces   = ["network"]
-      groups       = ["home-ops"]
+      # code-server is VS Code in a browser; selfh.st has no own mark for it.
+      icon       = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/visual-studio-code.svg"
+      namespaces = ["network"]
+      groups     = ["home-ops"]
     }
     duplicacy = {
       display_name = "Duplicacy"
       description  = "Backup console."
       hostnames    = ["backup.${var.domain}"]
-      namespaces   = ["network"]
-      groups       = ["home-ops"]
+      # Vendor logo: selfh.st has duplicati, a different product.
+      icon       = "https://duplicacy.com/images/logo.png"
+      namespaces = ["network"]
+      groups     = ["home-ops"]
     }
     oni = {
       display_name = "Oni"
       hostnames    = ["oni.${var.domain}"]
-      namespaces   = ["network"]
-      groups       = ["home-ops"]
+      # 192.168.0.200:5000 is Synology DSM.
+      icon       = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/synology.svg"
+      namespaces = ["network"]
+      groups     = ["home-ops"]
     }
     openspeedtest = {
       display_name = "OpenSpeedTest"
       hostnames    = ["ost.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/openspeedtest.svg"
       namespaces   = ["network"]
       groups       = ["home-ops"]
     }
@@ -48,19 +55,23 @@ locals {
       display_name = "Scrutiny"
       description  = "Disk SMART monitoring."
       hostnames    = ["scrutiny.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/scrutiny.svg"
       namespaces   = ["network"]
       groups       = ["home-ops"]
     }
     unbalanced = {
       display_name = "Unbalanced"
       hostnames    = ["unbalanced.${var.domain}"]
-      namespaces   = ["network"]
-      groups       = ["home-ops"]
+      # An Unraid plugin, so it borrows the Unraid mark.
+      icon       = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/unraid.svg"
+      namespaces = ["network"]
+      groups     = ["home-ops"]
     }
     unraid = {
       display_name = "Unraid"
       description  = "NAS administration."
       hostnames    = ["unraid.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/unraid.svg"
       namespaces   = ["network"]
       groups       = ["home-ops"]
     }

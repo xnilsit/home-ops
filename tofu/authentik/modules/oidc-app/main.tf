@@ -50,6 +50,8 @@ resource "authentik_application" "this" {
   protocol_provider = authentik_provider_oauth2.this.id
   meta_description  = var.description
   meta_launch_url   = "https://${var.hostnames[0]}"
+  meta_icon         = var.icon != "" ? var.icon : null
+  open_in_new_tab   = var.open_in_new_tab
 
   # The dashboard heading this tile sits under. NOT access control - that is
   # authentik_policy_binding below.
