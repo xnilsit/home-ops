@@ -24,7 +24,7 @@ resource "authentik_provider_oauth2" "this" {
   client_id = local.name
 
   # client_secret deliberately unset: authentik generates it, and it reaches the
-  # cluster through kubernetes_secret_v1 below. Pinning it would make git the
+  # cluster through kubernetes_secret below. Pinning it would make git the
   # source of truth for a live credential.
   client_type = "confidential"
 
@@ -75,15 +75,12 @@ resource "authentik_policy_binding" "group" {
   order = index(local.group_order, each.key)
 }
 
-# Renamed from kubernetes_secret in provider 3.x, which deprecated the
-# unversioned names. Without this the secret is destroyed and recreated with a
-# fresh client_secret, breaking every login until reflector re-syncs.
-moved {
-  from = kubernetes_secret.oidc
-  to   = kubernetes_secret_v1.oidc
-}
-
-resource "kubernetes_secret_v1" "oidc" {
+# Deliberately the deprecated unversioned name. Provider 3.x wants
+# kubernetes_secret_v1, but a `moved` block across resource types needs the
+# provider to implement MoveResourceState, and this one does not - the plan
+# fails outright. Renaming without `moved` would recreate the secret with a
+# fresh client_secret and break every login. The deprecation is a warning only.
+resource "kubernetes_secret" "oidc" {
   metadata {
     name      = "${var.key}-oidc"
     namespace = var.secret_namespace
