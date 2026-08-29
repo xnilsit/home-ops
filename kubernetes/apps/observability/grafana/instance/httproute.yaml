@@ -8,11 +8,6 @@ spec:
   hostnames:
     - "grafana.${CLUSTER_DOMAIN}"
   parentRefs:
-    # LAN only. cloudflare-dns runs with --gateway-name=envoy-external, so
-    # moving off that gateway is also what drops the public DNS record - which
-    # made the previous external-dns target annotation dead weight. Resolution
-    # is now k8s-gateway, which watches HTTPRoutes on either gateway and
-    # answers with the parent's address.
     - name: envoy-external
       namespace: network
       sectionName: https
