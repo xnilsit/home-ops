@@ -117,6 +117,16 @@ spec:
         certificateRefs:
           - kind: Secret
             name: "${SECRET_DOMAIN/./-}-production-tls"
+    # Plain TCP, not TLS: blocky terminates DoT itself, so envoy only proxies
+    # bytes and never sees the cert.
+    - name: dot
+      protocol: TCP
+      port: 853
+      allowedRoutes:
+        kinds:
+          - kind: TCPRoute
+        namespaces:
+          from: All
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: BackendTrafficPolicy

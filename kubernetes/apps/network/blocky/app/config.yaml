@@ -86,7 +86,14 @@ queryLog:
       - "*.ip6.arpa"
 ports:
   dns: 53
+  tls: 853
   http: 4000
+  # tls only: 853 is reachable solely through envoy-internal, which sends the
+  # PROXY header. Listing dns here would break every plain resolver on the LAN.
+  proxyProtocol:
+    - tls
+certFile: /run/secrets/tls/tls.crt
+keyFile: /run/secrets/tls/tls.key
 log:
   level: info
   format: text
