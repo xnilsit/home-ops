@@ -6,6 +6,10 @@ wakeOnLan:
   - magic
 ---
 machine:
+  sysctls:
+    # No IPv6 default route: pod IPv6 is a ULA with no routable source, so
+    # egress must fail immediately rather than blackhole until it times out.
+    net.ipv6.conf.enp5s0f0np0.accept_ra_defrtr: "0"
   kubelet:
     # /128, not the LAN /64: SLAAC also puts a ULA on this interface and either
     # would match, leaving the published node IP up to address ordering.
