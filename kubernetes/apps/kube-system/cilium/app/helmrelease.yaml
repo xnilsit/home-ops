@@ -36,6 +36,11 @@ spec:
     ipam:
       mode: kubernetes
     ipv4NativeRoutingCIDR: "10.42.0.0/16"
+    ipv6:
+      enabled: true
+    ipv6NativeRoutingCIDR: "fd2e:9a41:6b8c:4200::/56"
+    k8s:
+      requireIPv6PodCIDR: false
     k8sServiceHost: 127.0.0.1
     k8sServicePort: 7445
     kubeProxyReplacement: true
@@ -86,3 +91,6 @@ spec:
     socketLB:
       enabled: true
       hostNamespaceOnly: true
+    # TEMPORARY: agents must restart one node at a time, after that node is drained
+    updateStrategy:
+      type: OnDelete
