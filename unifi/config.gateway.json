@@ -1,0 +1,34 @@
+{
+    "system": {
+        "ntp": {
+            "server": {
+                "ptbtime1.ptb.de": "''",
+                "ptbtime2.ptb.de": "''",
+                "ptbtime3.ptb.de": "''",
+                "time.cloudflare.com": "''"
+            }
+        }
+    },
+    "interfaces": {
+        "ethernet": {
+            "eth0": {
+                "address": [
+                    "192.168.0.1/23",
+                    "fd2e:9a41:6b8c:1::1/64"
+                ],
+                "ipv6": {
+                    "router-advert": {
+                        "prefix": {
+                            "fd2e:9a41:6b8c:1::/64": {
+                                "autonomous-flag": "true",
+                                "on-link-flag": "true",
+                                "valid-lifetime": "2592000",
+                                "preferred-lifetime": "604800"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
