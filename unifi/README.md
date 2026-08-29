@@ -8,7 +8,7 @@ gateway's own config on every provision. It exists for settings the Network UI c
 Copy it onto the controller, then force a provision:
 
 ```sh
-cp config.gateway.json /usr/lib/unifi/data/sites/default/
+scp config.gateway.json root@192.168.0.100:/usr/lib/unifi/data/sites/default/
 ```
 
 Nothing happens until the gateway re-provisions — the controller only reads the file at
