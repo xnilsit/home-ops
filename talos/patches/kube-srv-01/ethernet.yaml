@@ -29,8 +29,11 @@ machine:
     # egress must fail immediately rather than blackhole until it times out.
     net.ipv6.conf.enp1s0f0.accept_ra_defrtr: "0"
   kubelet:
+    # IPv4 first: kubelet orders a pod's IPs to match the node's, and a pod
+    # whose primary IP is IPv6 fails any probe against a 0.0.0.0-only listener.
     # /128, not the LAN /64: SLAAC also puts a ULA on this interface and either
     # would match, leaving the published node IP up to address ordering.
     nodeIP:
       validSubnets:
+        - 192.168.0.0/23
         - fd2e:9a41:6b8c:1::101/128
