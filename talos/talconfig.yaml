@@ -4,7 +4,7 @@ clusterName: kubernetes
 talosVersion: "${talosVersion}"
 kubernetesVersion: "${kubernetesVersion}"
 
-endpoint: https://192.168.1.100:6443
+endpoint: https://192.168.1.101:6443
 additionalApiServerCertSans: &sans
   - "127.0.0.1"
   - "192.168.1.100"
