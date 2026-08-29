@@ -82,6 +82,10 @@ spec:
           http:
             port: &httpPort 4000
             primary: true
+          # ClusterIP only: the tls listener requires a PROXY header, so it is
+          # usable solely from envoy-internal, never straight off the LAN.
+          dns-tls:
+            port: &dotPort 853
       dns:
         controller: blocky
         primary: false
@@ -130,6 +134,14 @@ spec:
         globalMounts:
           - path: /run/secrets/timescale
             readOnly: true
+      # Wildcard cert, so it already covers dns.${SECRET_DOMAIN}. reloader
+      # restarts the pods when cert-manager renews it.
+      tls:
+        type: secret
+        name: "${SECRET_DOMAIN/./-}-production-tls"
+        globalMounts:
+          - path: /run/secrets/tls
+            readOnly: true
       tmp:
         type: emptyDir
         globalMounts:
@@ -144,5 +156,22 @@ spec:
             sectionName: https
         rules:
           - backendRefs:
+              - identifier: http
+                port: *httpPort
+      doh:
+        hostnames:
+          - "dns.${SECRET_DOMAIN}"
+        parentRefs:
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        rules:
+          # Exact, never PathPrefix: the same listener serves /api, /metrics and
+          # /debug, and none of those are authenticated.
+          - matches:
+              - path:
+                  type: Exact
+                  value: /dns-query
+            backendRefs:
               - identifier: http
                 port: *httpPort
