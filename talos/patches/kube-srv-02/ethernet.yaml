@@ -4,3 +4,7 @@ kind: EthernetConfig
 name: enp5s0f0np0
 wakeOnLan:
   - magic
+---
+machine:
+  sysctls:
+    net.ipv6.conf.enp5s0f0np0.autoconf: "0"
