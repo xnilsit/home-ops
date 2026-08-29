@@ -13,7 +13,7 @@ spec:
     # made the previous external-dns target annotation dead weight. Resolution
     # is now k8s-gateway, which watches HTTPRoutes on either gateway and
     # answers with the parent's address.
-    - name: envoy-internal
+    - name: envoy-external
       namespace: network
       sectionName: https
   rules:
