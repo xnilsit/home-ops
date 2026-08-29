@@ -25,4 +25,9 @@ machine:
   sysctls:
     net.ipv6.conf.enp2s0.disable_ipv6: "1"
     net.ipv6.conf.enp3s0.disable_ipv6: "1"
-    net.ipv6.conf.enp1s0f0.autoconf: "0"
+  kubelet:
+    # /128, not the LAN /64: SLAAC also puts a ULA on this interface and either
+    # would match, leaving the published node IP up to address ordering.
+    nodeIP:
+      validSubnets:
+        - fd2e:9a41:6b8c:1::101/128
