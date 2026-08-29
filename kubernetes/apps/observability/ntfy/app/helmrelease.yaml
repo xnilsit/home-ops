@@ -55,7 +55,7 @@ spec:
           app:
             image:
               repository: docker.io/binwiederhier/ntfy
-              tag: v2.27.0
+              tag: v2.28.0
             # The image is ENTRYPOINT ["ntfy"] with no CMD, so the subcommand
             # has to be supplied here or the container exits printing usage.
             args:
