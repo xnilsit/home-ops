@@ -87,8 +87,12 @@ spec:
         primary: false
         type: LoadBalancer
         externalTrafficPolicy: Cluster
+        ipFamilyPolicy: RequireDualStack
+        ipFamilies:
+          - "IPv4"
+          - "IPv6"
         annotations:
-          lbipam.cilium.io/ips: "192.168.1.53"
+          lbipam.cilium.io/ips: "192.168.1.53,fd2e:9a41:6b8c:1::53"
         ports:
           dns-tcp:
             port: 53
