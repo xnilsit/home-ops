@@ -4,6 +4,3 @@ machine:
     extraConfig:
       maxPods: 220
       serializeImagePulls: false
-    nodeIP:
-      validSubnets:
-        - 192.168.0.0/23
