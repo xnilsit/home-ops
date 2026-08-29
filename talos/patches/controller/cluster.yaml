@@ -10,6 +10,7 @@ cluster:
   controllerManager:
     extraArgs:
       bind-address: 0.0.0.0
+      node-cidr-mask-size-ipv6: 64
   coreDNS:
     disabled: true
   etcd:

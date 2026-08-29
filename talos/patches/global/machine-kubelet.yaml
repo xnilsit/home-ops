@@ -7,3 +7,4 @@ machine:
     nodeIP:
       validSubnets:
         - 192.168.0.0/23
+        - fd2e:9a41:6b8c:1::/64

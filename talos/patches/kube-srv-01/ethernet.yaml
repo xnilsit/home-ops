@@ -25,3 +25,4 @@ machine:
   sysctls:
     net.ipv6.conf.enp2s0.disable_ipv6: "1"
     net.ipv6.conf.enp3s0.disable_ipv6: "1"
+    net.ipv6.conf.enp1s0f0.autoconf: "0"
