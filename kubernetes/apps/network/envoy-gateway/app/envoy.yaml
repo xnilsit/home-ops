@@ -4,6 +4,9 @@ kind: EnvoyProxy
 metadata:
   name: envoy
 spec:
+  # Envoy binds Gateway listeners on 0.0.0.0 only unless told otherwise, so the
+  # IPv6 LoadBalancer VIP would reach the pod and be refused.
+  ipFamily: DualStack
   logging:
     level:
       default: info
