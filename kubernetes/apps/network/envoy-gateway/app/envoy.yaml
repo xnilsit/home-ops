@@ -24,6 +24,14 @@ spec:
               memory: 1Gi
       envoyService:
         externalTrafficPolicy: Cluster
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ipFamilyPolicy: RequireDualStack
+              ipFamilies:
+                - "IPv4"
+                - "IPv6"
   shutdown:
     drainTimeout: 180s
   telemetry:
@@ -91,7 +99,7 @@ spec:
   infrastructure:
     annotations:
       external-dns.alpha.kubernetes.io/hostname: internal.${SECRET_DOMAIN}
-      lbipam.cilium.io/ips: "192.168.1.150"
+      lbipam.cilium.io/ips: "192.168.1.150,fd2e:9a41:6b8c:1::150"
   listeners:
     - name: http
       protocol: HTTP
@@ -144,6 +152,7 @@ spec:
     xForwardedFor:
       trustedCIDRs:
         - "10.42.0.0/16"
+        - "fd2e:9a41:6b8c:4200::/56"
   http2:
     onInvalidMessage: TerminateStream
   http3: {}

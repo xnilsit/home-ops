@@ -91,6 +91,3 @@ spec:
     socketLB:
       enabled: true
       hostNamespaceOnly: true
-    # TEMPORARY: agents must restart one node at a time, after that node is drained
-    updateStrategy:
-      type: OnDelete
