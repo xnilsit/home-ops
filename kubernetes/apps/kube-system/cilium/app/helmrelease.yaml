@@ -39,6 +39,9 @@ spec:
     ipv6:
       enabled: true
     ipv6NativeRoutingCIDR: "fd2e:9a41:6b8c:4200::/56"
+    # Pod IPv6 is a ULA. Without this the SNAT source is the node's interface
+    # address, also a ULA, and egress to the IPv6 internet blackholes.
+    enableMasqueradeRouteSource: true
     k8s:
       requireIPv6PodCIDR: false
     k8sServiceHost: 127.0.0.1
