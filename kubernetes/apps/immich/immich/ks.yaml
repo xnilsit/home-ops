@@ -46,9 +46,9 @@ spec:
       KOPIUR_STORAGECLASS: ceph-filesystem
       KOPIUR_SNAPSHOTCLASS: csi-ceph-filesystem
       KOPIUR_CAPACITY: 250Gi
-      # Daily, not the component's hourly default: a quarter-terabyte library
-      # has nothing to gain from 24 kopia runs a day.
-      KOPIUR_CRON: "H 4 * * *"
+      # Every 6h rather than the component's hourly default. H pins a
+      # deterministic minute, so this spreads off the NAS's other movers.
+      KOPIUR_CRON: "H */6 * * *"
       # The operand image is the only part of this stack with an OS, so it is
       # where security patching actually matters. It lives here rather than
       # inline on imageName because Renovate's annotated manager captures the
