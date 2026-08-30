@@ -11,6 +11,9 @@ spec:
   interval: 1h
   values:
     controllers:
+      # Three controllers off one image, split by IMMICH_WORKERS_*: the `api`
+      # worker serves HTTP, and two `microservices` workers share every job
+      # queue. Immich has no per-queue routing, so both pick up any job.
       server:
         annotations:
           reloader.stakater.com/auto: "true"
@@ -18,28 +21,31 @@ spec:
           app:
             image:
               repository: ghcr.io/immich-app/immich-server
-              tag: v3.1.0
+              tag: &serverTag v3.1.0
             env:
-              DB_HOSTNAME: immich-rw
-              DB_PORT: 5432
+              DB_HOSTNAME: &dbHost immich-rw
+              DB_PORT: &dbPort 5432
               DB_USERNAME: &dbuser immich
               DB_DATABASE_NAME: *dbuser
-              DB_PASSWORD:
+              DB_PASSWORD: &dbPassword
                 valueFrom:
                   secretKeyRef:
                     name: immich-postgres
                     key: password
-              REDIS_HOSTNAME: immich-dragonfly
-              REDIS_PORT: 6379
-              REDIS_PASSWORD:
+              REDIS_HOSTNAME: &redisHost immich-dragonfly
+              REDIS_PORT: &redisPort 6379
+              REDIS_PASSWORD: &redisPassword
                 valueFrom:
                   secretKeyRef:
                     name: immich-dragonfly-auth
                     key: password
               # Everything the admin UI would otherwise own lives in this file,
               # which is what makes those pages read-only.
-              IMMICH_CONFIG_FILE: /config/immich-config.yaml
+              IMMICH_CONFIG_FILE: &configFile /config/immich-config.yaml
               IMMICH_PORT: &serverPort 2283
+              # HTTP only. Without this the pod would also run the job workers
+              # and compete with the two below.
+              IMMICH_WORKERS_INCLUDE: api
             probes:
               liveness: &serverProbes
                 enabled: true
@@ -66,17 +72,95 @@ spec:
               allowPrivilegeEscalation: false
               capabilities: {drop: ["ALL"]}
             resources:
+              # No GPU: the api worker never transcodes, so claiming an i915
+              # slot would only keep it off the AMD node for nothing.
+              requests:
+                cpu: 200m
+                memory: 1Gi
+              limits:
+                memory: 4Gi
+      microservices:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: ghcr.io/immich-app/immich-server
+              tag: *serverTag
+            env:
+              DB_HOSTNAME: *dbHost
+              DB_PORT: *dbPort
+              DB_USERNAME: *dbuser
+              DB_DATABASE_NAME: *dbuser
+              DB_PASSWORD: *dbPassword
+              REDIS_HOSTNAME: *redisHost
+              REDIS_PORT: *redisPort
+              REDIS_PASSWORD: *redisPassword
+              IMMICH_CONFIG_FILE: *configFile
+              IMMICH_WORKERS_EXCLUDE: &noApi api
+            probes: &noProbes
+              # A microservices worker serves no HTTP, so the chart's default
+              # TCP probes would never pass.
+              liveness: {enabled: false}
+              readiness: {enabled: false}
+              startup: {enabled: false}
+            securityContext: *securityContext
+            resources:
               requests:
                 cpu: 500m
                 memory: 2Gi
               limits:
                 memory: 8Gi
-                # QSV. This is also what places the pod: the plugin advertises
-                # the resource only where an Intel GPU exists. A hostPath
-                # /dev/dri does NOT work - the device node is visible but the
-                # container's device cgroup denies open() with EPERM, and
-                # ffmpeg falls back to software silently.
+                # QSV, and also what places this pod: the plugin advertises the
+                # resource only where an Intel GPU exists. A hostPath /dev/dri
+                # does NOT work - the node is visible but the container's device
+                # cgroup denies open() with EPERM, silently.
                 gpu.intel.com/i915: 1
+      microservices-cpu:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        pod:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  # kube-srv-02, the 16-thread Ryzen. Keyed off the amdgpu
+                  # extension because it is the only stable label unique to that
+                  # node - the GPU itself is deliberately NOT claimed, since
+                  # measured on this hardware libx264 ultrafast beats VAAPI on
+                  # wall time and this pod exists to spend CPU.
+                  - matchExpressions:
+                      - key: extensions.talos.dev/amdgpu
+                        operator: Exists
+        containers:
+          app:
+            image:
+              repository: ghcr.io/immich-app/immich-server
+              tag: *serverTag
+            env:
+              DB_HOSTNAME: *dbHost
+              DB_PORT: *dbPort
+              DB_USERNAME: *dbuser
+              DB_DATABASE_NAME: *dbuser
+              DB_PASSWORD: *dbPassword
+              REDIS_HOSTNAME: *redisHost
+              REDIS_PORT: *redisPort
+              REDIS_PASSWORD: *redisPassword
+              IMMICH_CONFIG_FILE: *configFile
+              IMMICH_WORKERS_EXCLUDE: *noApi
+            probes: *noProbes
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 1
+                memory: 2Gi
+              limits:
+                # A CPU limit, against the repo's usual habit, and deliberate:
+                # ffmpeg and libvips will each take every thread they are
+                # offered, and this node also hosts a Postgres instance and a
+                # Dragonfly replica.
+                cpu: 6
+                memory: 8Gi
       machine-learning:
         # One per Intel node. Each replica claims its own iGPU, and the model
         # cache is RWX so the second starts against models already on disk.
@@ -157,9 +241,13 @@ spec:
         # populator, so a rebuilt cluster refills it from the newest snapshot.
         existingClaim: immich
         advancedMounts:
-          server:
+          # The api worker serves originals from here; both microservices
+          # workers write thumbnails and transcodes into it.
+          server: &libraryMount
             app:
               - path: /usr/src/app/upload
+          microservices: *libraryMount
+          microservices-cpu: *libraryMount
       cache:
         existingClaim: immich-ml-cache
         advancedMounts:
@@ -170,10 +258,12 @@ spec:
         type: secret
         name: immich-config
         advancedMounts:
-          server:
+          server: &configMount
             app:
               - path: /config
                 readOnly: true
+          microservices: *configMount
+          microservices-cpu: *configMount
     service:
       app:
         controller: server
