@@ -1,0 +1,50 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app trek
+  namespace: flux-system
+spec:
+  targetNamespace: trek
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/trek/trek/app
+  dependsOn:
+    # Writes the trek-oidc Secret the ExternalSecret reads
+    - name: authentik-oidc
+      namespace: flux-system
+    # The OIDC credential comes through the tofu-controller store
+    - name: external-secrets-stores
+      namespace: flux-system
+    - name: envoy-gateway
+      namespace: flux-system
+    # The Garage bucket and key the storage seed mirrors to
+    - name: garage
+      namespace: flux-system
+    # The data PVC is provisioned through kopiur's Restore populator
+    - name: kopiur-repository
+      namespace: flux-system
+    # ceph-block for the PVC, and the bucket StorageClass the OBC claims through
+    - name: rook-ceph-cluster
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: *app
+      # SQLite plus uploads that S3 is meant to hold; the volume is the safety
+      # net, not the store.
+      KOPIUR_CAPACITY: 10Gi
+      KOPIUR_CRON: "H */6 * * *"
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: trek
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: false
+  interval: 1h
+  timeout: 10m

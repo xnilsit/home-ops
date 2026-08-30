@@ -1,0 +1,221 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: trek
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: trek
+  interval: 1h
+  values:
+    controllers:
+      trek:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # SQLite on an RWO volume: two pods must never hold it at once.
+        strategy: Recreate
+        initContainers:
+          seed-storage:
+            image:
+              repository: docker.io/mauriceboe/trek
+              tag: &tag 4.1.1
+            # TREK imports this file exactly once - on the first boot with no
+            # stored storage configuration - and ignores it afterwards, when
+            # Admin > Storage owns the settings. It is written here rather than
+            # committed because it carries two live credential pairs and the
+            # bucket name Rook generates. node, not a shell: JSON.stringify
+            # cannot be broken by a character in a secret access key.
+            command:
+              - "node"
+              - "-e"
+            args:
+              - |
+                const fs = require("fs");
+                const s3 = (bucket, endpoint, region, id, key) => ({
+                  type: "s3",
+                  options: { bucket, endpoint, region, accessKeyId: id, secretAccessKey: key },
+                });
+                fs.writeFileSync("/app/data/storage-config.json", JSON.stringify({
+                  backends: [
+                    { name: "rgw", ...s3(process.env.BUCKET_NAME, process.env.RGW_ENDPOINT, "us-east-1", process.env.RGW_KEY_ID, process.env.RGW_KEY) },
+                    { name: "garage", ...s3("trek", "http://192.168.0.200:3900", "eu-central-1", process.env.GARAGE_KEY_ID, process.env.GARAGE_KEY) },
+                    { name: "mirrored", type: "mirror", options: { primary: "rgw", replicas: ["garage"] } },
+                  ],
+                  categories: {
+                    files: "mirrored",
+                    journey: "mirrored",
+                    covers: "mirrored",
+                    avatars: "mirrored",
+                    places: "mirrored",
+                    backups: "mirrored",
+                    // Reproducible caches; upstream advises against replicating them.
+                    "photos-google": "rgw",
+                    "photos-trek": "rgw",
+                  },
+                }, null, 2));
+            envFrom:
+              # BUCKET_NAME, written by Rook next to the credentials Secret.
+              - configMapRef:
+                  name: trek
+            env:
+              # By address, not by the Rook Service's name: TREK's S3 client is
+              # aws-lite, which has no path-style switch and would address
+              # <bucket>.<host>.
+              RGW_ENDPOINT: http://${CEPH_RGW_IP}:80
+              RGW_KEY_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: trek
+                    key: AWS_ACCESS_KEY_ID
+              RGW_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: trek
+                    key: AWS_SECRET_ACCESS_KEY
+              GARAGE_KEY_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: garage-trek
+                    key: AWS_ACCESS_KEY_ID
+              GARAGE_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: garage-trek
+                    key: AWS_SECRET_ACCESS_KEY
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 128Mi
+        containers:
+          app:
+            image:
+              repository: docker.io/mauriceboe/trek
+              tag: *tag
+            env:
+              NODE_ENV: production
+              PORT: &port 3000
+              TZ: Europe/Berlin
+              APP_URL: &url https://trek.${SECRET_DOMAIN}
+              ALLOWED_ORIGINS: *url
+              # Envoy terminates TLS and sets x-forwarded-proto; without the hop
+              # count FORCE_HTTPS loops.
+              FORCE_HTTPS: "true"
+              TRUST_PROXY: "1"
+              # Immich is reached at an RFC-1918 address, which TREK blocks by
+              # default.
+              ALLOW_INTERNAL_NETWORK: "true"
+              # kitinerary's Qt cache, on the only writable path.
+              XDG_CACHE_HOME: /tmp/kf6-cache
+              ENCRYPTION_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: trek-secret
+                    key: ENCRYPTION_KEY
+              OIDC_ISSUER: ${AUTHENTIK_URL}/application/o/home-ops-trek/
+              OIDC_DISPLAY_NAME: authentik
+              OIDC_CLIENT_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: &oidcSecret trek-oidc
+                    key: client-id
+              OIDC_CLIENT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: *oidcSecret
+                    key: client-secret
+              # Access comes from the trek group; this is the second group, and
+              # it is re-evaluated at every login.
+              OIDC_ADMIN_CLAIM: groups
+              OIDC_ADMIN_VALUE: trek-admin
+              # The route is open at the gateway and publicly reachable, so
+              # password login would be exposed. Costs break-glass: an authentik
+              # outage locks everyone out.
+              OIDC_ONLY: "true"
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/health
+                    port: *port
+                  initialDelaySeconds: 0
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/health
+                    port: *port
+                  periodSeconds: 10
+                  failureThreshold: 30
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                memory: 2Gi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        # node in the image, and what kopiur's mover reads the volume as.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    persistence:
+      data:
+        # Provisioned by components/kopiur/backup through its Restore populator.
+        existingClaim: trek
+        advancedMounts:
+          trek:
+            seed-storage:
+              - path: /app/data
+                subPath: data
+            app:
+              - path: /app/data
+                subPath: data
+              # Every category points at S3, so this should stay empty - it is a
+              # backed-up safety net rather than the store.
+              - path: /app/uploads
+                subPath: uploads
+      tmp:
+        type: emptyDir
+        advancedMounts:
+          trek:
+            app:
+              - path: /tmp
+    service:
+      app:
+        controller: trek
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        hostnames:
+          - "trek.${SECRET_DOMAIN}"
+        # envoy-external-direct: backup restores accept 500 MB uploads, five
+        # times what the Cloudflare tunnel passes.
+        parentRefs:
+          - name: envoy-external-direct
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port

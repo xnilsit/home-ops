@@ -1,0 +1,45 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app cloudflare-dns-direct
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: cloudflare-dns-direct
+  interval: 1h
+  values:
+    fullnameOverride: *app
+    # Owns the DNS for everything that bypasses the tunnel.
+    priorityClassName: cluster-infra
+    provider: cloudflare
+    env:
+      - name: CF_API_TOKEN
+        valueFrom:
+          secretKeyRef:
+            # Owned by cloudflare-dns, same namespace, same required scope.
+            name: &secret cloudflare-dns-secret
+            key: api-token
+    extraArgs:
+      - --cloudflare-dns-records-per-page=1000
+      # A second instance rather than a flag on the first: --gateway-name takes
+      # a single value, and --cloudflare-proxied is global - per-route opt-out
+      # would mean every future route remembering an annotation, and a forgotten
+      # one silently restores the 100 MB cap.
+      - --gateway-name=envoy-external-direct
+    triggerLoopOnEvent: true
+    policy: sync
+    sources:
+      # No crd source: the DNSEndpoint for the tunnel belongs to cloudflare-dns.
+      - "gateway-httproute"
+    txtPrefix: k8s.
+    # Distinct from cloudflare-dns's `default`, so two sync-policy instances in
+    # one zone never delete each other's records.
+    txtOwnerId: direct
+    domainFilters:
+      - "${SECRET_DOMAIN}"
+      - "${SECRET_DOMAIN_ALT}"
+    serviceMonitor:
+      enabled: true
+    podAnnotations:
+      secret.reloader.stakater.com/reload: *secret

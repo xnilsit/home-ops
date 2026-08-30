@@ -49,6 +49,17 @@ than appending to it, so dropping `192.168.0.1/23` would take the LAN gateway of
 PTB's three stratum-1 servers plus Cloudflare, replacing UniFi's defaults. The `"''"` values are
 how EdgeOS expresses an option with no sub-settings; they are not a placeholder to fill in.
 
+## Set in the Network UI, not here
+
+Two WAN port-forwards, 80 and 443, both to `192.168.1.152` — the
+`envoy-external-direct` Gateway. That is the ingress path for the hostnames the
+Cloudflare tunnel cannot carry, because it caps request bodies at 100 MB. Port
+80 exists only for the https redirect; cert-manager solves DNS-01 and never
+needs it.
+
+Everything else public still arrives through cloudflared, which is outbound-only
+and needs no forward at all.
+
 ## Keep in sync
 
 The DNS server handed out in RA (`fd2e:9a41:6b8c:1::53`) is set in the Network UI, not here.

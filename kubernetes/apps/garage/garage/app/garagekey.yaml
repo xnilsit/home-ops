@@ -58,6 +58,21 @@ items:
       bucketPermissions:
         - {bucketRef: {name: immich-backup}, read: true, write: true}
   - <<: *key
+    metadata: {name: trek}
+    spec:
+      clusterRef: {name: nas}
+      neverExpires: true
+      secretTemplate:
+        <<: *template
+        annotations:
+          reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+          reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: trek
+        name: garage-trek
+      # read as well as write: the mirror driver falls back to the replica when
+      # the primary cannot serve an object.
+      bucketPermissions:
+        - {bucketRef: {name: trek}, read: true, write: true}
+  - <<: *key
     metadata: {name: kopiur}
     spec:
       clusterRef: {name: nas}

@@ -6,6 +6,11 @@ locals {
     # The DEFAULT quota, in GiB, which is the unit Immich's claim expects. An
     # immich_quota attribute on a user overrides it - see property-mappings.tf.
     "immich" = { immich_quota = 50 }
+    # Access to TREK, and separately the group TREK maps to its admin role via
+    # OIDC_ADMIN_VALUE. Both are bound to the application, so either one alone
+    # gets a user in.
+    "trek"       = {}
+    "trek-admin" = {}
   }
 }
 

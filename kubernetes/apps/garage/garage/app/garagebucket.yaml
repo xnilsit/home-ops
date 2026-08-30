@@ -19,6 +19,11 @@ items:
   - <<: *bucket
     metadata: {name: immich-backup}
     spec: *spec
+  # TREK's mirror target: its primary is the Ceph RGW, and every write is
+  # replicated here.
+  - <<: *bucket
+    metadata: {name: trek}
+    spec: *spec
   # One kopia repository shared by every kopiur SnapshotPolicy - kopia dedups
   # across writers and separates them by snapshot identity, not by key prefix.
   - <<: *bucket

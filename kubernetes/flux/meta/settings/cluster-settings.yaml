@@ -13,3 +13,8 @@ data:
   # at Corefile parse time. Referenced by both k8s-gateway's service.clusterIP
   # and the CoreDNS forward stanzas, so the two cannot drift apart.
   K8S_GATEWAY_IP: 10.43.241.101
+  # Pinned because an S3 client that cannot be told to use path-style addressing
+  # has to be given an address rather than a name - it would otherwise prepend
+  # the bucket to the host. Rook picks its own Service's ClusterIP, so this is a
+  # second, hand-written Service in front of the same RGW pods.
+  CEPH_RGW_IP: 10.43.241.102

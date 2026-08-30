@@ -94,6 +94,44 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
+  # Public, but not through cloudflared: the tunnel caps request bodies at
+  # 100 MB, which Immich's and TREK's uploads exceed. UniFi port-forwards WAN:80
+  # and WAN:443 straight here, and cloudflare-dns-direct CNAMEs the routes to
+  # home.${SECRET_DOMAIN}, unproxied, so no Cloudflare edge is in the path.
+  name: envoy-external-direct
+  annotations:
+    external-dns.alpha.kubernetes.io/target: home.${SECRET_DOMAIN}
+spec:
+  gatewayClassName: envoy
+  infrastructure:
+    annotations:
+      # No external-dns hostname annotation: this address is RFC-1918 and must
+      # never reach public DNS.
+      lbipam.cilium.io/ips: "192.168.1.152"
+  listeners:
+    # Carries the https-redirect route, so UniFi forwards WAN:80 here too.
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: https
+      protocol: HTTPS
+      port: 443
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        certificateRefs:
+          - kind: Secret
+            name: "${SECRET_DOMAIN/./-}-production-tls"
+          - kind: Secret
+            name: "${SECRET_DOMAIN_ALT/./-}-production-tls"
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
   name: envoy-internal
   annotations:
     external-dns.alpha.kubernetes.io/target: internal.${SECRET_DOMAIN}
@@ -188,6 +226,9 @@ metadata:
 spec:
   parentRefs:
     - name: envoy-external
+      namespace: network
+      sectionName: http
+    - name: envoy-external-direct
       namespace: network
       sectionName: http
     - name: envoy-internal
