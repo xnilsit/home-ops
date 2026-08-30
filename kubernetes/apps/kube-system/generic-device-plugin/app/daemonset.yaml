@@ -1,0 +1,94 @@
+---
+# Vendored rather than the upstream chart: that chart hardcodes its --device
+# args (serial, video, fuse, audio), exposes no affinity, and pins
+# `tag: latest` with `pullPolicy: Always`, so consuming it would mean patching
+# away everything it provides.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/serviceaccount-v1.json
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: generic-device-plugin
+# The plugin talks only to the kubelet's device-plugin socket, never the API.
+automountServiceAccountToken: false
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/daemonset-apps-v1.json
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: generic-device-plugin
+  labels:
+    app.kubernetes.io/name: generic-device-plugin
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: generic-device-plugin
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: generic-device-plugin
+    spec:
+      serviceAccountName: generic-device-plugin
+      automountServiceAccountToken: false
+      priorityClassName: system-node-critical
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              # Only the AMD node. The Intel nodes get their render nodes from
+              # the Intel plugin, and two plugins advertising the same device
+              # would let the scheduler hand it out twice.
+              - matchExpressions:
+                  - key: extensions.talos.dev/amdgpu
+                    operator: Exists
+      tolerations:
+        - operator: Exists
+          effect: NoExecute
+        - operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: generic-device-plugin
+          # Upstream publishes only `latest` and git SHAs - no semver - so this
+          # is pinned by SHA tag and has to be bumped by hand.
+          image: docker.io/squat/generic-device-plugin:2cc50b0
+          args:
+            - --domain=squat.ai
+            - --device
+            - |
+              name: dri
+              groups:
+                # Deliberately renderD128 only: card0 is 0600 root:root and is
+                # the modesetting node, which nothing here needs. Count mirrors
+                # the Intel plugin's sharedDevNum.
+                - count: 4
+                  paths:
+                    - path: /dev/dri/renderD128
+          ports:
+            - containerPort: 8080
+              name: http
+          securityContext:
+            # Upstream's chart runs this privileged; it only globs and stats
+            # the paths above, so a read-only /dev is enough.
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 32Mi
+          volumeMounts:
+            - name: device-plugin
+              mountPath: /var/lib/kubelet/device-plugins
+            - name: dev
+              mountPath: /dev
+              readOnly: true
+      volumes:
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/kubelet/device-plugins
+        - name: dev
+          hostPath:
+            path: /dev

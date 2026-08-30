@@ -5,6 +5,7 @@ kind: Kustomization
 resources:
   - ./cilium/ks.yaml
   - ./coredns/ks.yaml
+  - ./generic-device-plugin/ks.yaml
   - ./metrics-server/ks.yaml
   - ./priority-classes/ks.yaml
   - ./reflector/ks.yaml
