@@ -1,0 +1,24 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/monitoring.coreos.com/podmonitor_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: ${APP}-postgres
+spec:
+  # Hand-written rather than spec.monitoring.enablePodMonitor, which is
+  # deprecated since CNPG 1.27.1. Scraping this way drops the namespace/pod
+  # labels the stock CNPG dashboard needs, so the relabelings put them back.
+  selector:
+    matchLabels:
+      cnpg.io/cluster: ${APP}
+  podMetricsEndpoints:
+    - port: metrics
+      relabelings:
+        - sourceLabels:
+            - "__meta_kubernetes_namespace"
+          targetLabel: namespace
+          action: replace
+        - sourceLabels:
+            - "__meta_kubernetes_pod_name"
+          targetLabel: pod
+          action: replace

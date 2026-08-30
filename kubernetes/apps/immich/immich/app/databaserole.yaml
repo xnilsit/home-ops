@@ -1,0 +1,18 @@
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: ${APP}
+spec:
+  cluster:
+    name: ${APP}
+  name: ${APP}
+  ensure: present
+  login: true
+  inherit: true
+  # NOT superuser: every extension Immich needs is created by the Database CR
+  # below, whose reconciler connects as postgres, so Immich's own
+  # `CREATE EXTENSION IF NOT EXISTS` is a no-op. Its other reason to want
+  # superuser is a pg_dumpall backup, which is disabled in immich-config.
+  passwordSecret:
+    name: ${APP}-postgres

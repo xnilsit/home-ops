@@ -1,0 +1,25 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Provisions the library PVC (named ${APP}) and snapshots it to the NAS.
+  - ../../../../components/kopiur/backup
+resources:
+  # Must precede the ObjectStore and the Dragonfly, which read the mirrored
+  # Garage credentials out of them.
+  - ./secret-garage.yaml
+  - ./objectstore.yaml
+  # Must precede cluster.yaml and dragonfly.yaml: neither the DatabaseRole nor
+  # the Dragonfly can start without its password Secret.
+  - ./externalsecret-password.yaml
+  - ./externalsecret-config.yaml
+  - ./cluster.yaml
+  - ./databaserole.yaml
+  - ./database.yaml
+  - ./scheduledbackup.yaml
+  - ./podmonitor.yaml
+  - ./dragonfly.yaml
+  - ./pvc-ml-cache.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml

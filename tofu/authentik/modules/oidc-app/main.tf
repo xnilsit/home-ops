@@ -11,12 +11,22 @@ locals {
   #
   # matching_mode strict, never regex: every host is known at plan time, and a
   # regex entry here is an open redirect.
-  redirect_uris = [
+  # An app doing OIDC itself, rather than through the gateway, posts back to its
+  # own paths - and a mobile client to a custom scheme, which has no host at
+  # all. Those apps set gateway_callback = false and list their own.
+  gateway_redirect_uris = var.gateway_callback ? [
     for host in var.hostnames : {
       matching_mode = "strict"
       url           = "https://${host}/oauth2/callback"
     }
-  ]
+  ] : []
+
+  redirect_uris = concat(local.gateway_redirect_uris, [
+    for url in var.extra_redirect_uris : {
+      matching_mode = "strict"
+      url           = url
+    }
+  ])
 }
 
 resource "authentik_provider_oauth2" "this" {
@@ -37,7 +47,7 @@ resource "authentik_provider_oauth2" "this" {
   authorization_flow = var.authorization_flow
   invalidation_flow  = var.invalidation_flow
 
-  property_mappings          = var.property_mappings
+  property_mappings          = concat(var.property_mappings, var.extra_property_mappings)
   signing_key                = var.signing_key
   sub_mode                   = var.sub_mode
   include_claims_in_id_token = var.include_claims_in_id_token

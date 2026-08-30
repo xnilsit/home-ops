@@ -12,6 +12,7 @@ spec:
       - storage
       - flux-system
       - observability
+      - immich
   backend:
     s3:
       bucket: kopiur

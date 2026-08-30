@@ -81,6 +81,28 @@ variable "property_mappings" {
   type = list(string)
 }
 
+variable "extra_property_mappings" {
+  description = "Scope mappings for this app only, on top of the shared set."
+  type        = list(string)
+  default     = []
+}
+
+variable "gateway_callback" {
+  # Only an app fronted by the components/oidc SecurityPolicy uses envoy's
+  # /oauth2/callback. One doing OIDC itself must not have it: matching_mode is
+  # strict, so an unused entry is dead weight rather than a risk, but the app's
+  # real callbacks have to be listed either way.
+  description = "Generate the envoy /oauth2/callback redirect URIs."
+  type        = bool
+  default     = true
+}
+
+variable "extra_redirect_uris" {
+  description = "Redirect URIs the app itself uses, including mobile schemes."
+  type        = list(string)
+  default     = []
+}
+
 variable "include_claims_in_id_token" {
   # Sent explicitly, and the default matches what the provider already sends: the
   # attribute is Optional but NOT Computed, so an unset bool reaches authentik as

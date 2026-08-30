@@ -1,0 +1,46 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/serviceaccount-v1.json
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eso-reader
+automountServiceAccountToken: false
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/role-rbac-v1.json
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: eso-reader
+rules:
+  # Namespaced Role, deliberately not a ClusterRole: ESO impersonates this
+  # identity, so its reach is exactly what is granted here.
+  - apiGroups:
+      - ""
+    resources:
+      - "secrets"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+  # Required by the kubernetes provider's connection check, which the store
+  # runs before every fetch.
+  - apiGroups:
+      - "authorization.k8s.io"
+    resources:
+      - "selfsubjectrulesreviews"
+    verbs:
+      - "create"
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/rolebinding-rbac-v1.json
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: eso-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: eso-reader
+subjects:
+  - kind: ServiceAccount
+    name: eso-reader
+    namespace: tofu-controller

@@ -1,0 +1,91 @@
+---
+apiVersion: dragonflydb.io/v1alpha1
+kind: Dragonfly
+metadata:
+  name: ${APP}-dragonfly
+spec:
+  # Written out rather than components/dragonfly: that component reflects the
+  # SHARED database/dragonfly-auth password, and its args carry
+  # --cluster_mode=emulated. Immich needs neither.
+  #
+  # renovate: datasource=docker depName=ghcr.io/dragonflydb/dragonfly
+  image: ghcr.io/dragonflydb/dragonfly:v1.40.1
+  replicas: ${DRAGONFLY_REPLICAS}
+  networkPolicyEnabled: false
+  authentication:
+    passwordFromSecret:
+      name: ${APP}-dragonfly-auth
+      key: password
+  podMetadata:
+    annotations:
+      kubectl.kubernetes.io/default-container: dragonfly
+  env:
+    - name: MAX_MEMORY
+      valueFrom:
+        resourceFieldRef:
+          resource: limits.memory
+          divisor: 1Mi
+    - name: AWS_ACCESS_KEY_ID
+      valueFrom:
+        secretKeyRef:
+          name: ${APP}-garage-dragonfly-backup
+          key: AWS_ACCESS_KEY_ID
+    - name: AWS_SECRET_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: ${APP}-garage-dragonfly-backup
+          key: AWS_SECRET_ACCESS_KEY
+    - name: AWS_REGION
+      valueFrom:
+        secretKeyRef:
+          name: ${APP}-garage-dragonfly-backup
+          key: AWS_REGION
+  args:
+    - --maxmemory=$(MAX_MEMORY)Mi
+    - --proactor_threads=2
+    # BullMQ's Lua touches keys it does not declare in KEYS[]; without this
+    # every queue operation fails. --cluster_mode is absent for a related
+    # reason: Immich sets no BullMQ hash-tag prefix, so its keys land in
+    # different slots and emulated cluster mode rejects the cross-slot script.
+    - --default_lua_flags=allow-undeclared-keys
+    # Timestamped so a replica's shutdown save cannot clobber the master's.
+    - --dbfilename=dump-{timestamp}
+    # Bare host:port - a scheme here yields a doubled URL.
+    - --s3_endpoint=192.168.0.200:3900
+    - --s3_use_https=false
+  snapshot:
+    # Own prefix in the bucket every Dragonfly shares.
+    dir: s3://dragonfly-backup/${APP}/
+    cron: 0 * * * *
+    # Replicas share the prefix; the operator clears snapshot_cron on non-masters.
+    enableOnMasterOnly: true
+  resources:
+    requests:
+      cpu: 50m
+    limits:
+      # An initial library import queues a lot of jobs, and BullMQ needs them
+      # to survive rather than be evicted.
+      memory: 2Gi
+  serviceSpec:
+    type: ClusterIP
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app: ${APP}-dragonfly
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/monitoring.coreos.com/podmonitor_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: ${APP}-dragonfly
+spec:
+  selector:
+    matchLabels:
+      app: ${APP}-dragonfly
+  podTargetLabels:
+    - app
+  podMetricsEndpoints:
+    - port: admin

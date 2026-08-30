@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/database_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: ${APP}
+spec:
+  name: ${APP}
+  owner: ${APP}
+  cluster:
+    name: ${APP}
+  extensions:
+    # Order matters only for vchord, which needs pgvector's `vector` type.
+    - name: vector
+    - name: vchord
+    # earthdistance's dependency; both ship with the operand image.
+    - name: cube
+    - name: earthdistance

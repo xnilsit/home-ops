@@ -1,0 +1,19 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/scheduledbackup_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: ${APP}
+spec:
+  # Six fields - the leading one is SECONDS, not minutes. 03:45 daily, clear of
+  # the other two clusters.
+  schedule: "0 45 3 * * *"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: ${APP}
+  # Must be set explicitly: the enum still defaults to barmanObjectStore, which
+  # is the deprecated in-tree path.
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io

@@ -44,6 +44,20 @@ items:
       bucketPermissions:
         - {bucketRef: {name: timescale-backup}, read: true, write: true}
   - <<: *key
+    metadata: {name: immich-backup}
+    spec:
+      clusterRef: {name: nas}
+      neverExpires: true
+      secretTemplate:
+        <<: *template
+        # Immich's Postgres lives with the app, not in database.
+        annotations:
+          reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+          reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: immich
+        name: garage-immich-backup
+      bucketPermissions:
+        - {bucketRef: {name: immich-backup}, read: true, write: true}
+  - <<: *key
     metadata: {name: kopiur}
     spec:
       clusterRef: {name: nas}

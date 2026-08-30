@@ -19,6 +19,32 @@ locals {
       groups       = ["home-ops"]
     }
 
+    # ── apps that speak OIDC themselves ───────────────────────────────────────
+    # No components/oidc here: a gateway-level SecurityPolicy 302s the Immich
+    # mobile app's /api/* calls to a login page it cannot render, so Immich runs
+    # its own OAuth and the route stays open at the gateway.
+    immich = {
+      display_name = "Immich"
+      description  = "Photo and video library."
+      hostnames    = ["immich.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/immich.svg"
+      # Read out of tofu-controller by ESO, not reflected - see
+      # kubernetes/apps/immich/immich/app/externalsecret-config.yaml.
+      namespaces = ["immich"]
+      # Its own group, which also carries immich_quota. See groups.tf.
+      groups = ["immich"]
+      # Immich makes a user record per login, so `sub` has to be readable.
+      sub_mode                   = "user_username"
+      include_claims_in_id_token = true
+      gateway_callback           = false
+      extra_redirect_uris = [
+        "https://immich.${var.domain}/auth/login",
+        "https://immich.${var.domain}/user-settings",
+        # The mobile app's custom scheme; it has no host to match on.
+        "app.immich:///oauth-callback",
+      ]
+    }
+
     # ── the LAN services proxied through external-services ────────────────────
     # Each pairs with a SecurityPolicy in
     # kubernetes/apps/network/external-services/app/oidc.yaml.
