@@ -23,6 +23,8 @@ spec:
           resources:
             requests:
               cpu: 100m
+              # Explicit, or it would default to the limit; a proxy here sits at ~70Mi
+              memory: 512Mi
             limits:
               memory: 1Gi
       envoyService:

@@ -23,3 +23,4 @@ resources:
   - ./pvc-ml-cache.yaml
   - ./ocirepository.yaml
   - ./helmrelease.yaml
+  - ./hpa.yaml

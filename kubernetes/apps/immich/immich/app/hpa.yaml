@@ -1,0 +1,30 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/autoscaling/horizontalpodautoscaler_v2.json
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: immich-machine-learning
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: immich-machine-learning
+  # 2 is the ceiling because only two nodes carry an Intel iGPU, and the
+  # controller's topology spread already refuses to stack both on one.
+  minReplicas: 1
+  maxReplicas: 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          # 200m of the 500m request: idle inference sits near 1%, a job never does.
+          averageUtilization: 40
+  behavior:
+    scaleDown:
+      # OpenVINO recompiles the graph on a cold replica, so flapping costs far
+      # more than carrying the second one through a lull.
+      stabilizationWindowSeconds: 900
+    scaleUp:
+      stabilizationWindowSeconds: 0
