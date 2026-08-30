@@ -43,17 +43,13 @@ spec:
                     { name: "garage", ...s3("trek", "http://192.168.0.200:3900", "eu-central-1", process.env.GARAGE_KEY_ID, process.env.GARAGE_KEY) },
                     { name: "mirrored", type: "mirror", options: { primary: "rgw", replicas: ["garage"] } },
                   ],
-                  categories: {
-                    files: "mirrored",
-                    journey: "mirrored",
-                    covers: "mirrored",
-                    avatars: "mirrored",
-                    places: "mirrored",
-                    backups: "mirrored",
-                    // Reproducible caches; upstream advises against replicating them.
-                    "photos-google": "rgw",
-                    "photos-trek": "rgw",
-                  },
+                  // Every category, the two photo caches included: upstream
+                  // advises against replicating those, but re-fetching them
+                  // costs API calls this cluster would rather not spend.
+                  categories: Object.fromEntries(
+                    ["files", "journey", "covers", "avatars", "places", "backups", "photos-google", "photos-trek"]
+                      .map((c) => [c, "mirrored"]),
+                  ),
                 }, null, 2));
             envFrom:
               # BUCKET_NAME, written by Rook next to the credentials Secret.
