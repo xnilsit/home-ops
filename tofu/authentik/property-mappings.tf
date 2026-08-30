@@ -1,20 +1,21 @@
-# The `immich` group in groups.tf carries immich_quota; turning it into an OIDC
-# claim needs a scope mapping, and this token CANNOT create one -
-# POST /api/v3/propertymappings/provider/scope/ is 403, and a failed apply
-# blocks every Kustomization behind authentik-oidc. So the mapping is created by
-# hand in authentik, once, and only read here:
-#
-#   name        home-ops-immich-quota
-#   scope name  immich_quota
-#   expression  return {"immich_quota": request.user.group_attributes().get("immich_quota", 0)}
-#
-# Until it exists, immich_quota_scope stays false and Immich falls back to the
-# defaultStorageQuota in its own config, which is the same 50 GiB. Flipping the
-# variable also means adding immich_quota to `oauth.scope` in
-# kubernetes/apps/immich/immich/app/externalsecret-config.yaml - authentik
-# rejects the authorize request for a scope with no mapping behind it.
-data "authentik_property_mapping_provider_scope" "immich_quota" {
-  count = var.immich_quota_scope ? 1 : 0
+resource "authentik_property_mapping_provider_scope" "immich_quota" {
+  name        = "${var.name_prefix}-immich-quota"
+  scope_name  = "immich_quota"
+  description = "Per-user Immich storage quota, in GiB."
 
-  name = "${var.name_prefix}-immich-quota"
+  # A quota on the user wins over the immich group's default in groups.tf.
+  # Returning no claim rather than 0 when neither is set: 0 means UNLIMITED to
+  # Immich, while an absent claim falls back to oauth.defaultStorageQuota.
+  #
+  # Immich reads this ONLY when it creates the account - changing either
+  # attribute later means editing the user in Immich's own admin UI.
+  expression = <<-EOT
+    quota = request.user.attributes.get(
+        "immich_quota",
+        request.user.group_attributes().get("immich_quota"),
+    )
+    if quota is None:
+        return {}
+    return {"immich_quota": quota}
+  EOT
 }

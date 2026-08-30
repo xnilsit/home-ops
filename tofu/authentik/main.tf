@@ -26,7 +26,7 @@ module "app" {
   gateway_callback           = try(each.value.gateway_callback, true)
   extra_redirect_uris        = try(each.value.extra_redirect_uris, [])
 
-  # Resolved here rather than in locals.tf: a data source id is unknown at plan
+  # Resolved here rather than in locals.tf: a resource id is unknown at plan
   # time, and local.apps is the for_each map, whose values must stay knowable.
-  extra_property_mappings = each.key == "immich" ? data.authentik_property_mapping_provider_scope.immich_quota[*].id : []
+  extra_property_mappings = each.key == "immich" ? [authentik_property_mapping_provider_scope.immich_quota.id] : []
 }

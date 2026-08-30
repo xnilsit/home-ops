@@ -3,8 +3,8 @@ locals {
   # from a list is an in-place change rather than a replacement.
   groups = {
     "home-ops" = {}
-    # Read by the immich_quota scope mapping in property-mappings.tf.
-    # GiB, which is the unit Immich's storage quota claim expects.
+    # The DEFAULT quota, in GiB, which is the unit Immich's claim expects. An
+    # immich_quota attribute on a user overrides it - see property-mappings.tf.
     "immich" = { immich_quota = 50 }
   }
 }

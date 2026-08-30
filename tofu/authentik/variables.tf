@@ -21,14 +21,6 @@ variable "secret_namespace" {
   type        = string
 }
 
-variable "immich_quota_scope" {
-  # See property-mappings.tf: the mapping cannot be created by this token, so
-  # this stays false until someone adds it in authentik by hand.
-  description = "Whether the home-ops-immich-quota scope mapping exists in authentik."
-  type        = bool
-  default     = false
-}
-
 variable "name_prefix" {
   # authentik Provider.name is unique across ALL providers, and this instance is
   # shared with the other cluster's own applications.
