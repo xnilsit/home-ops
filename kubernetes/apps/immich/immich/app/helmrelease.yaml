@@ -78,6 +78,22 @@ spec:
                 # ffmpeg falls back to software silently.
                 gpu.intel.com/i915: 1
       machine-learning:
+        # One per Intel node. Each replica claims its own iGPU, and the model
+        # cache is RWX so the second starts against models already on disk.
+        replicas: 2
+        pod:
+          topologySpreadConstraints:
+            # DoNotSchedule, not ScheduleAnyway: with exactly two eligible
+            # nodes the whole point is one replica each, and stacking both on
+            # one node leaves the other iGPU idle - which is the state this
+            # replaces.
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: DoNotSchedule
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: immich
+                  app.kubernetes.io/controller: machine-learning
         containers:
           app:
             image:
