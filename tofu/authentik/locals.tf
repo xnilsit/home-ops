@@ -45,6 +45,24 @@ locals {
       ]
     }
 
+    trek = {
+      display_name = "TREK"
+      description  = "Travel planner."
+      hostnames    = ["trek.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/trek.svg"
+      namespaces   = ["trek"]
+      # Its own groups, so travel companions get in without being handed the
+      # cluster's admin UIs. trek-admin is also what OIDC_ADMIN_VALUE matches.
+      groups = ["trek", "trek-admin"]
+      # TREK makes a user record per login and reads the id token itself.
+      sub_mode                   = "user_username"
+      include_claims_in_id_token = true
+      gateway_callback           = false
+      extra_redirect_uris = [
+        "https://trek.${var.domain}/api/auth/oidc/callback",
+      ]
+    }
+
     # ── the LAN services proxied through external-services ────────────────────
     # Each pairs with a SecurityPolicy in
     # kubernetes/apps/network/external-services/app/oidc.yaml.

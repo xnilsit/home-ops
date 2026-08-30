@@ -1,0 +1,17 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/source.toolkit.fluxcd.io/ocirepository_v1.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: trek
+spec:
+  interval: 15m
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  ref:
+    tag: 5.1.0
+  # app-template, not the upstream trek chart: that one is a plain HTTP Helm
+  # repo, renders an Ingress rather than an HTTPRoute, and ships no probes or
+  # securityContext.
+  url: oci://ghcr.io/bjw-s-labs/helm/app-template

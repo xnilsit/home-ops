@@ -28,6 +28,9 @@ spec:
       name: timescale-backup
     - <<: *key
       name: kopiur
+    # Gates trek, whose storage seed needs these credentials at first boot
+    - <<: *key
+      name: trek
     # Gates authentik-oidc-state, whose restore Job needs these credentials
     - <<: *key
       name: tofu-state

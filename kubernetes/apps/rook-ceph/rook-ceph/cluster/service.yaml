@@ -1,0 +1,22 @@
+---
+# A second Service in front of the RGW pods Rook already fronts, existing only
+# to have an address that is stable across a rebuild: Rook picks its own
+# Service's ClusterIP, and TREK's S3 client (aws-lite) has no path-style switch,
+# so a hostname endpoint makes it address <bucket>.<host>, which does not
+# resolve in-cluster. Selector copied from the Rook-owned Service.
+#
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/service-v1.json
+apiVersion: v1
+kind: Service
+metadata:
+  name: ceph-rgw-fixed
+spec:
+  clusterIP: ${CEPH_RGW_IP}
+  selector:
+    app: rook-ceph-rgw
+    rook_object_store: ceph-objectstore
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
