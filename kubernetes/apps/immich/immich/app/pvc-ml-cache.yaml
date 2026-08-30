@@ -1,0 +1,16 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/persistentvolumeclaim-v1.json
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ${APP}-ml-cache
+spec:
+  # RWX so machine-learning can scale past one replica and so a new pod starts
+  # against models already on disk instead of re-downloading a few GB. Not
+  # backed up - every model here is re-downloadable.
+  accessModes:
+    - "ReadWriteMany"
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: ceph-filesystem

@@ -1,0 +1,70 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: ${APP}
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:${PG_IMAGE_TAG}
+  primaryUpdateMethod: switchover
+
+  # local-path is node-local and WaitForFirstConsumer. CNPG replicates at the
+  # PostgreSQL layer, so 3 instances give 3 independent copies via streaming
+  # replication. A PVC cannot move: a permanently lost node strands its PVC,
+  # which must be deleted by hand before CNPG re-provisions elsewhere.
+  storage:
+    size: 20Gi
+    storageClass: local-path
+
+  postgresql:
+    # shared_preload_libraries is a CNPG-blocked GUC, hence the dedicated field.
+    # A bad path here means the postmaster never starts, not a missing feature.
+    shared_preload_libraries:
+      - "vchord.so"
+    extensions:
+      # CNPG's own image, so the flat /lib + /share layout its defaults expect.
+      - name: pgvector
+        image:
+          reference: ghcr.io/cloudnative-pg/pgvector:${PGVECTOR_IMAGE_TAG}
+      # Upstream's image is FHS-shaped, so both paths have to be named. Layout
+      # and overrides match immich-charts/local/cloudnative-pg.yaml.
+      - name: vchord
+        image:
+          reference: ghcr.io/tensorchord/vchord-scratch:${VCHORD_IMAGE_TAG}
+        dynamic_library_path:
+          - /usr/lib/postgresql/18/lib
+        extension_control_path:
+          - /usr/share/postgresql/18/
+    parameters:
+      shared_buffers: 1GB
+      effective_cache_size: 3GB
+      work_mem: 32MB
+      # vchordrq index builds are the only heavy maintenance this cluster does.
+      maintenance_work_mem: 512MB
+      max_parallel_maintenance_workers: "2"
+      wal_compression: "on"
+
+  # initdb, unlike the other two clusters: this one starts with an empty
+  # s3://immich-backup/, and a recovery bootstrap against a catalog that does
+  # not exist yet fails outright. The section is only read at creation, so once
+  # the first ScheduledBackup has landed it should be swapped for the recovery
+  # stanza the other clusters use - that is what makes a rebuild after losing
+  # all three node-local PVCs come back with data rather than empty.
+  bootstrap:
+    initdb:
+      database: ${APP}
+      owner: ${APP}
+
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: ${APP}-store
+
+  resources:
+    limits:
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi

@@ -1,0 +1,38 @@
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: ${APP}-store
+spec:
+  # TOP-LEVEL, not under .configuration. Pattern is ^[1-9][0-9]*[dwm]$ - no `y`.
+  retentionPolicy: 30d
+  configuration:
+    # Bucket name must match the GarageBucket in kubernetes/apps/garage
+    destinationPath: s3://${APP}-backup/
+    # Garage on the NAS, deliberately by IP rather than through
+    # s3.${SECRET_DOMAIN}: backups must not depend on the ingress path.
+    endpointURL: http://192.168.0.200:3900
+    s3Credentials:
+      accessKeyId:
+        name: garage-${APP}-backup
+        key: AWS_ACCESS_KEY_ID
+      secretAccessKey:
+        name: garage-${APP}-backup
+        key: AWS_SECRET_ACCESS_KEY
+      # Garage checks the region in the SigV4 credential scope and rejects a
+      # mismatch.
+      region:
+        name: garage-${APP}-backup
+        key: AWS_REGION
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+  instanceSidecarConfiguration:
+    # The sidecar ships with NO default limits.
+    resources:
+      limits:
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi

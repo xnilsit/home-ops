@@ -1,0 +1,34 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: external-secrets
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: external-secrets
+  interval: 1h
+  values:
+    # An evicted controller stops refreshing every ExternalSecret in the
+    # cluster, but nothing already-materialised stops serving.
+    priorityClassName: &priority cluster-platform
+    installCRDs: true
+    # Nothing here pushes secrets outward, and PushSecret is the only path that
+    # writes to a provider.
+    processPushSecret: false
+    processClusterPushSecret: false
+    resources: &resources
+      limits:
+        memory: 256Mi
+      requests:
+        cpu: 25m
+        memory: 64Mi
+    serviceMonitor:
+      enabled: true
+    webhook:
+      priorityClassName: *priority
+      resources: *resources
+    certController:
+      priorityClassName: *priority
+      resources: *resources

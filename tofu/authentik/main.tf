@@ -23,4 +23,10 @@ module "app" {
   signing_key        = data.authentik_certificate_key_pair.signing.id
 
   include_claims_in_id_token = try(each.value.include_claims_in_id_token, false)
+  gateway_callback           = try(each.value.gateway_callback, true)
+  extra_redirect_uris        = try(each.value.extra_redirect_uris, [])
+
+  # Resolved here rather than in locals.tf: a data source id is unknown at plan
+  # time, and local.apps is the for_each map, whose values must stay knowable.
+  extra_property_mappings = each.key == "immich" ? data.authentik_property_mapping_provider_scope.immich_quota[*].id : []
 }

@@ -1,0 +1,33 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app external-secrets-stores
+  namespace: flux-system
+spec:
+  # The reader identity and its Role are namespaced to where the secrets are,
+  # not to where ESO runs. The ClusterSecretStore itself is cluster-scoped and
+  # ignores this.
+  targetNamespace: tofu-controller
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/external-secrets/stores/app
+  dependsOn:
+    - name: external-secrets
+      namespace: flux-system
+    # The namespace the Role binds in belongs to that Kustomization
+    - name: tofu-controller
+      namespace: flux-system
+  healthChecks:
+    - apiVersion: external-secrets.io/v1
+      kind: ClusterSecretStore
+      name: tofu-controller
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  interval: 1h
+  timeout: 5m

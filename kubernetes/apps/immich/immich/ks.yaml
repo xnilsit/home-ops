@@ -1,0 +1,90 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app immich
+  namespace: flux-system
+spec:
+  targetNamespace: immich
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/immich/immich/app
+  dependsOn:
+    # Both the Postgres role password and the Dragonfly password are minted by
+    # an ESO generator; the OAuth credential is read through its store.
+    - name: external-secrets-stores
+      namespace: flux-system
+    # Writes the immich-oidc Secret the config ExternalSecret reads
+    - name: authentik-oidc
+      namespace: flux-system
+    # The Cluster references the barman plugin, which must be running first
+    - name: barman-cloud-plugin
+      namespace: flux-system
+    - name: dragonfly-operator
+      namespace: flux-system
+    # Backups archive to Garage on the NAS; this guarantees the bucket and the
+    # mirrored credentials exist before the Cluster starts archiving
+    - name: garage
+      namespace: flux-system
+    # The library PVC is provisioned through kopiur's Restore populator, which
+    # cannot bind until the repository is connected
+    - name: kopiur-repository
+      namespace: flux-system
+    # CephFS RWX for the library and the model cache
+    - name: rook-ceph-cluster
+      namespace: flux-system
+    - name: envoy-gateway
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: *app
+      # Three instances: BullMQ has no retry of its own for a lost master.
+      DRAGONFLY_REPLICAS: "3"
+      KOPIUR_ACCESSMODES: ReadWriteMany
+      KOPIUR_STORAGECLASS: ceph-filesystem
+      KOPIUR_SNAPSHOTCLASS: csi-ceph-filesystem
+      KOPIUR_CAPACITY: 250Gi
+      # Daily, not the component's hourly default: a quarter-terabyte library
+      # has nothing to gain from 24 kopia runs a day.
+      KOPIUR_CRON: "H 4 * * *"
+      # The operand image is the only part of this stack with an OS, so it is
+      # where security patching actually matters. It lives here rather than
+      # inline on imageName because Renovate's annotated manager captures the
+      # whole bare token after `: ` - on a combined `repo:tag` string it would
+      # capture the repository too and never resolve a version.
+      #
+      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql
+      PG_IMAGE_TAG: 18.6-minimal-trixie
+      # Both extension tags need an explicit versioning: neither parses under
+      # plain docker versioning, so Renovate would never open a PR.
+      #
+      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/pgvector versioning=regex:^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-(?<build>\d+)-18-trixie$
+      PGVECTOR_IMAGE_TAG: 0.8.1-202602120909-18-trixie
+      # renovate: datasource=docker depName=ghcr.io/tensorchord/vchord-scratch versioning=regex:^pg18-v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$
+      VCHORD_IMAGE_TAG: pg18-v1.1.1
+  healthChecks:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      name: *app
+      namespace: immich
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: immich
+  healthCheckExprs:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      failed: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'False')
+      current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # wait: false, since wait: true would ignore the healthCheckExprs above.
+  wait: false
+  interval: 1h
+  # Three Postgres instances bootstrap serially, and the first one pulls the
+  # operand plus two extension image volumes.
+  timeout: 30m

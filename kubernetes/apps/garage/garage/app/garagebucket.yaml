@@ -16,6 +16,9 @@ items:
   - <<: *bucket
     metadata: {name: timescale-backup}
     spec: *spec
+  - <<: *bucket
+    metadata: {name: immich-backup}
+    spec: *spec
   # One kopia repository shared by every kopiur SnapshotPolicy - kopia dedups
   # across writers and separates them by snapshot identity, not by key prefix.
   - <<: *bucket
