@@ -14,9 +14,14 @@ conditional:
   fallbackUpstream: false
   mapping:
     localdomain: 192.168.0.1
-    # USG dnsmasq re-serves cached NODATA without the SOA, so clients can't negative-cache
-    home-connect.com: tcp-tls:1.1.1.1:853,tcp-tls:9.9.9.9:853
     .: 192.168.0.1
+customDNS:
+  mapping:
+    # Above the conditional mapping in the chain, so this wins. Points the hood's
+    # NTP endpoint at the stratum-2 gateway and finally answers the AAAA it asks
+    # for 40x/s. Revert this line if its clock stops - BSH serve NTS off a private
+    # CA, and no host of ours can present that chain.
+    global.time.appliances.home-connect.com: 192.168.0.1,fd2e:9a41:6b8c:1::1
 blocking:
   denylists:
     ads:
