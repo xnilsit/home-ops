@@ -16,6 +16,9 @@ spec:
     # resource request alone pins consumers to the two N305 nodes.
     nodeFeatureRule: false
     nodeSelector:
+      # Explicitly null, not just omitted: Helm deep-merges maps, so the chart's
+      # default NFD label survives otherwise and selects zero nodes here.
+      intel.feature.node.kubernetes.io/gpu: null
       kubernetes.io/arch: amd64
     # Containers per GPU. Immich alone wants two on one node (server for QSV,
     # machine-learning for OpenVINO), and these are latency-tolerant batch
