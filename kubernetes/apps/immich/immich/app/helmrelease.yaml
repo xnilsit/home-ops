@@ -279,11 +279,12 @@ spec:
       app:
         hostnames:
           - "immich.${SECRET_DOMAIN}"
-        # envoy-internal only: the Cloudflare tunnel wildcards
-        # *.${SECRET_DOMAIN} onto envoy-external and caps request bodies at
-        # 100 MB, which Immich's unchunked video uploads would trip.
+        # envoy-external-direct, not envoy-external: the Cloudflare tunnel caps
+        # request bodies at 100 MB, which Immich's unchunked video uploads trip.
+        # The direct gateway is public through a UniFi port-forward instead, and
+        # k8s-gateway still answers this hostname with its LAN address.
         parentRefs:
-          - name: envoy-internal
+          - name: envoy-external-direct
             namespace: network
             sectionName: https
         rules:
