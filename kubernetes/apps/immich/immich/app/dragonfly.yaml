@@ -62,6 +62,8 @@ spec:
   resources:
     requests:
       cpu: 50m
+      # Explicit, or it would default to the limit; an instance here sits at ~50Mi
+      memory: 512Mi
     limits:
       # An initial library import queues a lot of jobs, and BullMQ needs them
       # to survive rather than be evicted.

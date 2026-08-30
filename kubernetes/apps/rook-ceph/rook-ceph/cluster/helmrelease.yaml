@@ -180,7 +180,8 @@ spec:
             memory: 6Gi
           requests:
             cpu: 150m
-            memory: 6Gi
+            # osd_memory_target, not the limit: an OSD here sits at ~2.3Gi
+            memory: 4Gi
         prepareosd:
           limits:
             memory: 3000Mi
@@ -280,7 +281,8 @@ spec:
                 memory: 2Gi
               requests:
                 cpu: 100m
-                memory: 2Gi
+                # The cache limit follows the limit above, and an MDS here sits at ~380Mi
+                memory: 1Gi
         storageClass:
           enabled: true
           name: ceph-filesystem

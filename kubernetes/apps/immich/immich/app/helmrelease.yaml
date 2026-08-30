@@ -108,7 +108,7 @@ spec:
             resources:
               requests:
                 cpu: 500m
-                memory: 2Gi
+                memory: 1Gi
               limits:
                 memory: 8Gi
                 # QSV, and also what places this pod: the plugin advertises the
@@ -153,7 +153,7 @@ spec:
             resources:
               requests:
                 cpu: 1
-                memory: 2Gi
+                memory: 1Gi
               limits:
                 # A CPU limit, against the repo's usual habit, and deliberate:
                 # ffmpeg and libvips will each take every thread they are
@@ -162,9 +162,10 @@ spec:
                 cpu: 6
                 memory: 8Gi
       machine-learning:
-        # One per Intel node. Each replica claims its own iGPU, and the model
-        # cache is RWX so the second starts against models already on disk.
-        replicas: 2
+        # One per Intel node when there is work. Each replica claims its own
+        # iGPU, and the model cache is RWX so the second starts against models
+        # already on disk. Replica count is the HPA's, not this chart's - see
+        # ./hpa.yaml; a helm upgrade resets it to 1 and the HPA scales it back.
         pod:
           topologySpreadConstraints:
             # DoNotSchedule, not ScheduleAnyway: with exactly two eligible
@@ -218,7 +219,7 @@ spec:
             resources:
               requests:
                 cpu: 500m
-                memory: 3Gi
+                memory: 2Gi
               limits:
                 memory: 10Gi
                 # Without it OpenVINO enumerates ['CPU'] and Immich falls back

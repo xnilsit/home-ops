@@ -47,6 +47,14 @@ caching:
   prefetchThreshold: 10
   prefetchMaxItemsCount: 0
   cacheTimeNegative: 1m
+rateLimit:
+  enable: true
+  # Per pod, so a client spread over the 3 replicas gets 30/s; the busiest real
+  # one peaks at ~8/s over a minute, and the hood pins to a single pod.
+  rate: 10
+  burst: 300
+  # /128, not the default /64, which would bucket the whole LAN prefix as one client
+  ipv6Prefix: 128
 redis:
   address: dragonfly.database.svc.cluster.local:6379
   password: file:/run/secrets/dragonfly/password
@@ -84,6 +92,8 @@ queryLog:
     domains:
       - "*.in-addr.arpa"
       - "*.ip6.arpa"
+      # The Neff hood polls this ~40x/s over v4 and v6 and was 98% of the query log
+      - global.time.appliances.home-connect.com
 ports:
   dns: 53
   tls: 853
