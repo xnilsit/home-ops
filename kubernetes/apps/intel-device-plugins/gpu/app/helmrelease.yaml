@@ -1,0 +1,23 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: intel-device-plugins-gpu
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: intel-device-plugins-gpu
+  interval: 1h
+  values:
+    name: gpu
+    # The plugin reads each card's sysfs device/vendor and skips anything that
+    # is not 0x8086, so kube-srv-02's AMD iGPU advertises nothing and the
+    # resource request alone pins consumers to the two N305 nodes.
+    nodeFeatureRule: false
+    nodeSelector:
+      kubernetes.io/arch: amd64
+    # Containers per GPU. Immich alone wants two on one node (server for QSV,
+    # machine-learning for OpenVINO), and these are latency-tolerant batch
+    # workloads rather than anything that needs the whole device.
+    sharedDevNum: 4

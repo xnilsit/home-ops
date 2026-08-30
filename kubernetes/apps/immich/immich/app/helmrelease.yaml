@@ -14,22 +14,6 @@ spec:
       server:
         annotations:
           reloader.stakater.com/auto: "true"
-        pod: &gpuPod
-          # Exists, NOT the label's value: it is
-          # extensions.talos.dev/i915=<date>-<talos version> and changes on
-          # every Talos upgrade. Required rather than preferred, because a
-          # hostPath /dev/dri mount succeeds on the AMD node too and would
-          # hand the container a render node QSV and OpenVINO cannot use.
-          #
-          # Break-glass to CPU-only: drop this pod block and the -openvino
-          # image suffix below.
-          affinity:
-            nodeAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                nodeSelectorTerms:
-                  - matchExpressions:
-                      - key: extensions.talos.dev/i915
-                        operator: Exists
         containers:
           app:
             image:
@@ -87,8 +71,13 @@ spec:
                 memory: 2Gi
               limits:
                 memory: 8Gi
+                # QSV. This is also what places the pod: the plugin advertises
+                # the resource only where an Intel GPU exists. A hostPath
+                # /dev/dri does NOT work - the device node is visible but the
+                # container's device cgroup denies open() with EPERM, and
+                # ffmpeg falls back to software silently.
+                gpu.intel.com/i915: 1
       machine-learning:
-        pod: *gpuPod
         containers:
           app:
             image:
@@ -132,6 +121,9 @@ spec:
                 memory: 3Gi
               limits:
                 memory: 10Gi
+                # Without it OpenVINO enumerates ['CPU'] and Immich falls back
+                # to CPU inference, logging the choice only at debug level.
+                gpu.intel.com/i915: 1
     defaultPodOptions:
       securityContext:
         runAsNonRoot: true
@@ -166,17 +158,6 @@ spec:
             app:
               - path: /config
                 readOnly: true
-      dri:
-        type: hostPath
-        hostPath: /dev/dri
-        hostPathType: Directory
-        advancedMounts:
-          server:
-            app:
-              - path: /dev/dri
-          machine-learning:
-            app:
-              - path: /dev/dri
     service:
       app:
         controller: server

@@ -1,0 +1,23 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: intel-device-plugins-operator
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: intel-device-plugins-operator
+  interval: 1h
+  values:
+    manager:
+      devices:
+        # Only the GPU controller; the others would watch CRDs for hardware
+        # this cluster does not have.
+        gpu: true
+    resources:
+      limits:
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi

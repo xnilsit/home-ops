@@ -1,0 +1,33 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app intel-device-plugins-operator
+  namespace: flux-system
+spec:
+  targetNamespace: intel-device-plugins
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/intel-device-plugins/operator/app
+  dependsOn:
+    # The chart ships a cert-manager Issuer and Certificate for its admission
+    # webhook, so the install fails without cert-manager.
+    - name: cert-manager
+      namespace: flux-system
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: intel-device-plugins
+    # Gates the gpu Kustomization, which applies a GpuDevicePlugin
+    - kind: CustomResourceDefinition
+      name: gpudeviceplugins.deviceplugin.intel.com
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  interval: 1h
+  timeout: 10m
