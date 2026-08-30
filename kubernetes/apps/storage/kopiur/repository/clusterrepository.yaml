@@ -7,12 +7,10 @@ kind: ClusterRepository
 metadata:
   name: nas
 spec:
+  # all, not a roster: every namespace here is ours, and a missing entry denies
+  # the SnapshotPolicy at admission, nowhere near the app that adopted it.
   allowedNamespaces:
-    list:
-      - storage
-      - flux-system
-      - observability
-      - immich
+    all: true
   backend:
     s3:
       bucket: kopiur
