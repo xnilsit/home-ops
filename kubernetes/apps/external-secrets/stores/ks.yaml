@@ -8,12 +8,13 @@ metadata:
 spec:
   # The reader identity and its Role are namespaced to where the secrets are,
   # not to where ESO runs. The ClusterSecretStore itself is cluster-scoped and
-  # ignores this.
+  # ignores this. One Kustomization per remote namespace, so a consumer of one
+  # store does not inherit the other store's dependsOn.
   targetNamespace: tofu-controller
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
-  path: ./kubernetes/apps/external-secrets/stores/app
+  path: ./kubernetes/apps/external-secrets/stores/tofu-controller
   dependsOn:
     - name: external-secrets
       namespace: flux-system
@@ -24,6 +25,36 @@ spec:
     - apiVersion: external-secrets.io/v1
       kind: ClusterSecretStore
       name: tofu-controller
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  interval: 1h
+  timeout: 5m
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app external-secrets-stores-garage
+  namespace: flux-system
+spec:
+  targetNamespace: garage
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/external-secrets/stores/garage
+  dependsOn:
+    - name: external-secrets
+      namespace: flux-system
+    # The namespace the Role binds in belongs to that Kustomization
+    - name: garage
+      namespace: flux-system
+  healthChecks:
+    - apiVersion: external-secrets.io/v1
+      kind: ClusterSecretStore
+      name: garage
   prune: true
   sourceRef:
     kind: GitRepository

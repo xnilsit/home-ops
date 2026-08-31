@@ -22,11 +22,10 @@ spec:
       region: eu-central-1
       tls: {disableTls: true}
       auth:
-        # Same Secret as the encryption password below, not the reflected
-        # garage-kopiur: the kopia-UI server pod env-injects only the Secret
-        # named by spec.encryption and never this one, so a split layout starts
-        # it without S3 credentials. Movers envFrom every distinct Secret and
-        # work either way, so this collapses to one for both.
+        # Same Secret as the encryption password below: the kopia-UI server pod
+        # env-injects only the Secret named by spec.encryption and never this
+        # one, so a split layout starts it without S3 credentials. ESO merges
+        # the AWS_* keys into it (../app/externalsecret.yaml).
         #
         # A ClusterRepository is cluster-scoped, so every secretRef must carry
         # an explicit namespace - webhook-enforced.

@@ -1,0 +1,15 @@
+---
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ClusterGenerator
+metadata:
+  name: password
+spec:
+  kind: Password
+  generator:
+    passwordSpec:
+      length: 40
+      digits: 8
+      # No symbols: every consumer also embeds the value in a Postgres URI.
+      symbols: 0
+      noUpper: false
+      allowRepeat: true

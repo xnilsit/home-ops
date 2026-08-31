@@ -9,7 +9,7 @@ resources:
   - ./objectstore.yaml
   # Must precede cluster.yaml: managed.roles cannot create blocky_ro
   # without its password secret.
-  - ./secret.sops.yaml
+  - ./externalsecret.yaml
   - ./cluster.yaml
   - ./database.yaml
   - ./scheduledbackup.yaml

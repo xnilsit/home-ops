@@ -19,6 +19,9 @@ spec:
     # and the mirrored credentials exist before the Cluster starts archiving
     - name: garage
       namespace: flux-system
+    # Mints the ntfy role password via ClusterGenerator/password
+    - name: external-secrets-generators
+      namespace: flux-system
     - name: priority-classes
       namespace: flux-system
   postBuild:
@@ -39,6 +42,13 @@ spec:
   healthCheckExprs:
     - apiVersion: postgresql.cnpg.io/v1
       kind: Cluster
+      failed: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'False')
+      current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
+    # An ExternalSecret has no observedGeneration and reports condition type
+    # Ready, so kstatus calls it Current the moment it applies - without this a
+    # generator that never synced surfaces as a DatabaseRole failure instead.
+    - apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
       failed: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'False')
       current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
   prune: true
