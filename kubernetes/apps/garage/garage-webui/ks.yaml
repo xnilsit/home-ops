@@ -13,10 +13,10 @@ spec:
   path: ./kubernetes/apps/garage/garage-webui/app
   dependsOn:
     # Reads the admin token straight out of the garage-credentials Secret that
-    # Kustomization creates - same namespace, so no reflector involved
+    # Kustomization creates - same namespace, so nothing is copied
     - name: garage
       namespace: flux-system
-    # garage-webui-oidc is reflected from the Secret the tofu module writes
+    # garage-webui-oidc is pulled from the Secret the tofu module writes
     - name: authentik-oidc
       namespace: flux-system
     # Owns the ClusterSecretStore the credential ExternalSecrets read through
@@ -43,7 +43,7 @@ spec:
   healthCheckExprs:
     # SecurityPolicy reports Gateway API PolicyStatus - status.ancestors[] - not
     # the flat status.conditions kstatus reads. With no ancestors yet neither
-    # expr matches, which is the InProgress that lets Flux retry while reflector
+    # expr matches, which is the InProgress that lets Flux retry while ESO
     # is still filling in the Secret.
     - apiVersion: gateway.envoyproxy.io/v1alpha1
       kind: SecurityPolicy

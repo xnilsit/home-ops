@@ -19,7 +19,7 @@ spec:
     # multipart uploads have no reason to cross Envoy.
     endpointURL: http://192.168.0.200:3900
     # Written by the GarageKey in kubernetes/apps/garage and mirrored into this
-    # namespace by reflector - see ./secret-garage.yaml
+    # namespace by ESO - see ./externalsecret-garage.yaml
     s3Credentials:
       accessKeyId:
         name: garage-timescale-backup

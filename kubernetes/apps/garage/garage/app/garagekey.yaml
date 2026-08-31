@@ -1,6 +1,6 @@
 ---
 # One key per bucket, each writing a Secret shaped the way a barman-cloud
-# ObjectStore expects. The Secrets live here; reflector mirrors them into
+# ObjectStore expects. The Secrets live here; ESO copies them into
 # database, where the ObjectStores are - a barman ObjectStore is
 # namespace-scoped and its s3Credentials are SecretKeySelectors, so the
 # credentials have to exist in the consuming namespace.
