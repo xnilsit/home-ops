@@ -12,6 +12,9 @@ spec:
       app.kubernetes.io/name: *app
   path: ./kubernetes/apps/observability/gatus/app
   dependsOn:
+    # Reads database/pg-shared-gatus through the ClusterSecretStore it owns
+    - name: external-secrets-stores-database
+      namespace: flux-system
     # Two credentials come from there by reflector: gatus-oidc guards the
     # dashboard, gatus-probe is what the endpoint probes authenticate with
     - name: authentik-oidc
@@ -32,10 +35,6 @@ spec:
     # replaced wholesale rather than merged.
     substitute:
       APP: *app
-      # Required by components/postgres-shared, whose nested Kustomization runs
-      # in the database namespace and has no other way to learn where the
-      # credential may be mirrored to.
-      APP_NAMESPACE: observability
       OIDC_HOST: gatus.${SECRET_DOMAIN}
       # The chart names the route after fullnameOverride, which is set to the
       # release name in values

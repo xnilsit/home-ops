@@ -7,11 +7,9 @@ metadata:
 spec:
   # The whole point of this nested Kustomization. A Database and a DatabaseRole
   # name their Cluster by LOCAL name, so both have to live in the database
-  # namespace - and so does the password Secret, because reflector does not copy
-  # labels and the mirror would arrive without cnpg.io/reload, which CNPG's
-  # informer cache filters on. A component alone cannot do that: it is applied
-  # under the consuming app's targetNamespace. A Kustomization it creates can
-  # carry its own.
+  # namespace, and so does the password Secret the DatabaseRole reads. A
+  # component alone cannot put them there: it is applied under the consuming
+  # app's targetNamespace. A Kustomization it creates can carry its own.
   targetNamespace: &namespace database
   path: ./kubernetes/components/postgres-shared/database
   dependsOn:
@@ -27,7 +25,6 @@ spec:
       # the parent's substitutions are already resolved in this file's text and
       # would not reach the manifests this one renders.
       APP: ${APP}
-      APP_NAMESPACE: ${APP_NAMESPACE}
   healthChecks:
     - apiVersion: postgresql.cnpg.io/v1
       kind: Database
