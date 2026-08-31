@@ -16,7 +16,6 @@ module "app" {
   groups = { for g in try(each.value.groups, []) : g => local.group_ids[g] }
 
   secret_namespace   = var.secret_namespace
-  reflect_to         = each.value.namespaces
   authorization_flow = data.authentik_flow.authorization.id
   invalidation_flow  = data.authentik_flow.invalidation.id
   property_mappings  = data.authentik_property_mapping_provider_scope.oidc.ids

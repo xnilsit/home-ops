@@ -127,7 +127,7 @@ spec:
             readOnly: true
       # queryLog.target reads the DSN out of this file rather than inlining it,
       # since config.yml is a plain ConfigMap. Mirrored from CNPG's generated
-      # timescale-app secret by reflector.
+      # timescale-app secret by ESO.
       timescale-auth:
         type: secret
         name: blocky-timescale-auth

@@ -24,13 +24,6 @@ spec:
     size: ${PG_STORAGE_SIZE:=8Gi}
     storageClass: ${PG_STORAGE_CLASS:=local-path}
 
-  # The app lives in this same namespace, so it reads the CNPG-generated
-  # ${APP}-postgres-app secret - which already carries a ready-made `uri` -
-  # directly. This annotation is only for consumers in OTHER namespaces.
-  inheritedMetadata:
-    annotations:
-      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
-
   bootstrap:
     initdb:
       database: ${APP}

@@ -44,6 +44,9 @@ metadata:
   namespace: flux-system
 spec:
   dependsOn:
+    # Owns the ClusterSecretStore the credential is pulled through
+    - name: external-secrets-stores-database
+      namespace: flux-system
     - name: grafana
       namespace: flux-system
     - name: rook-ceph-cluster

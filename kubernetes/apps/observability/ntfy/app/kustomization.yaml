@@ -9,7 +9,7 @@ resources:
   - ./secret.sops.yaml
   # Mirrors database/pg-shared-ntfy in as ntfy-pg-shared, whose `uri` key
   # becomes NTFY_DATABASE_URL
-  - ./secret.yaml
+  - ./externalsecret-pg-shared.yaml
 configMapGenerator:
   # Generated here rather than as an app-template `configMaps` entry because
   # that path runs the data through Helm's `tpl`, which would evaluate the

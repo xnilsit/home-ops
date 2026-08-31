@@ -64,11 +64,6 @@ variable "secret_namespace" {
   type = string
 }
 
-variable "reflect_to" {
-  description = "Namespaces reflector may mirror the credential Secret into."
-  type        = list(string)
-}
-
 variable "authorization_flow" {
   type = string
 }

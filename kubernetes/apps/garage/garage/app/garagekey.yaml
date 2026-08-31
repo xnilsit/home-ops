@@ -27,9 +27,6 @@ items:
           # ObjectStores carry their own endpointURL anyway.
           includeEndpoint: false
           additionalData: {AWS_REGION: eu-central-1}
-          annotations:
-            reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
-            reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: database
         name: garage-cnpg-backup
       bucketPermissions:
         - {bucketRef: {name: cnpg-backup}, read: true, write: true}
@@ -50,10 +47,6 @@ items:
       neverExpires: true
       secretTemplate:
         <<: *template
-        # Immich's Postgres lives with the app, not in database.
-        annotations:
-          reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
-          reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: immich
         name: garage-immich-backup
       bucketPermissions:
         - {bucketRef: {name: immich-backup}, read: true, write: true}
@@ -64,9 +57,6 @@ items:
       neverExpires: true
       secretTemplate:
         <<: *template
-        annotations:
-          reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
-          reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: trek
         name: garage-trek
       # read as well as write: the mirror driver falls back to the replica when
       # the primary cannot serve an object.
@@ -81,9 +71,6 @@ items:
         <<: *template
         # annotations, not the anchor's. Kept as a fallback only: kopiur now
         # reads this Secret in place through ClusterSecretStore/garage.
-        annotations:
-          reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
-          reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: storage
         name: garage-kopiur
       bucketPermissions:
         - {bucketRef: {name: kopiur}, read: true, write: true}
@@ -95,10 +82,6 @@ items:
       secretTemplate:
         # The anchor's key names are exactly what Dragonfly reads from its env.
         <<: *template
-        # No namespace list: every Dragonfly built from the component snapshots
-        # into this bucket under its own ${APP} prefix, in its app's namespace.
-        annotations:
-          reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
         name: garage-dragonfly-backup
       bucketPermissions:
         - {bucketRef: {name: dragonfly-backup}, read: true, write: true}
@@ -111,9 +94,6 @@ items:
         <<: *template
         # read as well as write: the restore Job copies Garage -> RGW when a
         # rebootstrap leaves the RGW bucket empty.
-        annotations:
-          reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
-          reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: tofu-controller
         name: garage-tofu-state
       bucketPermissions:
         - {bucketRef: {name: tofu-state}, read: true, write: true}

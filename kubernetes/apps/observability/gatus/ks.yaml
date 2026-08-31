@@ -15,7 +15,7 @@ spec:
     # Reads database/pg-shared-gatus through the ClusterSecretStore it owns
     - name: external-secrets-stores-database
       namespace: flux-system
-    # Two credentials come from there by reflector: gatus-oidc guards the
+    # Two credentials are pulled from there: gatus-oidc guards the
     # dashboard, gatus-probe is what the endpoint probes authenticate with
     - name: authentik-oidc
       namespace: flux-system
@@ -55,7 +55,7 @@ spec:
     # SecurityPolicy reports Gateway API PolicyStatus - status.ancestors[], one
     # entry per attached parent - not the flat status.conditions kstatus reads.
     # With no ancestors yet neither expr matches, which is the InProgress that
-    # lets Flux retry while reflector is still filling in the Secret.
+    # lets Flux retry while ESO is still filling in the Secret.
     - apiVersion: gateway.envoyproxy.io/v1alpha1
       kind: SecurityPolicy
       failed: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'False'))

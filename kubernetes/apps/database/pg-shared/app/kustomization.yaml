@@ -5,7 +5,7 @@ kind: Kustomization
 resources:
   # Must precede the ObjectStore, which reads the mirrored Garage credentials
   # out of it.
-  - ./secret-garage.yaml
+  - ./externalsecret-garage.yaml
   - ./objectstore.yaml
   # Must precede the DatabaseRole, which cannot create a role without its
   # password secret.

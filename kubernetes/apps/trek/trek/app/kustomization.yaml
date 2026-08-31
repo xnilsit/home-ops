@@ -8,7 +8,7 @@ components:
 resources:
   # Both credential sources for the storage seed, plus the bucket it claims.
   - ./objectbucketclaim.yaml
-  - ./secret-garage.yaml
+  - ./externalsecret-garage.yaml
   - ./secret.sops.yaml
   - ./externalsecret-oidc.yaml
   - ./ocirepository.yaml

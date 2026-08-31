@@ -11,4 +11,4 @@ resources:
   - ./datasource-alerts.yaml
   - ./datasource-metrics.yaml
   - ./datasource-querylog.yaml
-  - ./secret.yaml
+  - ./externalsecret-timescale.yaml

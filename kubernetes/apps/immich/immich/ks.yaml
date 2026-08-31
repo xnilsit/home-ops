@@ -12,6 +12,9 @@ spec:
       app.kubernetes.io/name: *app
   path: ./kubernetes/apps/immich/immich/app
   dependsOn:
+    # Owns the ClusterSecretStore the credential is pulled through
+    - name: external-secrets-stores-garage
+      namespace: flux-system
     # Both the Postgres role password and the Dragonfly password are minted by
     # an ESO generator; the OAuth credential is read through its store.
     - name: external-secrets-stores

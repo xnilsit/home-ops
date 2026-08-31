@@ -5,5 +5,5 @@ kind: Kustomization
 resources:
   # The OBC first: both rclone workloads read the credentials Secret it writes.
   - ./objectbucketclaim.yaml
-  - ./secret-garage.yaml
+  - ./externalsecret-garage.yaml
   - ./rclone.yaml

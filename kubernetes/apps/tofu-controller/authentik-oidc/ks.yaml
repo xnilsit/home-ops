@@ -12,6 +12,9 @@ spec:
       app.kubernetes.io/name: *app
   path: ./kubernetes/apps/tofu-controller/authentik-oidc/state
   dependsOn:
+    # Owns the ClusterSecretStore the credential is pulled through
+    - name: external-secrets-stores-garage
+      namespace: flux-system
     # Creates the ceph-bucket-retain StorageClass the OBC claims through
     - name: rook-ceph-cluster
       namespace: flux-system

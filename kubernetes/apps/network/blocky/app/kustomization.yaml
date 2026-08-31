@@ -8,7 +8,7 @@ resources:
   - ./grafanadashboard-client-analysis.yaml
   - ./helmrelease.yaml
   - ./ocirepository.yaml
-  - ./secret.yaml
+  - ./externalsecret-timescale.yaml
   - ./tcproute.yaml
 components:
   - ../../../../components/dragonfly-shared

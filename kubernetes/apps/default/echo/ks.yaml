@@ -44,7 +44,7 @@ spec:
     # SecurityPolicy reports Gateway API PolicyStatus - status.ancestors[], one
     # entry per attached parent - not the flat status.conditions kstatus reads.
     # With no ancestors yet neither expr matches, which is the InProgress that
-    # lets Flux retry while reflector is still filling in the Secret.
+    # lets Flux retry while ESO is still filling in the Secret.
     - apiVersion: gateway.envoyproxy.io/v1alpha1
       kind: SecurityPolicy
       failed: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'False'))
