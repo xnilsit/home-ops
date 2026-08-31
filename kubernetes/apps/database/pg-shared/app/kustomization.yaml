@@ -11,8 +11,10 @@ resources:
   # password secret.
   - ./externalsecret-ntfy.yaml
   - ./cluster.yaml
-  # One pair of files per consumer. A DatabaseRole must exist before the
-  # Database that names it as owner.
+  # ntfy predates kubernetes/components/postgres-shared, which now carries these
+  # three objects for every new consumer. Left in place deliberately: the names
+  # are identical, so handing them to the component would make Flux prune and
+  # recreate a live database's CRs and mint a new role password on the way.
   - ./databaserole-ntfy.yaml
   - ./database-ntfy.yaml
   - ./scheduledbackup.yaml

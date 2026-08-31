@@ -3,6 +3,12 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: github-webhook
+  # notification-controller registers /hook/ and nothing else - no root, no
+  # healthz on this listener - so a GET is a bare 404 from its own handler. Still
+  # a real check: a dead controller gives Envoy's 503 instead.
+  annotations:
+    gatus.home-operations.com/endpoint: |
+      conditions: ["[STATUS] == 404"]
 spec:
   hostnames:
     - "flux-webhook.${SECRET_DOMAIN}"

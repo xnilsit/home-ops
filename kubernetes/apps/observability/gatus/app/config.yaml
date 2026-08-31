@@ -1,0 +1,47 @@
+---
+# The half of gatus' configuration the sidecar does not manage. GATUS_CONFIG_PATH
+# points at the shared directory, and gatus merges every *.yaml under it: maps
+# deep-merged, arrays appended, primitives allowed exactly once. So `storage`,
+# `metrics` and `web` may only ever live here, never in a route annotation.
+#
+# Every dollar-brace reference below is expanded by GATUS itself, from its own
+# environment, after the merge - which is why the generator carrying this opts out
+# of Flux substitution. Without that opt-out envsubst would resolve all three to
+# empty strings and gatus would come up on port 0 with memory storage.
+storage:
+  type: postgres
+  path: ${POSTGRES_URL}
+  # Write-through cache. Read latency of the dashboard only; the database stays
+  # the source of truth.
+  caching: true
+
+metrics: true
+
+# The sidecar rewrites its file whenever a route changes, and gatus re-reads the
+# directory every 30s. Without this a single malformed write would exit the
+# process rather than leave the last good configuration running.
+skip-invalid-config-update: true
+
+web:
+  # Exported by the chart from gatus.port, so the listener cannot drift from the
+  # Service and probe ports.
+  port: ${GATUS_WEB_PORT}
+
+# Marks every endpoint as failing-for-lack-of-connectivity rather than down when
+# the cluster itself has no route out. TCP, so it needs no raw socket.
+connectivity:
+  checker:
+    target: 1.1.1.1:53
+    interval: 1m
+
+endpoints:
+  # Every OIDC-protected endpoint mints a token from authentik before it can
+  # probe, so an authentik outage reds all of them at once. This is how that is
+  # told apart from twelve simultaneous app failures. It is also the one static
+  # endpoint here, which keeps the config valid before the sidecar's first write.
+  - name: authentik
+    group: identity
+    url: ${AUTHENTIK_URL}/-/health/live/
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"

@@ -1,0 +1,17 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/source.toolkit.fluxcd.io/ocirepository_v1.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: gatus
+spec:
+  interval: 15m
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  ref:
+    tag: 0.5.2
+  # Not app-template: this chart ships gatus and the gatus-sidecar together, the
+  # sidecar as a native sidecar (an initContainer with restartPolicy: Always), so
+  # the generated config exists before gatus reads it.
+  url: oci://ghcr.io/home-operations/charts/gatus-sidecar

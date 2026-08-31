@@ -7,10 +7,9 @@ resources:
   - ./helmrelease.yaml
   - ./ocirepository.yaml
   - ./secret.sops.yaml
-components:
   # Mirrors database/pg-shared-ntfy in as ntfy-pg-shared, whose `uri` key
   # becomes NTFY_DATABASE_URL
-  - ../../../../components/postgres-shared
+  - ./secret.yaml
 configMapGenerator:
   # Generated here rather than as an app-template `configMaps` entry because
   # that path runs the data through Helm's `tpl`, which would evaluate the

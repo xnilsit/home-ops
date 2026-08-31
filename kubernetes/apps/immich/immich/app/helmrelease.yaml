@@ -278,6 +278,11 @@ spec:
             port: *mlPort
     route:
       app:
+        # / is the web shell, which the CDN-less SPA serves even with the
+        # server broken. Same endpoint the container probes use.
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /api/server/ping
         hostnames:
           - "immich.${SECRET_DOMAIN}"
         # envoy-external-direct, not envoy-external: the Cloudflare tunnel caps

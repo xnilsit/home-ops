@@ -159,6 +159,13 @@ spec:
               - identifier: http
                 port: *httpPort
       doh:
+        # A bare GET /dns-query is "400 dns param is missing", so the probe
+        # carries the RFC 8484 sample query for www.example.com. blocky answers
+        # 200 application/dns-message even on NXDOMAIN, so the check stays green
+        # on upstream failures and red only when blocky itself stops answering.
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /dns-query?dns=AAABAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB
         hostnames:
           - "dns.${SECRET_DOMAIN}"
         parentRefs:

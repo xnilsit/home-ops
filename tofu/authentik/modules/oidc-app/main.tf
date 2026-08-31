@@ -42,7 +42,15 @@ resource "authentik_provider_oauth2" "this" {
   # "Generated", but it sends an empty list and authentik stores it empty, which
   # makes every authorize request fail with invalid_request / "The request is
   # otherwise malformed". refresh_token is what makes offline_access usable.
-  grant_types = ["authorization_code", "refresh_token"]
+  #
+  # client_credentials is opt-in per app rather than on everywhere: authentik
+  # refuses an unconfigured grant outright (grant_type_not_configured), and that
+  # refusal is the only thing stopping any user's app password from minting a
+  # bearer token for any app they can already open in a browser.
+  grant_types = concat(
+    ["authorization_code", "refresh_token"],
+    var.client_credentials ? ["client_credentials"] : [],
+  )
 
   authorization_flow = var.authorization_flow
   invalidation_flow  = var.invalidation_flow

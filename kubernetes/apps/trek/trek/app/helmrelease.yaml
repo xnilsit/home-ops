@@ -211,6 +211,11 @@ spec:
             port: *port
     route:
       app:
+        # / is TREK's own OIDC login, which answers 200 whether or not the
+        # app behind it works. Same endpoint the container probes use.
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /api/health
         hostnames:
           - "trek.${SECRET_DOMAIN}"
         # envoy-external-direct: backup restores accept 500 MB uploads, five

@@ -124,6 +124,54 @@ locals {
       groups       = ["home-ops"]
     }
 
+    gatus = {
+      display_name = "Gatus"
+      description  = "Uptime and status dashboard."
+      hostnames    = ["gatus.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/gatus.svg"
+      namespaces   = ["observability"]
+      groups       = ["home-ops"]
+    }
+
+    # Not a UI: the identity gatus probes WITH, as opposed to the one above,
+    # which is how a human reaches the dashboard. A separate provider because
+    # authentik scopes iss and aud per provider, and every protected app's
+    # SecurityPolicy trusts exactly this one - so a token minted here opens all
+    # of them, and nothing else may be able to mint one.
+    #
+    # No browser flow ever runs against it, so no redirect URIs.
+    #
+    # groups is deliberately EMPTY, the one place where the warning on the
+    # module's `groups` variable is the intent rather than an accident. The
+    # identity is the home-ops-gatus-probe service account, whose app password
+    # is held in SOPS beside the app; with no bindings the token request passes
+    # on AppAccessWithoutBindings and that password is the whole gate. Binding a
+    # group instead would mean a data lookup of an account terraform does not
+    # own, and would break the moment it is recreated.
+    #
+    # The service account itself is NOT managed here: authentik's token API
+    # forces a new token onto the calling user unless that caller is a superuser
+    # (core/api/tokens.py, perform_create) and then refuses any later change of
+    # owner, so `authentik_token` cannot mint one for somebody else. It is
+    # created once through POST /core/users/service_account/, which writes the
+    # Token through the ORM and takes expiring: false.
+    #
+    # The client_id half still comes from this provider, and its client_secret,
+    # written to the gatus-probe-oidc Secret by the module, is deliberately left
+    # unused - presenting it would work too, but it would authenticate as an
+    # account authentik generates rather than as a named one.
+    #
+    # Quoted: an HCL object key cannot carry a hyphen unquoted.
+    "gatus-probe" = {
+      display_name       = "Gatus probe"
+      description        = "Machine identity the uptime probes authenticate with."
+      hostnames          = ["gatus.${var.domain}"]
+      namespaces         = ["observability"]
+      groups             = []
+      gateway_callback   = false
+      client_credentials = true
+    }
+
     # ── the cluster's own admin UIs ───────────────────────────────────────────
     # Each pairs with the components/oidc component in the app's own tree. All
     # of them stay on envoy-internal, so authentik is the only auth they have -

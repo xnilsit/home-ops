@@ -18,6 +18,13 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: garage-s3
+  # Port 3900 has no unauthenticated 200 - a GET / is a ListBuckets without a
+  # SigV4 signature and answers 403. The admin API on 3903 does, and it reports
+  # cluster quorum rather than just "the listener is up"; it is unrouted, so the
+  # probe goes straight to the LAN address the webui and the scrape config use.
+  annotations:
+    gatus.home-operations.com/endpoint: |
+      url: http://192.168.0.200:3903/health
 spec:
   hostnames:
     - "s3.${SECRET_DOMAIN}"

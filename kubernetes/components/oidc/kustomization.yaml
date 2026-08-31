@@ -14,6 +14,12 @@ kind: Component
 #
 # The app Kustomization must also dependsOn authentik-oidc, which is what
 # creates the credentials this reflects.
+#
+# The policy also trusts one shared JWT issuer, so gatus can probe the route with
+# a bearer token instead of being redirected to a login page it would report as
+# healthy. That half needs nothing from the app - the provider is fixed - but it
+# does mean an app behind this component is reachable by anything holding a token
+# from tofu/authentik/gatus-probe.tf.
 resources:
   - ./secret.yaml
   - ./securitypolicy.yaml

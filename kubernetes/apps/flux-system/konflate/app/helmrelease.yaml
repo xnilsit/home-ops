@@ -24,6 +24,11 @@ spec:
       existingSecret: konflate-secret
     httpRoute:
       enabled: true
+      # The chart's route carries no matches, so the derived probe is the bare
+      # host - the dashboard, which renders before the backend is usable.
+      annotations:
+        gatus.home-operations.com/endpoint: |
+          path: /healthz
       parentRefs:
         - name: envoy-external
           namespace: network

@@ -78,6 +78,19 @@ spec:
             port: *port
     route:
       app:
+        # Probes authenticate rather than follow the SecurityPolicy's 302:
+        # gatus follows redirects, so an unauthenticated check would land on
+        # authentik's login page and call the app healthy. passThroughAuthHeader
+        # in components/oidc lets the resulting JWT past the oauth2 filter. $$
+        # keeps Flux's envsubst off the secret - gatus expands it itself.
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            client:
+              oauth2:
+                token-url: ${AUTHENTIK_URL}/application/o/token/
+                client-id: home-ops-gatus-probe
+                client-secret: $${GATUS_PROBE_CLIENT_SECRET}
+                scopes: ["openid", "profile"]
         hostnames:
           - "garage.${SECRET_DOMAIN}"
         # envoy-internal only, behind the OIDC SecurityPolicy: this is full

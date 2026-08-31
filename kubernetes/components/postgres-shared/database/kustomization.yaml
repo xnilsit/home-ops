@@ -1,0 +1,11 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Must precede the DatabaseRole, which cannot create a role without its
+  # password secret.
+  - ./externalsecret.yaml
+  # A DatabaseRole must exist before the Database that names it as owner.
+  - ./databaserole.yaml
+  - ./database.yaml
