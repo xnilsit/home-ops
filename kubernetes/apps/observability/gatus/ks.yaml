@@ -19,6 +19,9 @@ spec:
     # dashboard, gatus-probe is what the endpoint probes authenticate with
     - name: authentik-oidc
       namespace: flux-system
+    # Owns the ClusterSecretStore the credential ExternalSecrets read through
+    - name: external-secrets-stores
+      namespace: flux-system
     # The chart renders an HTTPRoute, and the component a SecurityPolicy
     - name: envoy-gateway
       namespace: flux-system

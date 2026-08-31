@@ -13,7 +13,8 @@ kind: Component
 #   OIDC_ROUTE  the HTTPRoute's metadata.name
 #
 # The app Kustomization must also dependsOn authentik-oidc, which is what
-# creates the credentials this reflects.
+# creates the credentials this reads, and external-secrets-stores, which owns
+# the ClusterSecretStore it reads them through.
 #
 # The policy also trusts one shared JWT issuer, so gatus can probe the route with
 # a bearer token instead of being redirected to a login page it would report as
@@ -22,4 +23,5 @@ kind: Component
 # from tofu/authentik/gatus-probe.tf.
 resources:
   - ./secret.yaml
+  - ./externalsecret.yaml
   - ./securitypolicy.yaml
