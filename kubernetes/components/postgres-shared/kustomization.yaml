@@ -2,5 +2,23 @@
 # yaml-language-server: $schema=https://json.schemastore.org/kustomization
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
+# Gives an app a database on the shared pg-shared cluster. Two halves, because
+# they land in different namespaces:
+#
+#   ./secret.yaml   the app-side mirror of the credential, in the app's own
+#                   namespace, where the workload reads its `uri` key
+#   ./ks.yaml       a nested Flux Kustomization whose own targetNamespace is
+#                   `database`, which is the only way to get the Database,
+#                   DatabaseRole and password Secret into the namespace the
+#                   Cluster lives in - a component is always applied under the
+#                   consuming app's targetNamespace
+#
+# Required in the app's ks.yaml postBuild.substitute:
+#   APP            the app name; also the database, role and secret name
+#   APP_NAMESPACE  the app's own namespace, so reflector may mirror into it
+#
+# The app Kustomization needs no dependsOn of its own for this: the nested
+# Kustomization declares its own on pg-shared and external-secrets-generators.
 resources:
   - ./secret.yaml
+  - ./ks.yaml

@@ -97,6 +97,12 @@ spec:
             tolerationSeconds: 10
       route:
         enabled: true
+        # The chart's rule carries no matches, so the derived probe is the bare
+        # host - a UI that renders regardless. /health also reports non-OK
+        # during the pre-shutdown grace period, which the UI does not.
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /health
         parentRefs:
           - name: envoy-internal
             namespace: network
@@ -146,6 +152,12 @@ spec:
             memory: 2Gi
       route:
         enabled: true
+        # The chart's rule carries no matches, so the derived probe is the bare
+        # host - a UI that renders regardless. /health also reports non-OK
+        # during the pre-shutdown grace period, which the UI does not.
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /health
         parentRefs:
           - name: envoy-internal
             namespace: network

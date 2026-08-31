@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/database_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: ${APP}
+spec:
+  name: ${APP}
+  owner: ${APP}
+  cluster:
+    name: pg-shared
+    # No extensions: every consumer so far migrates its own schema. An app that
+    # needs one gets a variable here rather than its own copy of this file.

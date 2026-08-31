@@ -25,6 +25,7 @@ module "app" {
   include_claims_in_id_token = try(each.value.include_claims_in_id_token, false)
   gateway_callback           = try(each.value.gateway_callback, true)
   extra_redirect_uris        = try(each.value.extra_redirect_uris, [])
+  client_credentials         = try(each.value.client_credentials, false)
 
   # Resolved here rather than in locals.tf: a resource id is unknown at plan
   # time, and local.apps is the for_each map, whose values must stay knowable.

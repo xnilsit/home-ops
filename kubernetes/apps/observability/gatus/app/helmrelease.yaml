@@ -1,0 +1,127 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: gatus
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: gatus
+  interval: 1h
+  values:
+    # The chart name is gatus-sidecar, so Helm's fullname template would call
+    # every object gatus-gatus-sidecar - including the HTTPRoute the OIDC
+    # component's SecurityPolicy targets by ${OIDC_ROUTE}.
+    fullnameOverride: gatus
+
+    deploymentAnnotations:
+      # The config ConfigMap is mounted with subPath, which kubelet never updates
+      # in place. Without this an edit to config.yaml would sit in Git and never
+      # reach the running gatus.
+      reloader.stakater.com/auto: "true"
+
+    gatus:
+      env:
+        # Read by config.yaml's static authentik endpoint. Passed through the
+        # environment rather than written into the ConfigMap because that file
+        # has Flux substitution disabled - see its header.
+        AUTHENTIK_URL: ${AUTHENTIK_URL}
+      extraEnv:
+        # extraEnv, not env: env is a plain map of strings, and both of these
+        # have to come from a Secret.
+        - name: POSTGRES_URL
+          valueFrom:
+            secretKeyRef:
+              name: gatus-pg-shared
+              key: uri
+        # The credential every OIDC-protected endpoint uses for its
+        # client_credentials exchange, named in route annotations and expanded
+        # by gatus, never by Flux. base64(username:app-password) - authentik
+        # identifies a machine client by username and authenticates it with an
+        # app password, and that pair is the only form a client sending nothing
+        # but an id and a secret can carry.
+        - name: GATUS_PROBE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: gatus-probe
+              key: client-secret
+
+    config:
+      # REQUIRED by the chart - it renders no gatus configuration of its own. The
+      # generator that produces this ConfigMap disables the name suffix hash, so
+      # the name is stable and the reloader annotation above is what rolls the pod.
+      existingConfigMap: gatus-config
+      items:
+        - key: config.yaml
+          path: config.yaml
+
+    sidecar:
+      kinds:
+        # auto: every HTTPRoute in the cluster becomes an endpoint, so a new app
+        # is monitored by having a route. Routes that cannot answer 200 carry a
+        # gatus.home-operations.com/endpoint override, or opt out with
+        # gatus.home-operations.com/enabled: "false".
+        httproute:
+          enable: true
+          auto: true
+        # Services stay opt-in. A generated Service endpoint is a bare TCP
+        # connect to spec.ports[0], which is rarely the port worth watching.
+        service:
+          enable: true
+          auto: false
+
+    # No PVC: history lives in Postgres, and the shared config volume the sidecar
+    # writes into is an emptyDir that is rebuilt on every start anyway.
+    persistence:
+      enabled: false
+
+    monitoring:
+      serviceMonitor:
+        enabled: true
+
+    httpRoute:
+      enabled: true
+      annotations:
+        # A monitor that reports its own liveness proves nothing - the report
+        # only exists when it is up.
+        gatus.home-operations.com/enabled: "false"
+      hostnames:
+        - "gatus.${SECRET_DOMAIN}"
+      parentRefs:
+        # External, guarded by the SecurityPolicy from components/oidc: the
+        # dashboard is the thing you reach for when the LAN is what is broken.
+        - name: envoy-external
+          namespace: network
+          sectionName: https
+
+    dnsConfig:
+      options:
+        # kubelet's default ndots:5 walks the pod search list before every
+        # external probe hostname resolves - five guaranteed NXDOMAINs per check.
+        - name: ndots
+          value: "1"
+
+    # No PriorityClass is globalDefault, so gatus would otherwise run at 0.
+    priorityClassName: cluster-platform
+
+    # Overrides the tolerationSeconds: 300 that DefaultTolerationSeconds injects.
+    # Safe because the pod holds no PVC, so the replacement schedules at once.
+    tolerations:
+      - key: node.kubernetes.io/not-ready
+        operator: Exists
+        effect: NoExecute
+        tolerationSeconds: 10
+      - key: node.kubernetes.io/unreachable
+        operator: Exists
+        effect: NoExecute
+        tolerationSeconds: 10
+
+    # Pod-level resources (Kubernetes 1.34+), one budget shared by gatus and the
+    # sidecar rather than split across two containers.
+    resources:
+      requests:
+        cpu: 25m
+        memory: 128Mi
+      limits:
+        memory: 512Mi

@@ -41,6 +41,12 @@ spec:
         existingClaim: *app
       route:
         enabled: true
+        # The chart puts its redirect rule first, so the derived path would
+        # be the 302 to /select/vmui/ rather than anything VictoriaLogs
+        # actually reports health on.
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /health
         hostnames:
           - "vlogs.${CLUSTER_DOMAIN}"
         parentRefs:

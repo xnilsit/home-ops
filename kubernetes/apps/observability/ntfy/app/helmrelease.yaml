@@ -236,6 +236,11 @@ spec:
           - port: metrics
     route:
       app:
+        # Same endpoint the probes above use: it is served before the auth
+        # gate, so it answers under auth-default-access: deny-all.
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /v1/health
         hostnames:
           - "ntfy.${SECRET_DOMAIN}"
         parentRefs:

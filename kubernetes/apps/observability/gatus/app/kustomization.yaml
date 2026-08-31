@@ -1,0 +1,36 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ./helmrelease.yaml
+  - ./ocirepository.yaml
+  # The app password the endpoint probes authenticate with. SOPS rather than
+  # tofu-controller: authentik's token API refuses to create a token owned by
+  # another user unless the caller is a superuser, and it rejects a later change
+  # of owner outright, so the credential is minted once out of band. Distinct
+  # from the gatus-oidc the component below mirrors, which gates the dashboard.
+  - ./secret.sops.yaml
+components:
+  # Puts the dashboard behind authentik, and mirrors in the gatus-oidc credential
+  - ../../../../components/oidc
+  # Mirrors database/pg-shared-gatus in as gatus-pg-shared, whose `uri` key
+  # becomes POSTGRES_URL
+  - ../../../../components/postgres-shared
+configMapGenerator:
+  # Generated here rather than as a chart value because the chart renders no
+  # gatus configuration at all - config.existingConfigMap is required.
+  - name: gatus-config
+    files:
+      - config.yaml=./config.yaml
+    options:
+      annotations:
+        # The file's ${...} are gatus' own environment substitution, resolved
+        # inside the process after it merges the config directory. Flux envsubst
+        # would get there first and resolve every one of them to an empty string.
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+generatorOptions:
+  # The HelmRelease mounts this ConfigMap by name, so the name has to be stable.
+  # Consequence: edits change it in place without rolling the pod, which is what
+  # the reloader annotation on the Deployment is for.
+  disableNameSuffixHash: true

@@ -5,7 +5,12 @@ kind: List
 items:
   # ── envoy-external — these ran without forward-auth under traefik too ───────
   - <<: &route {apiVersion: gateway.networking.k8s.io/v1, kind: HTTPRoute}
-    metadata: {name: beszel}
+    metadata:
+      name: beszel
+      annotations:
+        # PocketBase's public health endpoint; / is the SPA shell.
+        gatus.home-operations.com/endpoint: |
+          path: /api/health
     spec:
       hostnames:
         - "${SECRET_DOMAIN}"
@@ -15,7 +20,13 @@ items:
       rules:
         - {matches: &root [{path: {type: PathPrefix, value: /}}], backendRefs: [{<<: &ref {group: gateway.envoyproxy.io, kind: Backend}, name: beszel}]}
   - <<: *route
-    metadata: {name: containernursery}
+    metadata:
+      name: containernursery
+      annotations:
+        # ContainerNursery stops idle containers and starts them on request, so
+        # a probe every minute would pin draw's container awake forever and
+        # defeat the entire tool.
+        gatus.home-operations.com/enabled: "false"
     spec:
       hostnames:
         - "draw.${SECRET_DOMAIN}"
@@ -58,7 +69,13 @@ items:
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: pve}]}
   - <<: *route
-    metadata: {name: paperless}
+    metadata:
+      name: paperless
+      annotations:
+        # / 302s here for an anonymous client anyway. The DRF API under /api/
+        # would 403, so it is not an option.
+        gatus.home-operations.com/endpoint: |
+          path: /accounts/login/
     spec:
       hostnames:
         - "paperless.${SECRET_DOMAIN_ALT}"
@@ -66,7 +83,14 @@ items:
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: paperless}]}
   - <<: *route
-    metadata: {name: solar}
+    metadata:
+      name: solar
+      annotations:
+        # The derived path would be the Exact / rule below, a 301 pinned to one
+        # public-dashboard UID - re-sharing that dashboard would read as an
+        # outage. Grafana's own health endpoint needs no auth.
+        gatus.home-operations.com/endpoint: |
+          path: /api/health
     spec:
       hostnames:
         - "solar.${SECRET_DOMAIN_ALT}"
@@ -90,7 +114,23 @@ items:
   # Each carries a SecurityPolicy in ./oidc.yaml. These were LAN-only on
   # envoy-internal until an auth provider existed.
   - <<: *route
-    metadata: {name: code}
+    metadata:
+      name: code
+      annotations: &probeAuth
+        # Probes authenticate rather than follow the SecurityPolicy's 302: gatus
+        # follows redirects, so an unauthenticated check would land on
+        # authentik's login page and call the app healthy. It buys a short-lived
+        # JWT with the gatus-probe service account, and passThroughAuthHeader in
+        # ./oidc.yaml lets that JWT past the oauth2 filter.
+        gatus.home-operations.com/endpoint: |
+          client:
+            oauth2:
+              token-url: ${AUTHENTIK_URL}/application/o/token/
+              client-id: home-ops-gatus-probe
+              # $$ keeps Flux's envsubst off it - gatus does the expansion
+              # itself, from its own environment, when it parses the config.
+              client-secret: $${GATUS_PROBE_CLIENT_SECRET}
+              scopes: ["openid", "profile"]
     spec:
       hostnames:
         - "code.${SECRET_DOMAIN}"
@@ -98,7 +138,9 @@ items:
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: code}]}
   - <<: *route
-    metadata: {name: duplicacy}
+    metadata:
+      name: duplicacy
+      annotations: *probeAuth
     spec:
       hostnames:
         - "backup.${SECRET_DOMAIN}"
@@ -106,7 +148,9 @@ items:
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: duplicacy}]}
   - <<: *route
-    metadata: {name: oni}
+    metadata:
+      name: oni
+      annotations: *probeAuth
     spec:
       hostnames:
         - "oni.${SECRET_DOMAIN}"
@@ -119,6 +163,7 @@ items:
       # traefik ran ost without the circuitbreaker middleware — sustained
       # multi-second transfers trip latency-based ejection. Keep it exempt.
       labels: {external-services.home-ops/no-circuit-breaker: "true"}
+      annotations: *probeAuth
     spec:
       hostnames:
         - "ost.${SECRET_DOMAIN}"
@@ -126,7 +171,18 @@ items:
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: openspeedtest}]}
   - <<: *route
-    metadata: {name: scrutiny}
+    metadata:
+      name: scrutiny
+      annotations:
+        # / 302s to an absolute LAN URL, taking the probe off the gateway path.
+        gatus.home-operations.com/endpoint: |
+          path: /api/health
+          client:
+            oauth2:
+              token-url: ${AUTHENTIK_URL}/application/o/token/
+              client-id: home-ops-gatus-probe
+              client-secret: $${GATUS_PROBE_CLIENT_SECRET}
+              scopes: ["openid", "profile"]
     spec:
       hostnames:
         - "scrutiny.${SECRET_DOMAIN}"
@@ -134,7 +190,9 @@ items:
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: scrutiny}]}
   - <<: *route
-    metadata: {name: unbalanced}
+    metadata:
+      name: unbalanced
+      annotations: *probeAuth
     spec:
       hostnames:
         - "unbalanced.${SECRET_DOMAIN}"
@@ -142,7 +200,18 @@ items:
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: unbalanced}]}
   - <<: *route
-    metadata: {name: unraid}
+    metadata:
+      name: unraid
+      annotations:
+        # / 302s to /Main, which is itself a redirect for an unauthenticated client.
+        gatus.home-operations.com/endpoint: |
+          path: /login
+          client:
+            oauth2:
+              token-url: ${AUTHENTIK_URL}/application/o/token/
+              client-id: home-ops-gatus-probe
+              client-secret: $${GATUS_PROBE_CLIENT_SECRET}
+              scopes: ["openid", "profile"]
     spec:
       hostnames:
         - "unraid.${SECRET_DOMAIN}"

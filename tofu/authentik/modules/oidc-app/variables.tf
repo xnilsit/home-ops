@@ -113,6 +113,15 @@ variable "include_claims_in_id_token" {
   default     = false
 }
 
+variable "client_credentials" {
+  # Machine-to-machine. Only the gatus probe provider needs it: a token minted
+  # through this grant is what lets an uptime check reach an app through the
+  # gateway's passThroughAuthHeader instead of being redirected to a login page.
+  description = "Allow the client_credentials grant on this provider."
+  type        = bool
+  default     = false
+}
+
 variable "signing_key" {
   type = string
 }

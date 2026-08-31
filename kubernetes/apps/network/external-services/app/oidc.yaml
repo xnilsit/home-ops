@@ -52,6 +52,12 @@ items:
             - profile
           refreshToken: true
           logoutPath: /oauth2/logout
+          # Lets a request carrying `Authorization: Bearer ...` skip the oauth2
+          # filter and be checked by the jwt block instead - see
+          # kubernetes/components/oidc/securitypolicy.yaml for the full reasoning.
+          # Without it an uptime probe follows the 302 and reports authentik's
+          # login page as the app being healthy.
+          passThroughAuthHeader: true
         clientIDRef: {kind: Secret, name: code-oidc}
         clientSecret: {name: code-oidc}
         redirectURL: https://code.${SECRET_DOMAIN}/oauth2/callback
@@ -62,6 +68,20 @@ items:
             tokenEndpoint: ${AUTHENTIK_URL}/application/o/token/
           issuer: ${AUTHENTIK_URL}/application/o/home-ops-code/
           endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-code/end-session/
+      # Identical on all seven: the trusted issuer is the gatus probe's provider,
+      # not each app's own, so one credential covers every protected route.
+      jwt: &jwt
+        # REQUIRED. The jwt filter runs after oauth2, so a browser that just
+        # finished the OIDC flow arrives with no bearer token and would get
+        # "401 Jwt is missing". An invalid token still 401s.
+        optional: true
+        providers:
+          - name: gatus-probe
+            issuer: ${AUTHENTIK_URL}/application/o/home-ops-gatus-probe/
+            audiences:
+              - home-ops-gatus-probe
+            # Data plane, not controller - envoy already reaches authentik here.
+            remoteJWKS: {uri: "${AUTHENTIK_URL}/application/o/home-ops-gatus-probe/jwks/"}
       targetRefs:
         - {<<: &target {group: gateway.networking.k8s.io, kind: HTTPRoute}, name: code}
   - <<: *policy
@@ -76,6 +96,7 @@ items:
           <<: *endpoints
           issuer: ${AUTHENTIK_URL}/application/o/home-ops-duplicacy/
           endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-duplicacy/end-session/
+      jwt: *jwt
       targetRefs:
         - {<<: *target, name: duplicacy}
   - <<: *policy
@@ -90,6 +111,7 @@ items:
           <<: *endpoints
           issuer: ${AUTHENTIK_URL}/application/o/home-ops-oni/
           endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-oni/end-session/
+      jwt: *jwt
       targetRefs:
         - {<<: *target, name: oni}
   - <<: *policy
@@ -104,6 +126,7 @@ items:
           <<: *endpoints
           issuer: ${AUTHENTIK_URL}/application/o/home-ops-openspeedtest/
           endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-openspeedtest/end-session/
+      jwt: *jwt
       targetRefs:
         - {<<: *target, name: openspeedtest}
   - <<: *policy
@@ -118,6 +141,7 @@ items:
           <<: *endpoints
           issuer: ${AUTHENTIK_URL}/application/o/home-ops-scrutiny/
           endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-scrutiny/end-session/
+      jwt: *jwt
       targetRefs:
         - {<<: *target, name: scrutiny}
   - <<: *policy
@@ -132,6 +156,7 @@ items:
           <<: *endpoints
           issuer: ${AUTHENTIK_URL}/application/o/home-ops-unbalanced/
           endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-unbalanced/end-session/
+      jwt: *jwt
       targetRefs:
         - {<<: *target, name: unbalanced}
   - <<: *policy
@@ -146,5 +171,6 @@ items:
           <<: *endpoints
           issuer: ${AUTHENTIK_URL}/application/o/home-ops-unraid/
           endSessionEndpoint: ${AUTHENTIK_URL}/application/o/home-ops-unraid/end-session/
+      jwt: *jwt
       targetRefs:
         - {<<: *target, name: unraid}

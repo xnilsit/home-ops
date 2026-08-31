@@ -46,6 +46,34 @@ spec:
     # Setting it to ${SECRET_DOMAIN} would buy cross-subdomain SSO at the price
     # of shipping the encrypted id-token cookie to every other host under the
     # apex, including the unraid and proxmox boxes behind external-services.
+    #
+    # Lets a request that already carries `Authorization: Bearer ...` skip the
+    # oauth2 filter and be checked by the jwt one below instead. That is what
+    # makes an uptime probe possible: gatus follows redirects, so without this it
+    # would report authentik's login page as the app being healthy. Envoy Gateway
+    # REJECTS the policy if jwt is absent.
+    passThroughAuthHeader: true
+  jwt:
+    # REQUIRED. The jwt filter runs after oauth2, so a browser that just finished
+    # the OIDC flow arrives with no bearer token; without this it gets
+    # "401 Jwt is missing" instead of the page. An invalid token still 401s,
+    # which is the point - failOpen would not.
+    optional: true
+    providers:
+      # One shared provider rather than this app's own: authentik scopes iss and
+      # aud per provider, so trusting each app's own would mean a separate
+      # credential per app. Only the service account in tofu/authentik/
+      # gatus-probe.tf can obtain a token from this one.
+      - name: gatus-probe
+        issuer: ${AUTHENTIK_URL}/application/o/home-ops-gatus-probe/
+        audiences:
+          - home-ops-gatus-probe
+        remoteJWKS:
+          # Fetched by the Envoy DATA plane, not the controller - the pinned
+          # endpoints above are about keeping the controller independent of
+          # authentik, and this does not change that. Envoy already reaches
+          # authentik here for the code exchange.
+          uri: ${AUTHENTIK_URL}/application/o/home-ops-gatus-probe/jwks/
   targetRefs:
     # By name, not the targetSelectors form the gateway-wide policies in
     # envoy-gateway/app/envoy.yaml use: app.kubernetes.io/name is not reliably
