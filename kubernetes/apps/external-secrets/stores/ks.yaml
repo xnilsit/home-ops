@@ -62,3 +62,35 @@ spec:
   wait: true
   interval: 1h
   timeout: 5m
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app external-secrets-stores-database
+  namespace: flux-system
+spec:
+  targetNamespace: database
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/external-secrets/stores/database
+  dependsOn:
+    - name: external-secrets
+      namespace: flux-system
+      # No dependency on an app in the target namespace, unlike the two above: the
+      # database namespace is stamped by cluster-apps rather than owned by one
+      # Kustomization, and pg-shared - the only real candidate - gates on three
+      # Postgres instances bootstrapping. This reconciles as soon as the namespace
+      # exists, and retries harmlessly until it does.
+  healthChecks:
+    - apiVersion: external-secrets.io/v1
+      kind: ClusterSecretStore
+      name: database
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  interval: 1h
+  timeout: 5m
