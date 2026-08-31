@@ -2,40 +2,82 @@
 # OIDC for the LAN services in ./httproutes.yaml. The components/oidc component
 # takes one ${APP} per Kustomization, so these seven are written out instead.
 #
-# Credentials come from tofu/authentik/locals.tf via reflector; the provider and
-# application are named home-ops-<app>.
+# Credentials come from tofu/authentik/locals.tf, pulled out of tofu-controller
+# by the ExternalSecrets below; the provider and application are named
+# home-ops-<app>. The Secret objects stay declared so the credential is never
+# momentarily absent - Envoy Gateway drops a SecurityPolicy whose clientSecret
+# it cannot resolve, and these seven are public.
 apiVersion: v1
 kind: List
 items:
-  # ── reflected credential stubs ──────────────────────────────────────────────
+  # ── credential objects, filled by the ExternalSecrets below ─────────────────
   - <<: &secret {apiVersion: v1, kind: Secret, type: Opaque}
-    metadata:
-      name: code-oidc
-      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/code-oidc}
+    metadata: {name: code-oidc}
   - <<: *secret
-    metadata:
-      name: duplicacy-oidc
-      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/duplicacy-oidc}
+    metadata: {name: duplicacy-oidc}
   - <<: *secret
-    metadata:
-      name: oni-oidc
-      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/oni-oidc}
+    metadata: {name: oni-oidc}
   - <<: *secret
-    metadata:
-      name: openspeedtest-oidc
-      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/openspeedtest-oidc}
+    metadata: {name: openspeedtest-oidc}
   - <<: *secret
-    metadata:
-      name: scrutiny-oidc
-      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/scrutiny-oidc}
+    metadata: {name: scrutiny-oidc}
   - <<: *secret
-    metadata:
-      name: unbalanced-oidc
-      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/unbalanced-oidc}
+    metadata: {name: unbalanced-oidc}
   - <<: *secret
-    metadata:
-      name: unraid-oidc
-      annotations: {reflector.v1.k8s.emberstack.com/reflects: tofu-controller/unraid-oidc}
+    metadata: {name: unraid-oidc}
+
+  # ── pulled credentials ──────────────────────────────────────────────────────
+  - <<: &es {apiVersion: external-secrets.io/v1, kind: ExternalSecret}
+    metadata: {name: code-oidc}
+    spec:
+      <<: &esspec
+        refreshInterval: 1h
+        secretStoreRef: {kind: ClusterSecretStore, name: tofu-controller}
+      target: {name: code-oidc, creationPolicy: Merge}
+      dataFrom:
+        - {extract: {key: code-oidc}}
+  - <<: *es
+    metadata: {name: duplicacy-oidc}
+    spec:
+      <<: *esspec
+      target: {name: duplicacy-oidc, creationPolicy: Merge}
+      dataFrom:
+        - {extract: {key: duplicacy-oidc}}
+  - <<: *es
+    metadata: {name: oni-oidc}
+    spec:
+      <<: *esspec
+      target: {name: oni-oidc, creationPolicy: Merge}
+      dataFrom:
+        - {extract: {key: oni-oidc}}
+  - <<: *es
+    metadata: {name: openspeedtest-oidc}
+    spec:
+      <<: *esspec
+      target: {name: openspeedtest-oidc, creationPolicy: Merge}
+      dataFrom:
+        - {extract: {key: openspeedtest-oidc}}
+  - <<: *es
+    metadata: {name: scrutiny-oidc}
+    spec:
+      <<: *esspec
+      target: {name: scrutiny-oidc, creationPolicy: Merge}
+      dataFrom:
+        - {extract: {key: scrutiny-oidc}}
+  - <<: *es
+    metadata: {name: unbalanced-oidc}
+    spec:
+      <<: *esspec
+      target: {name: unbalanced-oidc, creationPolicy: Merge}
+      dataFrom:
+        - {extract: {key: unbalanced-oidc}}
+  - <<: *es
+    metadata: {name: unraid-oidc}
+    spec:
+      <<: *esspec
+      target: {name: unraid-oidc, creationPolicy: Merge}
+      dataFrom:
+        - {extract: {key: unraid-oidc}}
 
   # ── policies ────────────────────────────────────────────────────────────────
   # cookieDomain stays unset so each cookie is scoped to its own host.

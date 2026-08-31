@@ -37,6 +37,9 @@ spec:
     # flux-oidc is reflected from the Secret the tofu module writes
     - name: authentik-oidc
       namespace: flux-system
+    # Owns the ClusterSecretStore the credential ExternalSecrets read through
+    - name: external-secrets-stores
+      namespace: flux-system
   postBuild:
     substitute:
       APP: flux
