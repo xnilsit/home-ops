@@ -64,7 +64,9 @@ redis:
   address: dragonfly.database.svc.cluster.local:6379
   password: file:/run/secrets/dragonfly/password
   database: 0
-  required: false
+  # true so a bad password fails the pod instead of silently starting cacheless -
+  # Redis is initialised once at startup and never retried after that.
+  required: true
   connectionAttempts: 10
   connectionCooldown: 3s
 clientLookup:
