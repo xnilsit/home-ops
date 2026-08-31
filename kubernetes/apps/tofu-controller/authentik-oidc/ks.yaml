@@ -18,7 +18,7 @@ spec:
     # Creates the ceph-bucket-retain StorageClass the OBC claims through
     - name: rook-ceph-cluster
       namespace: flux-system
-    # The tofu-state GarageKey, whose Secret reflector mirrors in here
+    # The tofu-state GarageKey, whose Secret is pulled in here
     - name: garage
       namespace: flux-system
   # wait: true so the restore Job must COMPLETE before the Terraform below runs.

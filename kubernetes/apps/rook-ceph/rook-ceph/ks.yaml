@@ -108,7 +108,7 @@ spec:
     # The SecurityPolicy needs the envoy gateway CRDs
     - name: envoy-gateway
       namespace: flux-system
-    # rook-oidc is reflected from the Secret the tofu module writes
+    # rook-oidc is pulled from the Secret the tofu module writes
     - name: authentik-oidc
       namespace: flux-system
     # Owns the ClusterSecretStore the credential ExternalSecrets read through
@@ -128,7 +128,7 @@ spec:
   healthCheckExprs:
     # SecurityPolicy reports Gateway API PolicyStatus - status.ancestors[] - not
     # the flat status.conditions kstatus reads. With no ancestors yet neither
-    # expr matches, which is the InProgress that lets Flux retry while reflector
+    # expr matches, which is the InProgress that lets Flux retry while ESO
     # is still filling in the Secret.
     - apiVersion: gateway.envoyproxy.io/v1alpha1
       kind: SecurityPolicy

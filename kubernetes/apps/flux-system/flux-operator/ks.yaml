@@ -34,7 +34,7 @@ spec:
     # The SecurityPolicy needs the envoy gateway CRDs
     - name: envoy-gateway
       namespace: flux-system
-    # flux-oidc is reflected from the Secret the tofu module writes
+    # flux-oidc is pulled from the Secret the tofu module writes
     - name: authentik-oidc
       namespace: flux-system
     # Owns the ClusterSecretStore the credential ExternalSecrets read through

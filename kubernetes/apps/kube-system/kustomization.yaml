@@ -8,7 +8,6 @@ resources:
   - ./generic-device-plugin/ks.yaml
   - ./metrics-server/ks.yaml
   - ./priority-classes/ks.yaml
-  - ./reflector/ks.yaml
   - ./reloader/ks.yaml
   - ./spegel/ks.yaml
 components:

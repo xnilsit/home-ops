@@ -14,5 +14,5 @@ spec:
   # This claim exists purely to put bucket credentials in the app's namespace: a
   # barman ObjectStore is namespace-scoped and its s3Credentials are
   # SecretKeySelectors, and the Secret an OBC generates carries no annotations,
-  # so reflector cannot mirror one in from elsewhere.
+  # so it cannot be pulled in from elsewhere.
   storageClassName: ceph-bucket-cnpg-backup
