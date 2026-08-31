@@ -163,9 +163,13 @@ spec:
         # carries the RFC 8484 sample query for www.example.com. blocky answers
         # 200 application/dns-message even on NXDOMAIN, so the check stays green
         # on upstream failures and red only when blocky itself stops answering.
+        #
+        # url, not path: the sidecar runs a path override through URL path
+        # encoding, which turns the ? into %3F and leaves blocky answering 400.
+        # A url override is assigned verbatim.
         annotations:
           gatus.home-operations.com/endpoint: |
-            path: /dns-query?dns=AAABAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB
+            url: https://dns.${SECRET_DOMAIN}/dns-query?dns=AAABAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB
         hostnames:
           - "dns.${SECRET_DOMAIN}"
         parentRefs:
