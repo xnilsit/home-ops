@@ -165,9 +165,10 @@ spec:
       resources:
         mgr:
           limits:
-            memory: 1Gi
+            # baseline ~900Mi plus up to 4 concurrent clones x 200Mi objectcacher
+            memory: 2Gi
           requests:
-            memory: 700Mi
+            memory: 1Gi
             cpu: 100m
         mon:
           limits:
