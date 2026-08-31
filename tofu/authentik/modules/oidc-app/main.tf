@@ -102,10 +102,6 @@ resource "kubernetes_secret" "oidc" {
   metadata {
     name      = "${var.key}-oidc"
     namespace = var.secret_namespace
-    annotations = {
-      "reflector.v1.k8s.emberstack.com/reflection-allowed"            = "true"
-      "reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces" = join(",", var.reflect_to)
-    }
   }
 
   # Key names are fixed by Envoy Gateway, not chosen: clientIDRef reads

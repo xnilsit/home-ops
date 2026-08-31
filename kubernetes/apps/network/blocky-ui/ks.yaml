@@ -12,6 +12,9 @@ spec:
       app.kubernetes.io/name: *app
   path: ./kubernetes/apps/network/blocky-ui/app
   dependsOn:
+    # Owns the ClusterSecretStore the credential is pulled through
+    - name: external-secrets-stores-database
+      namespace: flux-system
     - name: blocky
       namespace: flux-system
   prune: true

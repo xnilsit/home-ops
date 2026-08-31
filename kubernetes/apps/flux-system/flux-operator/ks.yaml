@@ -53,7 +53,7 @@ spec:
   healthCheckExprs:
     # SecurityPolicy reports Gateway API PolicyStatus - status.ancestors[] - not
     # the flat status.conditions kstatus reads. With no ancestors yet neither
-    # expr matches, which is the InProgress that lets Flux retry while reflector
+    # expr matches, which is the InProgress that lets Flux retry while ESO
     # is still filling in the Secret.
     - apiVersion: gateway.envoyproxy.io/v1alpha1
       kind: SecurityPolicy

@@ -4,7 +4,6 @@ locals {
   #
   #   display_name  the tile's label on authentik's user dashboard
   #   hostnames     must match the HTTPRoute's hostnames exactly
-  #   namespaces    where the credential Secret is reflected to
   #   groups        allowed in; EMPTY MEANS EVERY AUTHENTICATED USER
   #   sub_mode      claim authentik puts in `sub`; only set when the app makes a
   #                 user record out of it
@@ -15,7 +14,6 @@ locals {
       display_name = "Echo"
       description  = "Request echo. Renders the request back as JSON."
       hostnames    = ["echo.${var.domain}"]
-      namespaces   = ["default"]
       groups       = ["home-ops"]
     }
 
@@ -28,9 +26,6 @@ locals {
       description  = "Photo and video library."
       hostnames    = ["immich.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/immich.svg"
-      # Read out of tofu-controller by ESO, not reflected - see
-      # kubernetes/apps/immich/immich/app/externalsecret-config.yaml.
-      namespaces = ["immich"]
       # Its own group, which also carries immich_quota. See groups.tf.
       groups = ["immich"]
       # Immich makes a user record per login, so `sub` has to be readable.
@@ -50,7 +45,6 @@ locals {
       description  = "Travel planner."
       hostnames    = ["trek.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/trek.svg"
-      namespaces   = ["trek"]
       # Its own groups, so travel companions get in without being handed the
       # cluster's admin UIs. trek-admin is also what OIDC_ADMIN_VALUE matches.
       groups = ["trek", "trek-admin"]
@@ -71,32 +65,28 @@ locals {
       description  = "code-server on the NAS."
       hostnames    = ["code.${var.domain}"]
       # code-server is VS Code in a browser; selfh.st has no own mark for it.
-      icon       = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/visual-studio-code.svg"
-      namespaces = ["network"]
-      groups     = ["home-ops"]
+      icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/visual-studio-code.svg"
+      groups = ["home-ops"]
     }
     duplicacy = {
       display_name = "Duplicacy"
       description  = "Backup console."
       hostnames    = ["backup.${var.domain}"]
       # Vendor logo: selfh.st has duplicati, a different product.
-      icon       = "https://duplicacy.com/img/duplicacy.png"
-      namespaces = ["network"]
-      groups     = ["home-ops"]
+      icon   = "https://duplicacy.com/img/duplicacy.png"
+      groups = ["home-ops"]
     }
     oni = {
       display_name = "Oni"
       hostnames    = ["oni.${var.domain}"]
       # 192.168.0.200:5000 is Synology DSM.
-      icon       = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/synology.svg"
-      namespaces = ["network"]
-      groups     = ["home-ops"]
+      icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/synology.svg"
+      groups = ["home-ops"]
     }
     openspeedtest = {
       display_name = "OpenSpeedTest"
       hostnames    = ["ost.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/openspeedtest.svg"
-      namespaces   = ["network"]
       groups       = ["home-ops"]
     }
     scrutiny = {
@@ -104,23 +94,20 @@ locals {
       description  = "Disk SMART monitoring."
       hostnames    = ["scrutiny.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/scrutiny.svg"
-      namespaces   = ["network"]
       groups       = ["home-ops"]
     }
     unbalanced = {
       display_name = "Unbalanced"
       hostnames    = ["unbalanced.${var.domain}"]
       # An Unraid plugin, so it borrows the Unraid mark.
-      icon       = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/unraid.svg"
-      namespaces = ["network"]
-      groups     = ["home-ops"]
+      icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/unraid.svg"
+      groups = ["home-ops"]
     }
     unraid = {
       display_name = "Unraid"
       description  = "NAS administration."
       hostnames    = ["unraid.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/unraid.svg"
-      namespaces   = ["network"]
       groups       = ["home-ops"]
     }
 
@@ -129,7 +116,6 @@ locals {
       description  = "Uptime and status dashboard."
       hostnames    = ["gatus.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/gatus.svg"
-      namespaces   = ["observability"]
       groups       = ["home-ops"]
     }
 
@@ -166,7 +152,6 @@ locals {
       display_name       = "Gatus probe"
       description        = "Machine identity the uptime probes authenticate with."
       hostnames          = ["gatus.${var.domain}"]
-      namespaces         = ["observability"]
       groups             = []
       gateway_callback   = false
       client_credentials = true
@@ -182,9 +167,8 @@ locals {
       description  = "GitOps control plane."
       hostnames    = ["flux.${var.domain}"]
       # selfh.st carries no flux mark; this is the CNCF project artwork.
-      icon       = "https://raw.githubusercontent.com/cncf/artwork/main/projects/flux/icon/color/flux-icon-color.svg"
-      namespaces = ["flux-system"]
-      groups     = ["home-ops"]
+      icon   = "https://raw.githubusercontent.com/cncf/artwork/main/projects/flux/icon/color/flux-icon-color.svg"
+      groups = ["home-ops"]
     }
     # Quoted: an HCL object key cannot carry a hyphen unquoted. The key drives
     # the Secret name, so it must stay equal to ${APP} in the component.
@@ -193,7 +177,6 @@ locals {
       description  = "S3 object store administration."
       hostnames    = ["garage.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/garage.svg"
-      namespaces   = ["garage"]
       groups       = ["home-ops"]
     }
     kopia = {
@@ -201,7 +184,6 @@ locals {
       description  = "Backup repository browser."
       hostnames    = ["kopia.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/kopia.svg"
-      namespaces   = ["storage"]
       groups       = ["home-ops"]
     }
     # The ceph dashboard keeps its own admin password as break-glass: while its
@@ -212,7 +194,6 @@ locals {
       description  = "Storage cluster administration."
       hostnames    = ["rook.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/ceph.svg"
-      namespaces   = ["rook-ceph"]
       groups       = ["home-ops"]
       # The dashboard creates a user record per login, named after `sub` - a
       # hashed_user_id would be a hex blob in the user list and in the audit log.

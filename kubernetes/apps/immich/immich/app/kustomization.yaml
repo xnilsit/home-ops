@@ -8,7 +8,7 @@ components:
 resources:
   # Must precede the ObjectStore and the Dragonfly, which read the mirrored
   # Garage credentials out of them.
-  - ./secret-garage.yaml
+  - ./externalsecret-garage.yaml
   - ./objectstore.yaml
   # Must precede cluster.yaml and dragonfly.yaml: neither the DatabaseRole nor
   # the Dragonfly can start without its password Secret.

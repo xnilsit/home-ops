@@ -34,14 +34,6 @@ spec:
     size: 20Gi
     storageClass: local-path
 
-  # Lets the CNPG-generated `timescale-app` secret carry the reflector
-  # annotation, so consumers in other namespaces can mirror the connection URI
-  # without a hand-authored SOPS copy. Harmless on the other generated objects -
-  # reflector only acts on Secrets and ConfigMaps.
-  inheritedMetadata:
-    annotations:
-      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
-
   postgresql:
     # shared_preload_libraries is a CNPG-blocked GUC, hence the dedicated field.
     # Resolved out of the extension image volume via dynamic_library_path.

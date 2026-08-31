@@ -12,6 +12,9 @@ spec:
       app.kubernetes.io/name: *app
   path: ./kubernetes/apps/database/timescale/app
   dependsOn:
+    # Owns the ClusterSecretStore the credential is pulled through
+    - name: external-secrets-stores-garage
+      namespace: flux-system
     # The Cluster references the barman plugin, which must be running first
     - name: barman-cloud-plugin
       namespace: flux-system

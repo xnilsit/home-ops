@@ -12,6 +12,9 @@ spec:
       app.kubernetes.io/name: *app
   path: ./kubernetes/apps/database/dragonfly/app
   dependsOn:
+    # Owns the ClusterSecretStore the credential is pulled through
+    - name: external-secrets-stores-garage
+      namespace: flux-system
     - name: dragonfly-operator
       namespace: flux-system
     # Gates on the GarageKey being Ready, ie. the snapshot credentials existing.
