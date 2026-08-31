@@ -9,7 +9,7 @@ resources:
   - ./objectstore.yaml
   # Must precede the DatabaseRole, which cannot create a role without its
   # password secret.
-  - ./secret-ntfy.sops.yaml
+  - ./externalsecret-ntfy.yaml
   - ./cluster.yaml
   # One pair of files per consumer. A DatabaseRole must exist before the
   # Database that names it as owner.

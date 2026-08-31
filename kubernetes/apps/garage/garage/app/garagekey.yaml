@@ -79,9 +79,8 @@ items:
       neverExpires: true
       secretTemplate:
         <<: *template
-        # annotations, not the anchor's: kopiur's ClusterRepository reads this
-        # from storage, and kopiur projects it onward into each mover namespace
-        # itself - so only the one hop needs reflecting.
+        # annotations, not the anchor's. Kept as a fallback only: kopiur now
+        # reads this Secret in place through ClusterSecretStore/garage.
         annotations:
           reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
           reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: storage

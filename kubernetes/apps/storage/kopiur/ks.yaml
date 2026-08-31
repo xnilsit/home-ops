@@ -12,8 +12,11 @@ spec:
       app.kubernetes.io/name: *app
   path: ./kubernetes/apps/storage/kopiur/app
   dependsOn:
-    # The GarageBucket and the GarageKey whose Secret is reflected in here
+    # The GarageBucket and the GarageKey whose Secret the ExternalSecret reads
     - name: garage
+      namespace: flux-system
+    # The store the ExternalSecret reads that Secret through
+    - name: external-secrets-stores-garage
       namespace: flux-system
   prune: true
   sourceRef:

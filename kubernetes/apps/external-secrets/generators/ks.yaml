@@ -1,0 +1,25 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app external-secrets-generators
+  namespace: flux-system
+spec:
+  # No targetNamespace: a ClusterGenerator is cluster-scoped.
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/external-secrets/generators/app
+  dependsOn:
+    - name: external-secrets
+      namespace: flux-system
+  # No healthChecks: a ClusterGenerator has no status, so kstatus reads
+  # "applied" as ready and the check would assert nothing dependsOn does not.
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  interval: 1h
+  timeout: 5m
