@@ -22,6 +22,13 @@ spec:
       reloader.stakater.com/auto: "true"
 
     gatus:
+      # Gatus walks GATUS_CONFIG_PATH once at startup and then only re-reads when
+      # a file's mtime is a LATER SECOND than the load - config.go compares
+      # Unix() seconds against a lastFileModTime set to time.Now() at load. The
+      # native sidecar writes its file within the same second as gatus starts,
+      # so without a delay that first write is invisible and gatus runs on the
+      # static config alone until some HTTPRoute changes and forces a rewrite.
+      delayStartSeconds: "5"
       env:
         # Read by config.yaml's static authentik endpoint. Passed through the
         # environment rather than written into the ConfigMap because that file
