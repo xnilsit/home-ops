@@ -34,7 +34,7 @@ items:
           containers:
             - <<: &container
                 name: rclone
-                image: mirror.gcr.io/rclone/rclone:1.75.0
+                image: mirror.gcr.io/rclone/rclone:1.75.1
                 command:
                   - "/bin/sh"
                   - "-c"
