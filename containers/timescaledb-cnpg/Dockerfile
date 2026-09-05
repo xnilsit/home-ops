@@ -20,7 +20,7 @@ ARG DISTRO=trixie
 # renovate: datasource=github-releases depName=timescale/timescaledb
 ARG TS_VERSION=2.29.2
 # renovate: datasource=github-releases depName=timescale/timescaledb-toolkit
-ARG TOOLKIT_VERSION=1.25.0
+ARG TOOLKIT_VERSION=1.26.0
 
 USER 0
 
