@@ -30,7 +30,7 @@ spec:
           # Client major must match the mons. Kept in step with the cephImage in
           # ../cluster/helmrelease.yaml - it is the same package, so Renovate
           # bumps both in one PR.
-          image: quay.io/ceph/ceph:v20.2.4
+          image: quay.io/ceph/ceph:v21.1.0
           command:
             - /bin/bash
             - -c
