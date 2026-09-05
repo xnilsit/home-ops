@@ -9,7 +9,7 @@ spec:
   # --cluster_mode=emulated. Immich needs neither.
   #
   # renovate: datasource=docker depName=ghcr.io/dragonflydb/dragonfly
-  image: ghcr.io/dragonflydb/dragonfly:v1.40.1
+  image: ghcr.io/dragonflydb/dragonfly:v1.40.2
   replicas: ${DRAGONFLY_REPLICAS}
   networkPolicyEnabled: false
   authentication:
