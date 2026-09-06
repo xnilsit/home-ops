@@ -20,7 +20,7 @@ spec:
           seed-storage:
             image:
               repository: docker.io/mauriceboe/trek
-              tag: &tag 4.2.0
+              tag: &tag 4.2.1
             # TREK imports this file exactly once - on the first boot with no
             # stored storage configuration - and ignores it afterwards, when
             # Admin > Storage owns the settings. It is written here rather than
