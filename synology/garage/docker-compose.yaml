@@ -1,7 +1,7 @@
 ---
 services:
   garage:
-    image: dxflrs/garage:v2.3.0
+    image: dxflrs/garage:v2.4.0
     container_name: garage
     # 3900-3903 are free on DSM, and host networking keeps rpc_public_addr honest
     network_mode: host
