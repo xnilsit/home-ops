@@ -55,6 +55,15 @@
       },
     },
     {
+      description: "Talos Group: talosctl is pinned to the cluster version",
+      groupName: "talos",
+      matchManagers: ["mise"],
+      matchDepNames: ["talosctl"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
+    {
       description: "Rook Ceph Group: operator chart, cluster chart and operator image",
       groupName: "rook-ceph",
       matchPackageNames: ["/^ghcr.io/rook//"],
@@ -101,9 +110,9 @@
       automerge: false,
     },
     {
-      description: "Never auto-merge kubectl, it is pinned to the cluster version",
+      description: "Never auto-merge kubectl / talosctl, they are pinned to the cluster version",
       matchManagers: ["mise"],
-      matchDepNames: ["kubectl"],
+      matchDepNames: ["kubectl", "talosctl"],
       automerge: false,
     },
     {
