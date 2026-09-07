@@ -156,8 +156,8 @@ spec:
           csi:
             keyRotationPolicy: KeyGeneration
             keepPriorKeyCountMax: 1
-            keyGeneration: 2
-            keyType: aes
+            keyGeneration: 3
+            keyType: aes256k # needs kernel client >= Talos v1.13.10
           rbdMirrorPeer:
             keyRotationPolicy: KeyGeneration
             keyGeneration: 2
