@@ -14,5 +14,8 @@ spec:
   # below, whose reconciler connects as postgres, so Immich's own
   # `CREATE EXTENSION IF NOT EXISTS` is a no-op. Its other reason to want
   # superuser is a pg_dumpall backup, which is disabled in immich-config.
-  passwordSecret:
-    name: ${APP}-postgres
+  #
+  # No passwordSecret: the Cluster reasserts the owner password from the
+  # generated ${APP}-app Secret on every roll, and a DatabaseRole password only
+  # re-applies when its Secret's resourceVersion changes - so the two fought and
+  # Immich crashlooped on 28P01 after the roll of 2026-09-07.
