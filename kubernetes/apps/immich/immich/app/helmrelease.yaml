@@ -30,7 +30,9 @@ spec:
               DB_PASSWORD: &dbPassword
                 valueFrom:
                   secretKeyRef:
-                    name: immich-postgres
+                    # CNPG owns the owner role's password; it reasserts this
+                    # value on every cluster roll.
+                    name: immich-app
                     key: password
               REDIS_HOSTNAME: &redisHost immich-dragonfly
               REDIS_PORT: &redisPort 6379

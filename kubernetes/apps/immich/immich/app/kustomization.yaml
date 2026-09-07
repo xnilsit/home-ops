@@ -10,8 +10,7 @@ resources:
   # Garage credentials out of them.
   - ./externalsecret-garage.yaml
   - ./objectstore.yaml
-  # Must precede cluster.yaml and dragonfly.yaml: neither the DatabaseRole nor
-  # the Dragonfly can start without its password Secret.
+  # Must precede dragonfly.yaml, which cannot start without its password Secret.
   - ./externalsecret-password.yaml
   - ./externalsecret-config.yaml
   - ./cluster.yaml
