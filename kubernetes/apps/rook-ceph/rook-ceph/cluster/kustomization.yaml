@@ -6,3 +6,4 @@ resources:
   - ./helmrelease.yaml
   - ./service.yaml
   - ./storageclass.yaml
+  - ./storageclass-cephfs-shallow.yaml

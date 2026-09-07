@@ -5,6 +5,8 @@ kind: Kustomization
 components:
   # Provisions the library PVC (named ${APP}) and snapshots it to the NAS.
   - ../../../../components/kopiur/backup
+patches:
+  - path: ./snapshotpolicy-staging.yaml
 resources:
   # Must precede the ObjectStore and the Dragonfly, which read the mirrored
   # Garage credentials out of them.
