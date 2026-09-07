@@ -25,6 +25,10 @@ spec:
   # Without it a fresh cluster would apply against an empty bucket and re-create
   # authentik objects that already exist.
   prune: true
+  # force: true so an rclone image bump can re-create the Jobs below; a Job's
+  # spec.template is immutable, and a dry-run Invalid on it blocks everything
+  # that dependsOn this Kustomization.
+  force: true
   sourceRef:
     kind: GitRepository
     name: flux-system
