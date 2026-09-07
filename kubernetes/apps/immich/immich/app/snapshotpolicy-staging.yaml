@@ -1,0 +1,15 @@
+---
+# The library is CephFS, where the component's default staging class runs a full
+# subvolume clone; stage on the shallow class instead.
+#
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: ${APP}
+spec:
+  staging:
+    storageClassName: ceph-filesystem-shallow
+    # A backingSnapshot volume can only be mounted read-only.
+    accessModes:
+      - ReadOnlyMany

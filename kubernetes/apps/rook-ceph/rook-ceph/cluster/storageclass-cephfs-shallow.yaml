@@ -1,0 +1,30 @@
+---
+# Read-only shallow mount of a CephFS snapshot: no subvolume clone, so staging a
+# backup costs metadata only. The chart renders one class per cephFileSystems
+# entry, so this one is hand-written.
+#
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ceph-filesystem-shallow
+reclaimPolicy: Delete
+provisioner: rook-ceph.cephfs.csi.ceph.com
+volumeBindingMode: Immediate
+# There is no subvolume behind a shallow volume to grow.
+allowVolumeExpansion: false
+mountOptions:
+  # A blocklisted client reconnects and drops its cache instead of wedging.
+  - recover_session=clean
+parameters:
+  clusterID: rook-ceph
+  fsName: ceph-filesystem
+  pool: ceph-filesystem-data0
+  # The whole point: mount the snapshot, never clone it.
+  backingSnapshot: "true"
+  csi.storage.k8s.io/provisioner-secret-name: rook-csi-cephfs-provisioner
+  csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph
+  csi.storage.k8s.io/controller-expand-secret-name: rook-csi-cephfs-provisioner
+  csi.storage.k8s.io/controller-expand-secret-namespace: rook-ceph
+  csi.storage.k8s.io/node-stage-secret-name: rook-csi-cephfs-node
+  csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
