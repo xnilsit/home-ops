@@ -21,7 +21,9 @@ spec:
           passwd-hash:
             image:
               repository: &image docker.io/library/eclipse-mosquitto
-              tag: &tag 2.0.22
+              # -alpine: the only shape the 2.1 line is published in, so a
+              # plain-semver pin never leaves 2.0.x.
+              tag: &tag 2.1.2-alpine
             # `mosquitto_passwd -U` upgrades a plaintext user:password file to
             # hashes in place - the documented flag for exactly this. Done in the
             # broker's own image so there is no second image to track and the

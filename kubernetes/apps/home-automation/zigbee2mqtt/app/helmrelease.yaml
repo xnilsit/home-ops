@@ -109,6 +109,14 @@ spec:
               # snapshot. victoria-logs already collects stdout. JSON, because
               # the schema types this as an array and the env path parses it.
               ZIGBEE2MQTT_CONFIG_ADVANCED_LOG_OUTPUT: '["console"]'
+            # The network's identity, pinned out of ./secret.sops.yaml. Third
+            # guard against forming a new network on an empty volume, and the
+            # only copy of the network key that is not on Ceph. envFrom rather
+            # than three env entries: the keys ARE the variable names, so there
+            # is nothing to keep in sync between the Secret and this file.
+            envFrom:
+              - secretRef:
+                  name: zigbee2mqtt-network
             probes:
               liveness: &probe
                 enabled: true

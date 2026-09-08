@@ -110,6 +110,11 @@
       automerge: false,
     },
     {
+      description: "Never auto-merge Multus, every pod's sandbox creation delegates through its shim",
+      matchPackageNames: ["ghcr.io/k8snetworkplumbingwg/multus-cni"],
+      automerge: false,
+    },
+    {
       description: "Never auto-merge kubectl / talosctl, they are pinned to the cluster version",
       matchManagers: ["mise"],
       matchDepNames: ["kubectl", "talosctl"],
