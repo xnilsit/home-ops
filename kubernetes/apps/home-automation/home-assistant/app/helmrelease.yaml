@@ -14,13 +14,6 @@ spec:
       home-assistant:
         annotations:
           reloader.stakater.com/auto: "true"
-        # PHASE 1 ONLY. /config is provisioned empty by kopiur's Restore
-        # populator and has to be seeded from the retired VM before anything
-        # starts - see the runbook. Flipped to 1 in the cutover commit, which is
-        # also the first moment the VM must be powered off: it still holds
-        # 192.168.1.30 until then, and the macvlan attachment claims that
-        # address statically.
-        replicas: 0
         # RWO volume, and the macvlan attachment holds a single static address:
         # two pods must never overlap for either reason.
         strategy: Recreate

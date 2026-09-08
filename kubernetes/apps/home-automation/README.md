@@ -55,9 +55,17 @@ and are hashed in place at startup by the `passwd-hash` initContainer.
 
 ## Runbook
 
-Phase 1 ships with `replicas: 0` on `home-assistant` and `zigbee2mqtt` and
-`suspend: true` on both SnapshotPolicies. Everything up to step 4 is reversible
-in seconds.
+Kept as the record of what was actually done, and because the rollback at the
+end stays live for as long as the VM's disk image does.
+
+Phase 1 shipped with `replicas: 0` on `home-assistant` and `zigbee2mqtt` and
+`suspend: true` on both SnapshotPolicies, so the volumes could be seeded before
+anything started; this commit is the cutover that lifts both. Everything up to
+step 3 was reversible in seconds.
+
+Two things turned out not to need doing: the add-on never set `frontend.host` in
+the Zigbee2MQTT config, and there were no Supervisor leftovers in `.storage`
+beyond the `hassio` config entry itself.
 
 ### 1. Snapshot the VM
 

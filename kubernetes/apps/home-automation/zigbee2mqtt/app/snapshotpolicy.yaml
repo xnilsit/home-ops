@@ -8,12 +8,6 @@ kind: SnapshotPolicy
 metadata:
   name: ${APP}
 spec:
-  # PHASE 1 ONLY - removed in the same commit that scales the controller to 1.
-  # The schedule starts firing the moment these objects exist, and Restore reads
-  # `offset: 0`, i.e. the NEWEST snapshot. A snapshot taken while the migrated
-  # data is still being untarred into the volume would therefore become the one
-  # a future rebuild restores from.
-  suspend: true
   files:
     # An explicit list REPLACES the CRD's defaults wholesale, so the five
     # defaults are re-stated here. `/log` is Zigbee2MQTT's own rotated log tree,
