@@ -19,10 +19,15 @@
 #     lbipam.cilium.io/ips, so nothing auto-assigns today - but a Service that
 #     forgets to would be free to collide. Same for the UniFi DHCP pool.
 #   - macvlan in bridge mode cannot talk to the host it runs on, so this pod
-#     cannot reach its own node at 192.168.1.10x. Nothing HA talks to is a
-#     cluster node, and kubelet probes are unaffected: Cilium routes host-to-pod
-#     traffic through cilium_host, so they arrive from a 10.42.x.x address and
-#     the reply goes back out eth0.
+#     cannot reach its own node at 192.168.1.10x, and the node cannot open a
+#     connection to it. Nothing HA talks to is a cluster node, so outbound is
+#     fine - but INBOUND FROM THE NODE is not, and kubelet is exactly that:
+#     with bpf.hostLegacyRouting: true (kube-system/cilium/app/helmrelease.yaml)
+#     a probe arrives sourced from 192.168.1.10x rather than a cilium_host
+#     address, so the SYN-ACK leaves through net1 and is dropped, leaving the
+#     handshake in SYN_RECV. That is why the HelmRelease uses exec probes.
+#     Everything else is unaffected: envoy and other pods over eth0, LAN clients
+#     over net1.
 #
 # yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
 apiVersion: k8s.cni.cncf.io/v1

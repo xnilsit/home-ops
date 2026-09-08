@@ -292,11 +292,23 @@ dropped one `!include` would fail silently. Once the file is known good it
 should move into `configMaps:` and be mounted read-only, the way blocky mounts
 `config.yml`.
 
-**macvlan cannot reach its own host.** The HA pod cannot talk to the node it
-runs on at `192.168.1.10x`. Nothing it integrates with is a cluster node, and
-kubelet probes are unaffected (Cilium routes host-to-pod traffic through
-`cilium_host`, so they arrive from `10.42.x.x`). It is still the first thing to
-check if something on the LAN turns out to be unreachable.
+**macvlan cannot reach its own host, and that broke the kubelet probes.** The HA
+pod cannot talk to the node it runs on at `192.168.1.10x`, and the node cannot
+open a connection to it either. Outbound is fine — nothing HA integrates with is
+a cluster node — but kubelet is inbound-from-the-node, and this cluster runs
+Cilium with `bpf.hostLegacyRouting: true`, so a probe arrives sourced from
+`192.168.1.10x` rather than a `cilium_host` address. The pod matches that
+against `net1`'s connected `192.168.0.0/23` route, sends the SYN-ACK out
+macvlan, and the handshake sits in `SYN_RECV` until the probe times out. The
+symptom is a pod that never goes Ready, no Service endpoints, and a 503 at the
+gateway — while HA answers `200` on `127.0.0.1` the whole time.
+
+The fix is `exec` probes, which run through the CRI and never touch the network.
+Diagnose a recurrence by reading `/proc/net/tcp` inside the pod and looking for
+a peer of `192.168.1.10x` stuck in `state=0x03`. Everything else reaches the pod
+normally: envoy and other pods over `eth0`, LAN clients over `net1`. Note that
+`kubectl port-forward` goes through kubelet, so it is subject to the same
+limitation.
 
 **Talos upgrades** re-create the `/opt` overlay, so after each node upgrade a
 macvlan pod cannot start until the Multus DaemonSet has reinstalled the plugin
