@@ -1,0 +1,14 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Provisions the data PVC (named ${APP}) and snapshots it to the NAS.
+  - ../../../../components/kopiur/backup
+  # Puts the frontend behind authentik.
+  - ../../../../components/oidc
+patches:
+  - path: ./snapshotpolicy.yaml
+resources:
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml

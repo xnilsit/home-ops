@@ -1,0 +1,52 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app home-assistant
+  namespace: flux-system
+spec:
+  targetNamespace: home-automation
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/home-automation/home-assistant/app
+  dependsOn:
+    # The broker every MQTT entity arrives through
+    - name: mosquitto
+      namespace: flux-system
+    # Owns the ClusterSecretStore the recorder credential is pulled through
+    - name: external-secrets-stores-database
+      namespace: flux-system
+    # Owns the NetworkAttachmentDefinition CRD the LAN attachment is
+    - name: multus
+      namespace: flux-system
+    - name: envoy-gateway
+      namespace: flux-system
+    # The /config PVC is provisioned through kopiur's Restore populator
+    - name: kopiur-repository
+      namespace: flux-system
+    # ceph-block for the PVC
+    - name: rook-ceph-cluster
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: *app
+      # .storage, custom_components (~63 MB of HACS), www, blueprints and
+      # /config/.venv. Not the recorder, which now lives on pg-shared - so this
+      # is far smaller than the VM's 962 MB /config, most of which was a stale
+      # log and the SQLite database.
+      KOPIUR_CAPACITY: 10Gi
+      KOPIUR_CRON: "H * * * *"
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: home-automation
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: false
+  interval: 1h
+  timeout: 10m

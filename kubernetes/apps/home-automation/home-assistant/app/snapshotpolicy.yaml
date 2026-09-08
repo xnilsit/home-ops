@@ -1,0 +1,32 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: ${APP}
+spec:
+  # PHASE 1 ONLY - removed in the same commit that scales the controller to 1.
+  # The schedule fires as soon as these objects exist and Restore reads
+  # `offset: 0`, the NEWEST snapshot, so a snapshot taken mid-seed would become
+  # the one a future rebuild restores from.
+  suspend: true
+  files:
+    # An explicit list REPLACES the CRD's defaults wholesale, so the five
+    # defaults are re-stated here.
+    ignoreRules:
+      - "/lost+found"
+      - "System Volume Information"
+      - "$RECYCLE.BIN"
+      - "@eaDir"
+      - ".snapshot"
+      # Rebuilt by the image's entrypoint on every start (uv venv
+      # --allow-existing) and re-installed from each custom_component's
+      # manifest. Hundreds of MB of churn per hour for kopia to walk and diff,
+      # none of it worth keeping.
+      - "/.venv"
+      # Home Assistant's own Backup integration writes here. kopiur snapshotting
+      # /config IS the backup; a tarball of the same tree inside it is pure
+      # duplication. Turn the HA backup schedule off in the UI to match.
+      - "/backups"
+      - "/tts"
+      - "/home-assistant.log*"

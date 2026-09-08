@@ -1,0 +1,69 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app zigbee2mqtt
+  namespace: flux-system
+spec:
+  targetNamespace: &namespace home-automation
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/home-automation/zigbee2mqtt/app
+  dependsOn:
+    # Owns the Secret this reads its MQTT credential from, and is the broker
+    # it publishes to - there is nothing to do without it.
+    - name: mosquitto
+      namespace: flux-system
+    # Writes the zigbee2mqtt-oidc Secret the frontend's SecurityPolicy reads
+    - name: authentik-oidc
+      namespace: flux-system
+    # The OIDC credential comes through the tofu-controller store
+    - name: external-secrets-stores
+      namespace: flux-system
+    - name: envoy-gateway
+      namespace: flux-system
+    # The data PVC is provisioned through kopiur's Restore populator
+    - name: kopiur-repository
+      namespace: flux-system
+    # ceph-block for the PVC
+    - name: rook-ceph-cluster
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: *app
+      # database.db, coordinator_backup.json and the OTA cache. Small, and the
+      # only irreplaceable artefact in this namespace: it is what keeps every
+      # paired device paired.
+      KOPIUR_CAPACITY: 2Gi
+      KOPIUR_CRON: "H * * * *"
+      OIDC_HOST: z2m.${SECRET_DOMAIN}
+      # app-template 5.1.0 does not append the route identifier when an app has
+      # a single route, so the HTTPRoute is named after the app itself.
+      OIDC_ROUTE: *app
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: *namespace
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: SecurityPolicy
+      name: zigbee2mqtt-oidc
+      namespace: *namespace
+  healthCheckExprs:
+    # SecurityPolicy reports Gateway API PolicyStatus - status.ancestors[] - not
+    # the flat status.conditions kstatus reads. With no ancestors yet neither
+    # expr matches, which is the InProgress that lets Flux retry while ESO is
+    # still filling in the Secret.
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: SecurityPolicy
+      failed: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'False'))
+      current: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'True'))
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: false
+  interval: 1h
+  timeout: 10m

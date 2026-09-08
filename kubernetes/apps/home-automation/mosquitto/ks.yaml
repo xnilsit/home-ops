@@ -1,0 +1,31 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app mosquitto
+  namespace: flux-system
+spec:
+  targetNamespace: home-automation
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/home-automation/mosquitto/app
+  dependsOn:
+    # ceph-block for the persistence volume
+    - name: rook-ceph-cluster
+      namespace: flux-system
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: home-automation
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # wait: true, unlike the other two apps here: both zigbee2mqtt and
+  # home-assistant dependsOn this one and neither is useful without a broker.
+  wait: true
+  interval: 1h
+  timeout: 10m
