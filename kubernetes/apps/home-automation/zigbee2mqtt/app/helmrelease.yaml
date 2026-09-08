@@ -21,7 +21,7 @@ spec:
           guard-data:
             image:
               repository: &image ghcr.io/koenkk/zigbee2mqtt
-              tag: &tag 2.13.0
+              tag: &tag 2.14.1
             # Fails closed, and it is the most important container in this
             # namespace. components/kopiur/backup provisions the volume through
             # a Restore populator with onMissingSnapshot: Continue - which is
