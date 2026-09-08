@@ -51,9 +51,6 @@ items:
       tls: *skipverify
   # ── standalone hosts ────────────────────────────────────────────────────────
   - <<: *backend
-    metadata: {name: home-assistant}
-    spec: {endpoints: [{ip: {address: 192.168.1.30, port: 8123}}]}
-  - <<: *backend
     metadata: {name: oni}
     spec: {endpoints: [{ip: {address: 192.168.0.200, port: 5000}}]}
   - <<: *backend

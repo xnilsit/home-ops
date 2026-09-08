@@ -14,10 +14,6 @@ spec:
       zigbee2mqtt:
         annotations:
           reloader.stakater.com/auto: "true"
-        # PHASE 1 ONLY. The PVC is provisioned empty by kopiur's Restore
-        # populator and has to be seeded from the retired add-on before anything
-        # starts - see the runbook. Flipped to 1 in the cutover commit.
-        replicas: 0
         # SQLite database.db on an RWO volume, and the SLZB-MR1U accepts exactly
         # one TCP client: two pods must never overlap for either reason.
         strategy: Recreate

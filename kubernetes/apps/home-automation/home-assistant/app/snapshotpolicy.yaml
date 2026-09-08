@@ -5,11 +5,6 @@ kind: SnapshotPolicy
 metadata:
   name: ${APP}
 spec:
-  # PHASE 1 ONLY - removed in the same commit that scales the controller to 1.
-  # The schedule fires as soon as these objects exist and Restore reads
-  # `offset: 0`, the NEWEST snapshot, so a snapshot taken mid-seed would become
-  # the one a future rebuild restores from.
-  suspend: true
   files:
     # An explicit list REPLACES the CRD's defaults wholesale, so the five
     # defaults are re-stated here.

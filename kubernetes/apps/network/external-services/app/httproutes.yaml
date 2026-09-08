@@ -45,14 +45,6 @@ items:
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: guacamole}]}
   - <<: *route
-    metadata: {name: home-assistant}
-    spec:
-      hostnames:
-        - "ha.${SECRET_DOMAIN}"
-      parentRefs: *external
-      rules:
-        - {matches: *root, backendRefs: [{<<: *ref, name: home-assistant}]}
-  - <<: *route
     metadata: {name: pbs}
     spec:
       hostnames:
