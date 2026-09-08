@@ -1,0 +1,201 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: zigbee2mqtt
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: zigbee2mqtt
+  interval: 1h
+  values:
+    controllers:
+      zigbee2mqtt:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # PHASE 1 ONLY. The PVC is provisioned empty by kopiur's Restore
+        # populator and has to be seeded from the retired add-on before anything
+        # starts - see the runbook. Flipped to 1 in the cutover commit.
+        replicas: 0
+        # SQLite database.db on an RWO volume, and the SLZB-MR1U accepts exactly
+        # one TCP client: two pods must never overlap for either reason.
+        strategy: Recreate
+        initContainers:
+          guard-data:
+            image:
+              repository: &image ghcr.io/koenkk/zigbee2mqtt
+              tag: &tag 2.13.0
+            # Fails closed, and it is the most important container in this
+            # namespace. components/kopiur/backup provisions the volume through
+            # a Restore populator with onMissingSnapshot: Continue - which is
+            # what makes a first deploy possible, and which also means a broken
+            # repository, a pruned snapshot or a deleted PVC hands Zigbee2MQTT
+            # an EMPTY /data. Its answer to an empty /data is writeMinimalDefaults(),
+            # which sets network_key/pan_id/ext_pan_id to "GENERATE" - a brand
+            # new Zigbee network, and every device in the house unpaired. A pod
+            # that refuses to start is recoverable; that is not.
+            command:
+              - "sh"
+              - "-c"
+            args:
+              - |
+                set -eu
+                for f in configuration.yaml database.db coordinator_backup.json; do
+                  if [ ! -s "/data/$f" ]; then
+                    echo "FATAL: /data/$f is missing or empty - refusing to start"
+                    exit 1
+                  fi
+                done
+                echo "guard-data: ok"
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 64Mi
+        containers:
+          app:
+            image:
+              repository: *image
+              tag: *tag
+            env:
+              TZ: ${TIMEZONE}
+              ZIGBEE2MQTT_DATA: &data /data
+              # Refuses the onboarding wizard outright. The second half of the
+              # empty-volume guard above: with no configuration.yaml, onboarding
+              # is what would generate a new network.
+              Z2M_ONBOARD_NO_SERVER: "1"
+              # Everything below is a ZIGBEE2MQTT_CONFIG_* override, which
+              # Zigbee2MQTT applies BEFORE it writes configuration.yaml back to
+              # disk. So these win over the frontend and are persisted into the
+              # file, which means the config on the PVC converges on this
+              # HelmRelease instead of drifting away from it. What is
+              # deliberately NOT here: network_key, pan_id, ext_pan_id, the
+              # device list and coordinator_backup.json - secret or large, and
+              # they live only on the volume.
+              ZIGBEE2MQTT_CONFIG_MQTT_SERVER: mqtt://mosquitto.home-automation.svc.cluster.local:1883
+              ZIGBEE2MQTT_CONFIG_MQTT_USER:
+                valueFrom:
+                  secretKeyRef:
+                    name: &secret mosquitto-credentials
+                    key: Z2M_MQTT_USER
+              ZIGBEE2MQTT_CONFIG_MQTT_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: *secret
+                    key: Z2M_MQTT_PASSWORD
+              # The SLZB-MR1U at 192.168.1.22, unchanged from the add-on. It has
+              # two radios on two ports: 6638 is the EFR32MG21 (adapter ember,
+              # unused), 7638 the CC2652P7. This network is on the CC2652P7 -
+              # pointing it at the other chip would find no devices and, worse,
+              # form a new network.
+              ZIGBEE2MQTT_CONFIG_SERIAL_PORT: tcp://192.168.1.22:7638
+              ZIGBEE2MQTT_CONFIG_SERIAL_ADAPTER: zstack
+              # Carried over for the record. zigbee-herdsman opens a socket for a
+              # tcp:// path and never sets a UART speed; the SLZB owns the 115200.
+              ZIGBEE2MQTT_CONFIG_SERIAL_BAUDRATE: "115200"
+              ZIGBEE2MQTT_CONFIG_FRONTEND_ENABLED: "true"
+              ZIGBEE2MQTT_CONFIG_FRONTEND_PORT: "8080"
+              # The add-on served the frontend under a Supervisor Ingress path.
+              # Reset here so the SPA fetches its assets from a path Envoy has
+              # heard of. frontend.host cannot be cleared this way - an empty
+              # env var is falsy and skipped - so it is deleted from the seeded
+              # configuration.yaml instead.
+              ZIGBEE2MQTT_CONFIG_FRONTEND_BASE_URL: /
+              ZIGBEE2MQTT_CONFIG_HOMEASSISTANT_ENABLED: "true"
+              ZIGBEE2MQTT_CONFIG_AVAILABILITY_ENABLED: "true"
+              # Default is ["console","file"], with the file tree under the data
+              # dir - timestamped logs on the backed-up PVC and in every kopia
+              # snapshot. victoria-logs already collects stdout. JSON, because
+              # the schema types this as an array and the env path parses it.
+              ZIGBEE2MQTT_CONFIG_ADVANCED_LOG_OUTPUT: '["console"]'
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: &port 8080
+                  initialDelaySeconds: 0
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probe
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: *port
+                  periodSeconds: 10
+                  failureThreshold: 30
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                memory: 1Gi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        # Matches KOPIUR_PUID/PGID, which the Restore and SnapshotPolicy movers
+        # are pinned to - a mismatch means the mover cannot read the volume it
+        # is meant to snapshot.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    persistence:
+      data:
+        # Provisioned by components/kopiur/backup through its Restore populator.
+        existingClaim: zigbee2mqtt
+        globalMounts:
+          - path: *data
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+    service:
+      app:
+        controller: zigbee2mqtt
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        annotations:
+          # / is the SPA shell, which answers 200 whether or not the coordinator
+          # is up. Nothing the frontend serves is a better single-request health
+          # signal, so the Zigbee network itself is watched through Home
+          # Assistant and the availability topic instead.
+          gatus.home-operations.com/endpoint: |
+            path: /
+            client:
+              oauth2:
+                token-url: ${AUTHENTIK_URL}/application/o/token/
+                client-id: home-ops-gatus-probe
+                client-secret: $${GATUS_PROBE_CLIENT_SECRET}
+                scopes: ["openid", "profile"]
+        hostnames:
+          - "z2m.${SECRET_DOMAIN}"
+        # LAN-only, and behind components/oidc: the frontend has no auth of its
+        # own, and it can re-pair or factory-reset every device in the house.
+        # Unlike Home Assistant it has no native client to be 302'd, so a
+        # gateway-level policy is the right fit here.
+        parentRefs:
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port

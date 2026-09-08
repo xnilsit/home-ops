@@ -186,6 +186,17 @@ locals {
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/kopia.svg"
       groups       = ["home-ops"]
     }
+    # Home Assistant itself is deliberately absent: its companion app is the
+    # same shape as Immich's, so its route stays open at the gateway. This is
+    # only the Zigbee frontend, which has no auth of its own and can re-pair or
+    # factory-reset every device in the house.
+    zigbee2mqtt = {
+      display_name = "Zigbee2MQTT"
+      description  = "Zigbee network administration."
+      hostnames    = ["z2m.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/zigbee2mqtt.svg"
+      groups       = ["home-ops"]
+    }
     # The ceph dashboard keeps its own admin password as break-glass: while its
     # OAuth2 SSO is on, local login is broken, so recovering from an authentik
     # outage means `ceph dashboard sso disable` first.

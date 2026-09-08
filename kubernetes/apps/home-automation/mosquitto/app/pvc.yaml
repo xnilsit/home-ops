@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/persistentvolumeclaim-v1.json
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mosquitto
+spec:
+  # Deliberately NOT components/kopiur/backup. Everything in here is retained
+  # messages and session state: zigbee2mqtt republishes its full homeassistant
+  # discovery set on every start, and Home Assistant re-derives its entities
+  # from that, so an hourly NAS snapshot would back up a file the stack
+  # regenerates within seconds of a restart.
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: ceph-block

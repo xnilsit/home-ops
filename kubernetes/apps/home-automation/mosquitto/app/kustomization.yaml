@@ -1,0 +1,10 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Also holds the credential zigbee2mqtt reads - see the comment in the file.
+  - ./secret.sops.yaml
+  - ./pvc.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml

@@ -1,0 +1,15 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Provisions the /config PVC (named ${APP}) and snapshots it to the NAS.
+  - ../../../../components/kopiur/backup
+  # The recorder database on the shared CNPG cluster.
+  - ../../../../components/postgres-shared
+patches:
+  - path: ./snapshotpolicy.yaml
+resources:
+  - ./networkattachmentdefinition.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml

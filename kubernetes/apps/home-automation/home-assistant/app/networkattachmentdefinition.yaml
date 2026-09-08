@@ -1,0 +1,53 @@
+---
+# A second interface on the LAN, for the one pod that needs it. Home Assistant's
+# zeroconf/SSDP discovery is multicast, and multicast does not cross the Cilium
+# pod network in either direction - so on the pod network alone HA can neither
+# see an SSDP announcement nor advertise _home-assistant._tcp for the companion
+# app to find. The pod keeps eth0 as its default route, so everything
+# cluster-internal (mosquitto, Postgres, CoreDNS) and everything on the internet
+# still goes through Cilium; only 192.168.0.0/23 leaves through net1, by virtue
+# of the connected route the /23 address creates.
+#
+# 192.168.1.30 is the retired VM's own address, reused deliberately: HA's
+# internal_url, the companion app's per-SSID internal URL and anything else on
+# the LAN pointing at that address keep working with no edits.
+#
+# Two things to know about it:
+#   - The CiliumLoadBalancerIPPool in kube-system/cilium/app/networks.yaml
+#     covers this whole /23 and has no way to know .30 is taken. Every
+#     LoadBalancer Service in this cluster pins its address with
+#     lbipam.cilium.io/ips, so nothing auto-assigns today - but a Service that
+#     forgets to would be free to collide. Same for the UniFi DHCP pool.
+#   - macvlan in bridge mode cannot talk to the host it runs on, so this pod
+#     cannot reach its own node at 192.168.1.10x. Nothing HA talks to is a
+#     cluster node, and kubelet probes are unaffected: Cilium routes host-to-pod
+#     traffic through cilium_host, so they arrive from a 10.42.x.x address and
+#     the reply goes back out eth0.
+#
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: lan
+spec:
+  # master is the LAN NIC's name, which is enp1s0f0 on kube-srv-01 and
+  # kube-srv-03 but enp5s0f0np0 on kube-srv-02 - which is why the HelmRelease
+  # keeps this pod off kube-srv-02.
+  #
+  # No `gateway`, and no `routes`: a gateway here would install a second default
+  # route and steal the pod's egress from eth0. The connected route the /23
+  # address creates is all that is wanted.
+  config: |-
+    {
+      "cniVersion": "0.3.1",
+      "name": "lan",
+      "type": "macvlan",
+      "master": "enp1s0f0",
+      "mode": "bridge",
+      "ipam": {
+        "type": "static",
+        "addresses": [
+          { "address": "192.168.1.30/23" }
+        ]
+      }
+    }

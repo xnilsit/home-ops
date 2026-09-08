@@ -1,0 +1,165 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: home-assistant
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: home-assistant
+  interval: 1h
+  values:
+    controllers:
+      home-assistant:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # PHASE 1 ONLY. /config is provisioned empty by kopiur's Restore
+        # populator and has to be seeded from the retired VM before anything
+        # starts - see the runbook. Flipped to 1 in the cutover commit, which is
+        # also the first moment the VM must be powered off: it still holds
+        # 192.168.1.30 until then, and the macvlan attachment claims that
+        # address statically.
+        replicas: 0
+        # RWO volume, and the macvlan attachment holds a single static address:
+        # two pods must never overlap for either reason.
+        strategy: Recreate
+        containers:
+          app:
+            # Pinned to the exact version the VM was running. Upgrading in the
+            # same window as the migration would confuse "the migration broke
+            # it" with "the upgrade broke it"; bump in its own PR once the
+            # cutover is verified.
+            image:
+              repository: ghcr.io/home-operations/home-assistant
+              tag: 2026.8.1
+            env:
+              TZ: ${TIMEZONE}
+              # Read by `recorder: db_url: !env_var HA_RECORDER_DB_URL` in the
+              # configuration.yaml on the volume. The recorder moved off the
+              # SQLite file the VM used, which means the pre-cutover history is
+              # NOT carried over - HA has no supported SQLite-to-Postgres
+              # migration. Everything users think of as configuration
+              # (registries, automations, dashboards, HACS) lives in .storage
+              # and does carry over.
+              HA_RECORDER_DB_URL:
+                valueFrom:
+                  secretKeyRef:
+                    name: home-assistant-pg-shared
+                    key: uri
+            probes:
+              # No tight liveness threshold: a recorder purge or a slow
+              # integration setup must not restart HA mid-write.
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: &port 8123
+                  initialDelaySeconds: 0
+                  periodSeconds: 30
+                  timeoutSeconds: 10
+                  failureThreshold: 10
+              readiness: *probe
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: *port
+                  periodSeconds: 10
+                  # 15 minutes. The image's entrypoint builds /config/.venv on
+                  # every start and HA pip-installs each HACS custom component's
+                  # requirements into it, which on the first boot after the
+                  # migration is six components' worth of wheels.
+                  failureThreshold: 90
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              # NET_RAW is a deliberate exception to the drop-ALL convention
+              # used elsewhere here. default_config pulls in the dhcp discovery
+              # integration, which opens an AF_PACKET socket, and Talos leaves
+              # net.ipv4.ping_group_range unset so unprivileged ICMP is
+              # unavailable to the ping integration either. Still non-root, still
+              # no privilege escalation.
+              capabilities: {add: ["NET_RAW"], drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 200m
+                memory: 1Gi
+              limits:
+                memory: 4Gi
+    defaultPodOptions:
+      annotations:
+        # The macvlan attachment in ./networkattachmentdefinition.yaml, which is
+        # what makes LAN mDNS/SSDP work and what holds 192.168.1.30.
+        k8s.v1.cni.cncf.io/networks: lan
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              # Anywhere but kube-srv-02, whose LAN NIC is enp5s0f0np0 rather
+              # than the enp1s0f0 the attachment names. amdgpu is the only label
+              # unique to that node - the same discriminator
+              # kube-system/generic-device-plugin and immich use.
+              - matchExpressions:
+                  - key: extensions.talos.dev/amdgpu
+                    operator: DoesNotExist
+      securityContext:
+        runAsNonRoot: true
+        # The image ends `USER nobody:nogroup` but is uid-agnostic: HOME,
+        # WORKDIR and VENV_FOLDER are all under /config. 1000 matches
+        # KOPIUR_PUID/PGID, which the Restore and SnapshotPolicy movers are
+        # pinned to - a mismatch means the mover cannot read the volume it is
+        # meant to snapshot.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    persistence:
+      config:
+        # Provisioned by components/kopiur/backup through its Restore populator.
+        existingClaim: home-assistant
+        globalMounts:
+          - path: /config
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+    service:
+      app:
+        controller: home-assistant
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        annotations:
+          # / renders the frontend shell before HA is actually RUNNING, so the
+          # probe uses the auth component's own unauthenticated endpoint - it
+          # only answers once the HTTP stack and auth providers are set up. No
+          # OIDC on this route, so no bearer token is needed.
+          gatus.home-operations.com/endpoint: |
+            path: /auth/providers
+        # Byte-identical to the hostname the retired network/external-services
+        # HTTPRoute served, on the same gateway, so neither external-dns nor
+        # k8s-gateway sees a record change and the companion app's external URL
+        # is untouched.
+        hostnames:
+          - "ha.${SECRET_DOMAIN}"
+        # Deliberately NOT behind components/oidc. A gateway-level OIDC
+        # SecurityPolicy 302s a native API client to a login page it cannot
+        # render, which is what broke the Immich mobile app - and the HA
+        # companion app is exactly that shape. HA keeps its own auth provider.
+        parentRefs:
+          - name: envoy-external
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port

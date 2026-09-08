@@ -1,0 +1,208 @@
+---
+# Vendored from upstream's multus-daemonset-thick.yml rather than consumed as a
+# chart: Multus publishes no chart at all, and the quickstart manifest it does
+# publish says in its own header that it ignores configuration options, upgrade
+# paths and deployment scenarios. Deviations from it are commented below.
+#
+# What this exists for: a pod on the Cilium pod network cannot send or receive
+# LAN multicast, which is what Home Assistant's mDNS/SSDP discovery is made of.
+# Multus lets that one pod hold a second interface on the LAN. Cilium is already
+# configured for the pairing - see cni.exclusive: false in
+# kube-system/cilium/app/helmrelease.yaml - and Multus leaves 05-cilium.conflist
+# in place, wrapping it as the default delegate of its own 00-multus.conf.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/configmap-v1.json
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multus-daemon-config
+data:
+  daemon-config.json: |
+    {
+        "chrootDir": "/hostroot",
+        "cniVersion": "0.3.1",
+        "logLevel": "error",
+        "logToStderr": true,
+        "cniConfigDir": "/host/etc/cni/net.d",
+        "multusAutoconfigDir": "/host/etc/cni/net.d",
+        "multusConfigFile": "auto",
+        "socketDir": "/host/run/multus/"
+    }
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/daemonset-apps-v1.json
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: multus
+  labels:
+    app.kubernetes.io/name: multus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: multus
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: multus
+    spec:
+      hostNetwork: true
+      hostPID: true
+      serviceAccountName: multus
+      # Not in upstream's manifest. This installs a CNI plugin every attached
+      # pod's sandbox creation depends on, so it belongs in the same tier as the
+      # CNI itself.
+      priorityClassName: system-node-critical
+      tolerations:
+        - operator: Exists
+          effect: NoSchedule
+        - operator: Exists
+          effect: NoExecute
+      initContainers:
+        # Not in upstream's manifest either, and required on Talos: Talos ships
+        # /opt/cni/bin with bridge, cilium-cni, firewall, flannel, host-local,
+        # loopback and portmap only - no macvlan, and no static IPAM plugin. Both
+        # are what the LAN attachment is made of, so without this the pod's
+        # sandbox fails to create with "failed to find plugin macvlan".
+        # /opt is a writable overlay on Talos (upperdir under
+        # /var/system/overlays), so this survives reboots but is reinstalled
+        # after an OS upgrade, which is why it runs on every pod start.
+        - name: install-cni-plugins
+          # Upstream containernetworking/plugins publishes tarballs, not images;
+          # this is the smallest image carrying the reference plugins. Its tag is
+          # a build date, not semver, so Renovate cannot follow it - bump by hand,
+          # like squat/generic-device-plugin.
+          image: docker.io/rancher/hardened-cni-plugins:v1.9.1-build20260903
+          command:
+            - "sh"
+            - "-c"
+          args:
+            # Only the two that are actually needed. Copying the whole set would
+            # shadow Talos's own bridge/host-local/portmap with a different
+            # build for every pod on the node, not just the ones using Multus.
+            - |
+              set -eu
+              for p in macvlan static; do
+                cp "/opt/cni/bin/$p" "/host/opt/cni/bin/.$p.tmp"
+                mv "/host/opt/cni/bin/.$p.tmp" "/host/opt/cni/bin/$p"
+              done
+              echo "installed: macvlan static"
+          securityContext:
+            # Writing into the host's /opt/cni/bin. The upstream install
+            # container is fully privileged; this one only needs to write a file
+            # into a hostPath it already has mounted.
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          volumeMounts:
+            - name: cnibin
+              mountPath: /host/opt/cni/bin
+              mountPropagation: Bidirectional
+        - name: install-multus-binary
+          image: &image ghcr.io/k8snetworkplumbingwg/multus-cni:v4.2.2-thick
+          command:
+            - "sh"
+            - "-c"
+          args:
+            - |
+              set -eu
+              cp /usr/src/multus-cni/bin/multus-shim /host/opt/cni/bin/multus-shim
+              cp /usr/src/multus-cni/bin/passthru /host/opt/cni/bin/passthru
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          volumeMounts:
+            - name: cnibin
+              mountPath: /host/opt/cni/bin
+              mountPropagation: Bidirectional
+      containers:
+        - name: kube-multus
+          image: *image
+          command:
+            - "/usr/src/multus-cni/bin/multus-daemon"
+          env:
+            - name: MULTUS_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          securityContext:
+            # Kept from upstream. The daemon enters other pods' network
+            # namespaces through /run/netns and chroots into the host to run the
+            # delegate plugins; there is no reduced capability set that does that.
+            privileged: true
+          terminationMessagePolicy: FallbackToLogsOnError
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            # No cpu limit, per the convention everywhere else here. Upstream
+            # sets one at 100m, which throttles sandbox creation under load.
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: cni
+              mountPath: /host/etc/cni/net.d
+            # The cnibin path must be IDENTICAL inside and outside the container:
+            # multus-daemon hands the delegate's path to the runtime, which
+            # resolves it in the host mount namespace.
+            - name: cnibin
+              mountPath: /opt/cni/bin
+            - name: host-run
+              mountPath: /host/run
+            - name: host-var-lib-cni-multus
+              mountPath: /var/lib/cni/multus
+            - name: host-var-lib-kubelet
+              mountPath: /var/lib/kubelet
+              mountPropagation: HostToContainer
+            - name: host-run-k8s-cni-cncf-io
+              mountPath: /run/k8s.cni.cncf.io
+            - name: host-run-netns
+              mountPath: /run/netns
+              mountPropagation: HostToContainer
+            - name: multus-daemon-config
+              mountPath: /etc/cni/net.d/multus.d
+              readOnly: true
+            - name: hostroot
+              mountPath: /hostroot
+              mountPropagation: HostToContainer
+            - name: multus-conf-dir
+              mountPath: /etc/cni/multus/net.d
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - name: cni
+          hostPath: {path: /etc/cni/net.d}
+        - name: cnibin
+          hostPath: {path: /opt/cni/bin}
+        - name: hostroot
+          hostPath: {path: /}
+        - name: host-run
+          hostPath: {path: /run}
+        - name: host-var-lib-cni-multus
+          hostPath: {path: /var/lib/cni/multus}
+        - name: host-var-lib-kubelet
+          hostPath: {path: /var/lib/kubelet}
+        - name: host-run-k8s-cni-cncf-io
+          hostPath: {path: /run/k8s.cni.cncf.io}
+        - name: host-run-netns
+          hostPath: {path: /run/netns}
+        - name: multus-conf-dir
+          hostPath: {path: /etc/cni/multus/net.d}
+        - name: multus-daemon-config
+          configMap:
+            name: multus-daemon-config
+            items:
+              - key: daemon-config.json
+                path: daemon-config.json
