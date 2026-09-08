@@ -9,6 +9,12 @@ spec:
     kind: OCIRepository
     name: home-assistant
   interval: 1h
+  # Longer than Helm's 5m default, and deliberately longer than the startup
+  # probe's own 15m budget below. With the default, a first boot that spends
+  # minutes building /config/.venv trips the Helm timeout, Flux rolls back to
+  # the previous release, and the rollback restarts the very pod that was making
+  # progress - which is exactly what happened during the migration cutover.
+  timeout: 20m
   values:
     controllers:
       home-assistant:
@@ -40,6 +46,19 @@ spec:
                   secretKeyRef:
                     name: home-assistant-pg-shared
                     key: uri
+            # exec, not httpGet, and it is the macvlan attachment that forces
+            # it. A kubelet httpGet probe dials the pod IP FROM THE NODE, and
+            # this cluster runs Cilium with bpf.hostLegacyRouting: true (see
+            # kube-system/cilium/app/helmrelease.yaml), so that connection
+            # carries the node's LAN address as its source - 192.168.1.10x, not
+            # a 10.42.x.x cilium_host address. The pod then matches that against
+            # net1's connected 192.168.0.0/23 route and sends the SYN-ACK out
+            # macvlan, which cannot reach the host it lives on. The handshake
+            # sits in SYN_RECV until the probe times out, forever.
+            #
+            # An exec probe runs through the CRI and never touches the network,
+            # so it is immune. Everything else reaches this pod normally: envoy
+            # and any other pod over eth0, LAN clients over net1 - all verified.
             probes:
               # No tight liveness threshold: a recorder purge or a slow
               # integration setup must not restart HA mid-write.
@@ -47,22 +66,35 @@ spec:
                 enabled: true
                 custom: true
                 spec:
-                  httpGet:
-                    path: /
-                    port: &port 8123
+                  exec:
+                    command:
+                      - curl
+                      - -fsS
+                      - -o
+                      - /dev/null
+                      - -m
+                      - "10"
+                      - http://127.0.0.1:8123/
                   initialDelaySeconds: 0
                   periodSeconds: 30
-                  timeoutSeconds: 10
+                  timeoutSeconds: 15
                   failureThreshold: 10
               readiness: *probe
               startup:
                 enabled: true
                 custom: true
                 spec:
-                  httpGet:
-                    path: /
-                    port: *port
+                  exec:
+                    command:
+                      - curl
+                      - -fsS
+                      - -o
+                      - /dev/null
+                      - -m
+                      - "10"
+                      - http://127.0.0.1:8123/
                   periodSeconds: 10
+                  timeoutSeconds: 15
                   # 15 minutes. The image's entrypoint builds /config/.venv on
                   # every start and HA pip-installs each HACS custom component's
                   # requirements into it, which on the first boot after the
@@ -128,7 +160,7 @@ spec:
         controller: home-assistant
         ports:
           http:
-            port: *port
+            port: &port 8123
     route:
       app:
         annotations:
