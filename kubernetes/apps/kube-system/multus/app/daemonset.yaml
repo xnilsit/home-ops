@@ -110,7 +110,11 @@ spec:
             - name: cnibin
               mountPath: /host/opt/cni/bin
         - name: install-multus-binary
-          image: &image ghcr.io/k8snetworkplumbingwg/multus-cni:v4.2.2-thick
+          # Spelled out in both containers rather than shared with a YAML
+          # anchor: the `kubernetes` manager matches `image:` lines by regex,
+          # not by parsing YAML, so `&anchor` in the value makes Renovate skip
+          # the dependency entirely. Verified with a local --dry-run.
+          image: ghcr.io/k8snetworkplumbingwg/multus-cni:v4.2.2-thick
           command:
             - "sh"
             - "-c"
@@ -134,7 +138,7 @@ spec:
               mountPath: /host/opt/cni/bin
       containers:
         - name: kube-multus
-          image: *image
+          image: ghcr.io/k8snetworkplumbingwg/multus-cni:v4.2.2-thick
           command:
             - "/usr/src/multus-cni/bin/multus-daemon"
           env:

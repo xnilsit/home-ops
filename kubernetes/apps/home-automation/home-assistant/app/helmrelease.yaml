@@ -145,12 +145,68 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
+    configMaps:
+      config:
+        data:
+          # Moved off the PVC now that the migrated file is known good: the
+          # effective configuration is a Git diff again. It deliberately was NOT
+          # a ConfigMap for the first boot, because this mount shadows whatever
+          # the volume holds - so a transcription that dropped one !include
+          # would have failed silently against a freshly seeded /config.
+          #
+          # The !include paths still resolve relative to /config, so
+          # automations.yaml, scripts.yaml, scenes.yaml and blueprints/ keep
+          # living on the volume where the UI can write them.
+          configuration.yaml: |
+            # Loads default set of integrations. Do not remove.
+            default_config:
+
+            # Load frontend themes from the themes folder
+            frontend:
+              themes: !include_dir_merge_named themes
+
+            automation: !include automations.yaml
+            script: !include scripts.yaml
+            scene: !include scenes.yaml
+
+            # INERT as of 2026.8, and kept only so this file and the stored
+            # config do not disagree. Home Assistant migrated this block into
+            # .storage/http on first start and set yaml_migration_done, and
+            # components/http/server.py now builds the server from that store -
+            # editing the values here changes nothing. The live values have to
+            # be edited in .storage/http with Home Assistant stopped.
+            http:
+              use_x_forwarded_for: true
+              trusted_proxies:
+                # Envoy Gateway's pods, the only thing in front of this
+                # instance. Not the LAN: Home Assistant answers on 192.168.1.30
+                # directly, so trusting 192.168.0.0/23 would let any host on it
+                # forge X-Forwarded-For and spoof its address past ip_ban.
+                - 10.42.0.0/16
+                - fd2e:9a41:6b8c:4200::/56
+
+            recorder:
+              # pg-shared, via the env var the container reads out of the
+              # home-assistant-pg-shared Secret.
+              db_url: !env_var HA_RECORDER_DB_URL
     persistence:
       config:
         # Provisioned by components/kopiur/backup through its Restore populator.
         existingClaim: home-assistant
         globalMounts:
           - path: /config
+      config-file:
+        type: configMap
+        # identifier, not name: lets the chart resolve the generated ConfigMap's
+        # real name. Mounted read-only over the copy on the volume - Home
+        # Assistant only ever writes .storage and the *.yaml files the UI owns,
+        # never this one. A subPath mount does not update in place, which is
+        # what the reloader annotation on the controller is for.
+        identifier: config
+        globalMounts:
+          - path: /config/configuration.yaml
+            subPath: configuration.yaml
+            readOnly: true
       tmp:
         type: emptyDir
         globalMounts:

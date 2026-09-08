@@ -10,5 +10,7 @@ components:
 patches:
   - path: ./snapshotpolicy.yaml
 resources:
+  # The pinned network identity the HelmRelease reads with envFrom.
+  - ./secret.sops.yaml
   - ./ocirepository.yaml
   - ./helmrelease.yaml

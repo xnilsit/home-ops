@@ -286,11 +286,24 @@ automations, dashboards, areas, HACS — lives in `.storage` and did carry over.
 The VM's 329 MB `home-assistant_v2.db` is still on the kept disk image if that
 turns out to matter.
 
-**`configuration.yaml` lives on the PVC**, deliberately, for the first
-deployment: a ConfigMap mount shadows the volume, so a transcription that
-dropped one `!include` would fail silently. Once the file is known good it
-should move into `configMaps:` and be mounted read-only, the way blocky mounts
-`config.yml`.
+**`configuration.yaml` started on the PVC and has since moved into a
+ConfigMap**, mounted read-only over the copy on the volume. It was deliberately
+not a ConfigMap for the first boot, because that mount shadows whatever the
+volume holds, so a transcription that dropped one `!include` would have failed
+silently against a freshly seeded `/config`. The `!include` paths still resolve
+relative to `/config`, so `automations.yaml`, `scripts.yaml`, `scenes.yaml` and
+`blueprints/` stay on the volume where the UI can write them.
+
+**`http:` in `configuration.yaml` is inert as of HA 2026.8.** On first start HA
+migrates the block into `.storage/http` and sets `yaml_migration_done`, and
+`components/http/server.py` then builds the server from that store — so editing
+`trusted_proxies` in YAML changes nothing. This cost an hour during the
+migration: HA answered `200` on `127.0.0.1` and `400` through the gateway,
+logging `Received X-Forwarded-For header from an untrusted proxy 10.42.x.x`
+while `configuration.yaml` plainly listed `10.42.0.0/16`. To change it for real,
+stop HA, edit `data.stable.trusted_proxies` in `.storage/http` (leave
+`data.pending` null), `chown` it back to `1000`, and start HA. The YAML block is
+kept in sync anyway, in case a future version re-runs the migration.
 
 **macvlan cannot reach its own host, and that broke the kubelet probes.** The HA
 pod cannot talk to the node it runs on at `192.168.1.10x`, and the node cannot
@@ -314,15 +327,57 @@ limitation.
 macvlan pod cannot start until the Multus DaemonSet has reinstalled the plugin
 binaries. Not an outage, but it makes node upgrades noisier.
 
-**Renovate** cannot follow the Multus or CNI-plugins tags (a `-thick` suffix and
-a build date), so both are bumped by hand, like `squat/generic-device-plugin`.
+**Renovate** follows the three app images normally, and Multus too: `-thick` is
+a stable per-release suffix and the `docker` versioning offers same-suffix
+updates. Mosquitto is pinned to `2.1.2-alpine` rather than plain semver for
+exactly that reason — the 2.1 line is published only as `2.1.x-alpine`, so a
+`2.0.22` pin would have taken 2.0.x patches forever and never crossed over.
+The one 2.1 behaviour change that could have mattered is its rejection of `+`,
+`#` and `/` in usernames and client IDs, which the retired add-on had switched
+off explicitly; nothing here needs it, since both usernames are plain words and
+every live client ID is alphanumeric plus `-` or `_` (`mqttjs_*` from
+Zigbee2MQTT, random IDs and `auto-*` from Home Assistant).
+
+`rancher/hardened-cni-plugins` tags its releases `v1.9.1-build20260903` — the
+suffix changes every build, so there is nothing to match and it is bumped by
+hand, like `squat/generic-device-plugin`. Confirmed with a local
+`renovate --platform=local --dry-run=lookup`: multus offers
+`v4.2.2-thick → v4.3.0-thick`, the CNI plugins offer nothing.
+
+**YAML anchors are safe in a HelmRelease and not in a bare manifest.** The
+`helm-values` manager parses YAML, so `repository: &image …` / `tag: &tag …`
+resolve normally and the rewrite touches only the version substring — which is
+why `tag: &tag 4.2.0 → 4.2.1` worked on trek. The `kubernetes` manager, which
+covers hand-written manifests like the Multus DaemonSet, matches `image:` lines
+by **regex**: an `&anchor` in the value makes it capture the anchor name and
+drop the dependency silently. That is why that DaemonSet spells its image out in
+both containers instead of sharing one anchor.
 
 **`cloudflared` caps request bodies at 100 MB**, so HA's Backup integration
 upload/download through `ha.${SECRET_DOMAIN}` fails above that. Use
 `http://192.168.1.30:8123` on the LAN, or add a second route on
 `envoy-external-direct` with `gatus.home-operations.com/enabled: "false"`.
 
-**Follow-ups**, each its own PR: move `configuration.yaml` into a ConfigMap; pin
-`network_key`/`pan_id`/`ext_pan_id` in SOPS as a third guard against an empty
-volume (only after diffing them against the seeded file — a wrong value silently
-forms a different network); bump HA off `2026.8.1`.
+**The coordinator radio can wedge, and only a cold power-cycle revives it.**
+Checking whether the old add-on had released the coordinator with
+`nc -z 192.168.1.22 7638` was enough to do it — `socket.useMultiClients` is
+`false`, so a single connect-and-close is one client too many. The symptom is
+nasty because everything above the radio looks healthy: the serial path works,
+`zigbee-herdsman` resumes with the correct channel, PAN and network key, and the
+frontend comes up — but nothing is transmitted or received. Outbound pings fail
+with `NWK_NO_ROUTE (0xcd)`, plain timeouts, or
+`AF - dataRequest ... (0x02: INVALID_PARAM)`, and a button press on a remote
+never arrives. A UI reboot did not clear it and neither did flashing the
+CC2652P7; **unplugging the SLZB for ten seconds did**, and all 15 devices were
+back within three minutes with no re-pairing. Never port-scan the radio sockets
+— read the SLZB web UI or stop Zigbee2MQTT instead.
+
+Two diagnostic traps met along the way: `last_seen` in
+`zigbee2mqtt/bridge/devices` is `null` for every device unless
+`advanced.last_seen` is enabled, so it is not evidence that nothing was
+received; and Zigbee2MQTT republishes cached state from `database.db` on every
+start, so device topics appearing right after a restart do not prove the radio
+works. Use `zigbee2mqtt/+/availability` and whether pings stop failing.
+
+**Follow-up still open**: bump HA off `2026.8.1`, which was pinned only to keep
+the migration and an upgrade from being confused for one another.
