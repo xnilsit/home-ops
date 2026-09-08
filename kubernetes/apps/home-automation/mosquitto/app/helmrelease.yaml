@@ -155,6 +155,13 @@ spec:
         type: emptyDir
         globalMounts:
           - path: /run/mosquitto
+      # mosquitto_passwd rewrites the file through tmpfile(), which lands in
+      # /tmp - and the root filesystem is read-only, so without this the
+      # passwd-hash initContainer dies on "Unable to open temporary file".
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
       data:
         existingClaim: mosquitto
         globalMounts:

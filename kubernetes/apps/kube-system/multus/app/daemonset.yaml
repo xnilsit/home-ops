@@ -80,6 +80,12 @@ spec:
             # Only the two that are actually needed. Copying the whole set would
             # shadow Talos's own bridge/host-local/portmap with a different
             # build for every pod on the node, not just the ones using Multus.
+            #
+            # No mountPropagation: Bidirectional on the mount below, unlike
+            # upstream. The API server forbids it outside a privileged
+            # container, and it buys nothing here: propagation governs whether
+            # NESTED MOUNTS cross the boundary, and this only writes files into
+            # a hostPath, which already lands in the host filesystem.
             - |
               set -eu
               for p in macvlan static; do
@@ -103,7 +109,6 @@ spec:
           volumeMounts:
             - name: cnibin
               mountPath: /host/opt/cni/bin
-              mountPropagation: Bidirectional
         - name: install-multus-binary
           image: &image ghcr.io/k8snetworkplumbingwg/multus-cni:v4.2.2-thick
           command:
@@ -127,7 +132,6 @@ spec:
           volumeMounts:
             - name: cnibin
               mountPath: /host/opt/cni/bin
-              mountPropagation: Bidirectional
       containers:
         - name: kube-multus
           image: *image
