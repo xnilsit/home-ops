@@ -114,7 +114,7 @@ spec:
           # anchor: the `kubernetes` manager matches `image:` lines by regex,
           # not by parsing YAML, so `&anchor` in the value makes Renovate skip
           # the dependency entirely. Verified with a local --dry-run.
-          image: ghcr.io/k8snetworkplumbingwg/multus-cni:v4.2.2-thick
+          image: ghcr.io/k8snetworkplumbingwg/multus-cni:v4.3.0-thick
           command:
             - "sh"
             - "-c"
@@ -138,7 +138,7 @@ spec:
               mountPath: /host/opt/cni/bin
       containers:
         - name: kube-multus
-          image: ghcr.io/k8snetworkplumbingwg/multus-cni:v4.2.2-thick
+          image: ghcr.io/k8snetworkplumbingwg/multus-cni:v4.3.0-thick
           command:
             - "/usr/src/multus-cni/bin/multus-daemon"
           env:
