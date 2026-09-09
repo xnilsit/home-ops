@@ -33,6 +33,14 @@ variable "icon" {
   default     = ""
 }
 
+variable "hidden" {
+  # authentik's own convention: a launch URL of blank://blank drops the tile from
+  # the user library while leaving the provider fully usable.
+  description = "Hide the app's tile from the user library."
+  type        = bool
+  default     = false
+}
+
 variable "open_in_new_tab" {
   # These are all separate admin UIs, so the dashboard should not navigate away
   # from itself.

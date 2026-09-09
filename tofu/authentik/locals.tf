@@ -155,6 +155,8 @@ locals {
       groups             = []
       gateway_callback   = false
       client_credentials = true
+      # Nothing to click: no browser flow, and the hostname is the human app's.
+      hidden = true
     }
 
     # ── the cluster's own admin UIs ───────────────────────────────────────────

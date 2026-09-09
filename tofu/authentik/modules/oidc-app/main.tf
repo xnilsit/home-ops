@@ -68,7 +68,7 @@ resource "authentik_application" "this" {
   slug              = local.name
   protocol_provider = authentik_provider_oauth2.this.id
   meta_description  = var.description
-  meta_launch_url   = "https://${var.hostnames[0]}"
+  meta_launch_url   = var.hidden ? "blank://blank" : "https://${var.hostnames[0]}"
   meta_icon         = var.icon != "" ? var.icon : null
   open_in_new_tab   = var.open_in_new_tab
 
