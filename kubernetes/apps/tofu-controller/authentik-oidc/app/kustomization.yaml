@@ -6,4 +6,6 @@ resources:
   # ServiceAccount and token before the Terraform that runs under them.
   - ./rbac.yaml
   - ./secret.sops.yaml
+  # Provider cache the runner mounts; claimed before the Terraform that uses it.
+  - ./pvc.yaml
   - ./terraform.yaml
