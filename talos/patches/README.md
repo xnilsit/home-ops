@@ -1,15 +1,24 @@
 # Talos Patching
 
-This directory contains Kustomization patches that are added to the talhelper configuration file.
+Machine configs are assembled by [topf](https://postfinance.github.io/topf/) from
+`../topf.yaml` plus the strategic merge patches in this directory.
 
-<https://www.talos.dev/v1.7/talos-guides/configuration/patching/>
+<https://www.talos.dev/latest/talos-guides/configuration/patching/>
 
 ## Patch Directories
 
-Under this `patches` directory, there are several sub-directories that can contain patches that are added to the talhelper configuration file.
-Each directory is optional and therefore might not created by default.
+Patches merge in this order, alphabetically within each directory, with later
+patches taking precedence:
 
-- `global/`: patches that are applied to both the controller and worker configurations
-- `controller/`: patches that are applied to the controller configurations
-- `worker/`: patches that are applied to the worker configurations
-- `${node-hostname}/`: patches that are applied to the node with the specified name
+- `all/`: applied to every node
+- `control-plane/`: applied to control-plane nodes
+- `worker/`: applied to worker nodes
+- `node/${hostname}/`: applied to the node with the specified name
+
+Files ending in `.yaml.tpl` are Go-templated per node; see the
+[topf configuration model](https://postfinance.github.io/topf/main/configuration-model/)
+for the available template variables. A `.tpl` file is parsed in full, YAML
+comments included, so a literal `{{` in a comment breaks the render.
+
+Patches are Talos 1.14 multi-document configs. JSON patches (RFC 6902) are not
+supported; use `$patch: delete` for removals.

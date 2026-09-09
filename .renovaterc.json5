@@ -30,15 +30,15 @@
       minimumGroupSize: 2,
     },
     {
-      description: "Talos Group: talenv.yaml, talconfig schematics and the TalosUpgrade CR",
+      description: "Talos Group: topf.yaml and the TalosUpgrade CR",
       groupName: "talos",
-      matchPackageNames: ["ghcr.io/siderolabs/installer", "/^factory.talos.dev//"],
+      matchPackageNames: ["siderolabs/talos", "ghcr.io/siderolabs/installer"],
       group: {
         commitMessageTopic: "{{{groupName}}} group",
       },
     },
     {
-      description: "Kubernetes Group: talenv.yaml, the KubernetesUpgrade CR and the kubectl CLI",
+      description: "Kubernetes Group: topf.yaml, the KubernetesUpgrade CR and the kubectl CLI",
       groupName: "kubernetes",
       matchPackageNames: ["ghcr.io/siderolabs/kubelet"],
       group: {
@@ -103,9 +103,9 @@
     {
       description: "Never auto-merge Talos / Kubernetes, they roll out via tuppr",
       matchPackageNames: [
+        "siderolabs/talos",
         "ghcr.io/siderolabs/installer",
         "ghcr.io/siderolabs/kubelet",
-        "/^factory.talos.dev//",
       ],
       automerge: false,
     },

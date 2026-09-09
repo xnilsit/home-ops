@@ -13,6 +13,8 @@
 # Kubernetes
 kubeconfig
 talosconfig
+/talos/output/
+/talos/rendered/
 # Misc.
 .claude/
 .private/

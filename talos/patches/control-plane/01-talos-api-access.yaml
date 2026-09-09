@@ -1,0 +1,9 @@
+---
+# Required by tuppr, grants the system-upgrade namespace Talos API access
+# https://tuppr.home-operations.com/requirements/
+apiVersion: v1alpha1
+kind: KubeTalosAPIAccessConfig
+allowedRoles:
+  - os:admin
+allowedKubernetesNamespaces:
+  - system-upgrade
