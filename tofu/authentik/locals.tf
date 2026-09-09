@@ -210,7 +210,8 @@ locals {
       # hashed_user_id would be a hex blob in the user list and in the audit log.
       sub_mode = "user_username"
       # It builds a user record out of name and email, and envoy forwards it the
-      # ID TOKEN, so those claims have to be in there and not only behind
+      # ACCESS token - which authentik fills from the same IDToken builder, so
+      # this flag is what puts those claims in there rather than only behind
       # userinfo. Its roles come from the roles_path in the rook-ceph-sso Job.
       include_claims_in_id_token = true
     }

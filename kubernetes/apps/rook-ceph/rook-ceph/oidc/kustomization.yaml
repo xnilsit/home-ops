@@ -34,8 +34,13 @@ patches:
       - op: add
         path: /spec/oidc/disableTokenEncryption
         value: true
-      # The dashboard's own logout button 302s to /oauth2/sign_out, so that is
-      # the path the filter has to own here.
+      # The logout button navigates to the dashboard's own /auth/oauth2/logout,
+      # which fetches the IdP's discovery document to build a /oauth2/sign_out
+      # redirect - and the mgr has no egress to authentik, so it 500s, envoy's
+      # cookies survive and the UI bounces between #/login and
+      # /auth/oauth2/login forever. Owning that path here retires the endpoint:
+      # envoy clears the cookies and sends the browser to the end-session
+      # endpoint itself, which is all the 500ing hop was there to arrange.
       - op: replace
         path: /spec/oidc/logoutPath
-        value: /oauth2/sign_out
+        value: /auth/oauth2/logout
