@@ -13,6 +13,18 @@ spec:
     namespace: flux-system
   approvePlan: auto
   interval: 1h
+  # Chart default is true, which runs `tofu init -upgrade`. That re-resolves
+  # every provider against registry.opentofu.org on EVERY reconcile and ignores
+  # both the plugin cache and the committed lock file, so the hourly reconcile
+  # could not succeed without working internet. False lets init satisfy itself
+  # from .terraform.lock.hcl and the cache below.
+  #
+  # This makes the lock file load-bearing: if versions.tf moves without it,
+  # init fails with "provider requirements cannot be satisfied by locked
+  # dependencies" instead of quietly upgrading. That is the intended behaviour
+  # here - .renovaterc.json5 already requires `tofu providers lock` plus a plan
+  # on an authentik provider bump, because this writes to a shared authentik.
+  upgradeOnInit: false
   # authentik is shared with another cluster, so reconcile against what is there.
   refreshBeforeApply: true
   # Deleting this CR must NOT delete live applications out of an authentik that
@@ -54,6 +66,36 @@ spec:
   runnerPodTemplate:
     spec:
       priorityClassName: cluster-platform
+      # CephFS hands the subvolume root out as 0755 root:root, and the runner is
+      # uid 65532 with gid 0, so it cannot create anything in the cache. There
+      # is no fix from the runner side: runnerPodTemplate.spec.securityContext
+      # is a CONTAINER context on this CRD, not a pod one, so it has no fsGroup.
+      #
+      # Idempotent, so it costs a chown of one directory on the reconciles after
+      # the first. Only the mount root needs it; everything below is created by
+      # the runner itself.
+      initContainers:
+        - name: chown-plugin-cache
+          image: mirror.gcr.io/library/alpine:3.22
+          command:
+            - "chown"
+            - "65532:65532"
+            - "/plugin-cache"
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"], add: ["CHOWN"]}
+            seccompProfile: {type: RuntimeDefault}
+          resources:
+            requests:
+              cpu: 10m
+            limits:
+              memory: 32Mi
+          volumeMounts:
+            - name: plugin-cache
+              mountPath: /plugin-cache
       env:
         # Bucket credentials for the s3 backend, written by the OBC.
         - name: AWS_ACCESS_KEY_ID
@@ -62,6 +104,26 @@ spec:
         - name: AWS_SECRET_ACCESS_KEY
           valueFrom:
             secretKeyRef: {name: tofu-state, key: AWS_SECRET_ACCESS_KEY}
+        # Survives the pod, so a warm cache makes init entirely local: verified
+        # offline, init reports "Using ... from the shared cache directory" and
+        # never opens a socket. A miss (a provider bump) falls back to the
+        # registry on its own and re-warms, so this degrades rather than breaks.
+        #
+        # Deliberately NOT a provider filesystem_mirror: a mirror plus
+        # `direct {}` still contacts the registry, and a mirror with the direct
+        # method excluded has no fallback at all when it goes stale.
+        - name: TF_PLUGIN_CACHE_DIR
+          value: /plugin-cache
+      volumes:
+        - name: plugin-cache
+          persistentVolumeClaim:
+            claimName: tofu-plugin-cache
+      volumeMounts:
+        # Its own path, not a subdirectory of /home/runner: that is an emptyDir
+        # the controller mounts itself, and nesting a volume inside it depends
+        # on mount ordering.
+        - name: plugin-cache
+          mountPath: /plugin-cache
       resources:
         requests:
           cpu: 100m

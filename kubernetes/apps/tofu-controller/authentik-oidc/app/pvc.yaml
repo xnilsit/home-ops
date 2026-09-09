@@ -1,0 +1,20 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/persistentvolumeclaim-v1.json
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tofu-plugin-cache
+spec:
+  # RWX because the runner pod is created fresh per reconcile and can land on
+  # any node; the whole point is that the next one finds the providers already
+  # on disk. Not backed up - everything here is re-downloadable.
+  #
+  # The plugin cache is documented as not concurrency-safe, which is fine while
+  # this cluster has exactly one Terraform CR: reconciles of a single object are
+  # serialised. A second CR sharing this claim would need its own.
+  accessModes:
+    - "ReadWriteMany"
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: ceph-filesystem
