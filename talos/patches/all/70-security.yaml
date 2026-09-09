@@ -1,0 +1,5 @@
+---
+# multus runs hostPID and every pod sandbox delegates through its shim
+apiVersion: v1alpha1
+kind: SecurityProfileConfig
+workloadIsolation: false

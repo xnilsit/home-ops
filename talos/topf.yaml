@@ -1,0 +1,52 @@
+---
+clusterName: kubernetes
+clusterEndpoint: https://192.168.1.101:6443
+
+# renovate: datasource=github-releases depName=siderolabs/talos
+talosVersion: v1.14.0
+# renovate: datasource=docker depName=ghcr.io/siderolabs/kubelet
+kubernetesVersion: v1.36.4
+
+secretsPath: secrets.sops.yaml
+patchesDir: patches
+
+data:
+  certSANs:
+    - "127.0.0.1"
+    - "192.168.1.100"
+    - "192.168.1.101"
+  vip: 192.168.1.100
+  gateway: 192.168.0.1
+  nodeCIDRv4: 192.168.0.0/23
+
+nodes:
+  - host: kube-srv-01
+    ip: 192.168.1.101
+    role: control-plane
+    schematicId: "@schematic-intel.yaml"
+    data:
+      installDisk: /dev/disk/by-id/usb-Mass_Storage_Device_121220160204-0:0
+      macAddr: a8:b8:e0:07:81:bb
+      mtu: 1500
+      ipv4: 192.168.1.101/23
+      ipv6: fd2e:9a41:6b8c:1::101
+  - host: kube-srv-02
+    ip: 192.168.1.102
+    role: control-plane
+    schematicId: "@schematic-amd.yaml"
+    data:
+      installDisk: /dev/disk/by-id/usb-USB_SanDisk_3.2Gen1_00015021040826015216-0:0
+      macAddr: 38:05:25:39:01:82
+      mtu: 1500
+      ipv4: 192.168.1.102/23
+      ipv6: fd2e:9a41:6b8c:1::102
+  - host: kube-srv-03
+    ip: 192.168.1.103
+    role: control-plane
+    schematicId: "@schematic-intel.yaml"
+    data:
+      installDisk: /dev/disk/by-id/usb-Mass_Storage_Device_121220160204-0:0
+      macAddr: a8:b8:e0:06:ce:98
+      mtu: 1500
+      ipv4: 192.168.1.103/23
+      ipv6: fd2e:9a41:6b8c:1::103

@@ -11,45 +11,39 @@ default:
 
 [doc('Bootstrap the Talos cluster')]
 [group('bootstrap')]
-talos: talos-secret talos-config talos-apply talos-bootstrap talos-kubeconfig
+talos: talos-secret talos-apply talos-talosconfig talos-kubeconfig
 
 [doc('Bootstrap apps into the Talos cluster')]
 [group('bootstrap')]
 apps: apps-ready apps-namespaces apps-secrets apps-crds apps-helm
     just log info "Cluster is bootstrapped — Flux will start syncing the Git repository"
 
+# The bundle is written already encrypted with the repo's age recipient, and an
+# existing bundle is left untouched, so no sops call or existence guard is needed.
 [private]
-[script]
 [working-directory('../talos')]
 talos-secret:
-    just log info "Generating talsecret"
-    if [ ! -f talsecret.sops.yaml ]; then
-        talhelper gensecret | sops --filename-override talsecret.sops.yaml --encrypt /dev/stdin > talsecret.sops.yaml
-    fi
-
-[private]
-[working-directory('../talos')]
-talos-config:
-    just log info "Generating talos config"
-    talhelper genconfig
+    just log info "Generating secrets"
+    topf secrets --confirm=false > /dev/null
 
 [private]
 [working-directory('../talos')]
 talos-apply:
-    just log info "Applying talos config"
-    talhelper gencommand apply --extra-flags="--insecure" | bash
+    just log info "Applying talos config and bootstrapping"
+    topf apply --auto-bootstrap --confirm=false
 
 [private]
 [working-directory('../talos')]
-talos-bootstrap:
-    just log info "Bootstrapping talos"
-    until talhelper gencommand bootstrap | bash; do sleep 10; done
+talos-talosconfig:
+    just log info "Generating talosconfig"
+    topf talosconfig > talosconfig
 
+# topf issues short-lived admin certs by default
 [private]
 [working-directory('../talos')]
 talos-kubeconfig:
     just log info "Fetching kubeconfig"
-    until talhelper gencommand kubeconfig --extra-flags="{{ justfile_dir() }} --force" | bash; do sleep 10; done
+    topf kubeconfig --validity 8760h > "{{ justfile_dir() }}/kubeconfig"
 
 [private]
 [script]
