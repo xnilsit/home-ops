@@ -151,7 +151,8 @@ spec:
           daemon:
             keyRotationPolicy: KeyGeneration # bump keyGeneration to rotate
             keyGeneration: 2
-            keyType: aes256k
+            # No keyType: any value here boots the mons with
+            # --mon-auth-emergency-allowed-ciphers=aes,aes256k
           csi:
             keyRotationPolicy: KeyGeneration
             keepPriorKeyCountMax: 0 # every mount re-staged on the gen-3 key
