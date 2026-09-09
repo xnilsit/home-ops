@@ -27,33 +27,14 @@ spec:
     # ships with the control plane and outranks cluster-infra anyway, which is
     # the correct ordering for cluster DNS.
     priorityClassName: system-cluster-critical
-    # Two server blocks, split by zone. CoreDNS routes a query to the block
-    # whose zone is the longest suffix match, so everything local lands in the
-    # first and only genuinely external names reach the second. That split is
-    # what lets the AAAA filter below apply to the internet path alone.
     servers:
-      # ── local zones: cluster, and the two internal domains ────────────────
       - zones:
-          - zone: cluster.local
-            scheme: dns://
-            use_tcp: true
-          - zone: in-addr.arpa
-            scheme: dns://
-            use_tcp: true
-          - zone: ip6.arpa
-            scheme: dns://
-            use_tcp: true
-          - zone: ${SECRET_DOMAIN}
-            scheme: dns://
-            use_tcp: true
-          - zone: ${SECRET_DOMAIN_ALT}
+          - zone: .
             scheme: dns://
             use_tcp: true
         port: 53
         plugins:
           - name: errors
-          # health, ready and prometheus bind listeners, so they belong to
-          # exactly one block - a second copy fails to start on address reuse.
           - name: health
             configBlock: |-
               lameduck 5s
@@ -79,9 +60,6 @@ spec:
             parameters: ${SECRET_DOMAIN} ${K8S_GATEWAY_IP}
           - name: forward
             parameters: ${SECRET_DOMAIN_ALT} ${K8S_GATEWAY_IP}
-          # Catches what the kubernetes plugin falls through on: reverse lookups
-          # for addresses outside the cluster ranges. Reachable only from the
-          # arpa zones above, never from a forward name.
           - name: forward
             parameters: . /etc/resolv.conf
           - name: cache
@@ -91,51 +69,6 @@ spec:
           - name: loop
           - name: reload
           - name: loadbalance
-          - name: prometheus
-            parameters: 0.0.0.0:9153
-          - name: log
-            configBlock: |-
-              class error
-
-      # ── everything else: the internet path ────────────────────────────────
-      - zones:
-          - zone: .
-            scheme: dns://
-            use_tcp: true
-        port: 53
-        plugins:
-          - name: errors
-          # Pods get a ULA address and a v6 default route from cilium, but the
-          # cluster has no IPv6 egress at all - a forced v6 connect to an
-          # external host fails after ~440ms. Most clients survive on
-          # Happy Eyeballs and merely pay the fallback delay, but OpenTofu's
-          # registry client does not: `tofu init` in the authentik-oidc runner
-          # failed 20 times in four hours on ENETUNREACH to registry.opentofu.org.
-          #
-          # Answering NODATA (NOERROR, empty answer) rather than filtering the
-          # reply keeps resolvers from retrying and sends them straight to A.
-          #
-          # Scoped to this block deliberately. cluster.local keeps its AAAA, the
-          # ULA space being routable inside the cluster, and LAN clients never
-          # reach CoreDNS - blocky answers them off its k8s-gateway upstream and
-          # its own `conditional . -> 192.168.0.1`, so client IPv6 is untouched.
-          # Remove this plugin the day the cluster gets real v6 egress.
-          - name: template
-            parameters: IN AAAA .
-            configBlock: |-
-              rcode NOERROR
-          - name: forward
-            parameters: . /etc/resolv.conf
-          - name: cache
-            configBlock: |-
-              prefetch 20
-              serve_stale
-          - name: loop
-          - name: reload
-          # Same address as the block above on purpose: the plugin shares the one
-          # listener and tags each series with its own zone, so external-name
-          # queries keep showing up in the coredns dashboards. Omitting it here
-          # would silently drop every metric for this block.
           - name: prometheus
             parameters: 0.0.0.0:9153
           - name: log
