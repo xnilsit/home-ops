@@ -34,30 +34,22 @@ spec:
             - "/bin/sh"
             - "-c"
           args:
+            # No shell variables here on purpose: flux postBuild substitution is
+            # strict and would try to resolve any dollar-name as a cluster
+            # variable. awk emits finished commands and sh runs them; awk fields
+            # are safe because a digit cannot start a substitution identifier.
+            #
+            # The 30s sleep bounds how long cilium can masquerade to a dead
+            # prefix after a rotation.
             - |
-              # No `set -e`: a transient failure must not end the loop.
-              set -u
-              echo "sweeping every ${INTERVAL}s"
               while :; do
                 ip -6 addr show | awk '
                   /^[0-9]+: / { dev = $2; sub(/:$/, "", dev) }
-                  # scope global excludes fe80::, dynamic excludes the pinned
-                  # node ULA, and 2/3 restricts to 2000::/3 so fd2e:: is safe.
                   /^ *inet6 / && /scope global/ && /deprecated/ && /dynamic/ {
-                    if ($2 ~ /^[23]/) print dev, $2
-                  }' | while read -r dev cidr; do
-                    if ip -6 addr del "$cidr" dev "$dev" 2>/dev/null; then
-                      echo "deleted deprecated $cidr from $dev"
-                    else
-                      echo "could not delete $cidr from $dev" >&2
-                    fi
-                  done
-                sleep "${INTERVAL}"
+                    if ($2 ~ /^[23]/) print "ip -6 addr del " $2 " dev " dev " && echo deleted deprecated " $2 " from " dev
+                  }' | sh
+                sleep 30
               done
-          env:
-            # Bounds how long cilium can keep masquerading to a dead prefix.
-            - name: INTERVAL
-              value: "30"
           securityContext:
             # NET_ADMIN is only effective for uid 0; everything else is dropped.
             runAsUser: 0
