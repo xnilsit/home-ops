@@ -151,6 +151,7 @@ spec:
           daemon:
             keyRotationPolicy: KeyGeneration # bump keyGeneration to rotate
             keyGeneration: 2
+            keyType: aes256k
           csi:
             keyRotationPolicy: KeyGeneration
             keepPriorKeyCountMax: 0 # every mount re-staged on the gen-3 key
