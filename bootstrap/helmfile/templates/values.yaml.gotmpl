@@ -1,1 +1,27 @@
-{{ (fromYaml (readFile (printf "../../../kubernetes/apps/%s/%s/app/helmrelease.yaml" .Release.Namespace .Release.Name))).spec.values | toYaml }}
+{{- /*
+  Renders a HelmRelease's spec.values for bootstrap, when Flux does not exist yet
+  to run the postBuild substitution these values are written against. Anything
+  ${LIKE_THIS} has to be resolved here or it reaches the chart literally.
+
+  Same two sources as kubernetes/flux/cluster/ks.yaml, in the same order, so
+  cluster-secrets wins on a key both define.
+*/ -}}
+{{- $root := "../../../kubernetes" -}}
+{{- $vars := merge
+      (fromYaml (exec "sops" (list "decrypt" (printf "%s/flux/meta/settings/cluster-secrets.sops.yaml" $root)))).stringData
+      (fromYaml (readFile (printf "%s/flux/meta/settings/cluster-settings.yaml" $root))).data -}}
+{{- $out := (fromYaml (readFile (printf "%s/apps/%s/%s/app/helmrelease.yaml" $root .Release.Namespace .Release.Name))).spec.values | toYaml -}}
+{{- range $k, $v := $vars -}}
+{{- $out = $out | replace (printf "${%s}" $k) (toString $v) -}}
+{{- end -}}
+{{- /*
+  A leftover placeholder is a silent, hard-to-trace break: coredns used to
+  bootstrap with `forward nilsit.de ${K8S_GATEWAY_IP}` and die on plugin/forward
+  while helmfile waited on a readiness it would never get. Fail loudly instead.
+*/ -}}
+{{- if regexMatch "\\$\\{[A-Z0-9_]+\\}" $out -}}
+{{- fail (printf "%s/%s: unresolved substitution variable(s) %v - add them to cluster-settings or cluster-secrets"
+      .Release.Namespace .Release.Name
+      (uniq (regexFindAll "\\$\\{[A-Z0-9_]+\\}" $out -1))) -}}
+{{- end }}
+{{ $out }}
