@@ -109,6 +109,8 @@ spec:
           # No new aes keys. The auth side is monmap state, not config:
           # `ceph mon set auth_allowed_ciphers aes256k`.
           mon_auth_allow_insecure_key: "false"
+          # Headroom over the ~60ms the gateway's NTP wobble puts between mons.
+          mon_clock_drift_allowed: "0.1" # quote
         mgr:
           log_max_recent: "100"
         client:
