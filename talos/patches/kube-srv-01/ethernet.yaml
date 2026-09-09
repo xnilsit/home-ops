@@ -25,9 +25,9 @@ machine:
   sysctls:
     net.ipv6.conf.enp2s0.disable_ipv6: "1"
     net.ipv6.conf.enp3s0.disable_ipv6: "1"
-    # No IPv6 default route: pod IPv6 is a ULA with no routable source, so
-    # egress must fail immediately rather than blackhole until it times out.
-    net.ipv6.conf.enp1s0f0.accept_ra_defrtr: "0"
+    # Pod IPv6 egress. Cilium masquerades to this device's primary GUA, which
+    # kube-system/slaac-janitor keeps pointed at the live Telekom prefix.
+    net.ipv6.conf.enp1s0f0.accept_ra_defrtr: "1"
   kubelet:
     # IPv4 first: kubelet orders a pod's IPs to match the node's, and a pod
     # whose primary IP is IPv6 fails any probe against a 0.0.0.0-only listener.

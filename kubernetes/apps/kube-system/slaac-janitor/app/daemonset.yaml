@@ -1,0 +1,72 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/daemonset-apps-v1.json
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: slaac-janitor
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: &app slaac-janitor
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: *app
+    spec:
+      # Must be the host namespace: these are the node's own SLAAC addresses.
+      hostNetwork: true
+      # Needs no DNS, and must not wait on CoreDNS to start sweeping.
+      dnsPolicy: Default
+      # A missed sweep only delays reclaiming an address; it is not node-critical.
+      priorityClassName: cluster-infra
+      automountServiceAccountToken: false
+      tolerations:
+        - operator: Exists
+          effect: NoSchedule
+        - operator: Exists
+          effect: NoExecute
+      containers:
+        - name: app
+          # busybox `ip` already prints the deprecated flag, so no iproute2 and
+          # no package install on a node-level DaemonSet at startup.
+          image: mirror.gcr.io/library/alpine:3.22
+          command:
+            - "/bin/sh"
+            - "-c"
+          args:
+            - |
+              # No `set -e`: a transient failure must not end the loop.
+              set -u
+              echo "sweeping every ${INTERVAL}s"
+              while :; do
+                ip -6 addr show | awk '
+                  /^[0-9]+: / { dev = $2; sub(/:$/, "", dev) }
+                  # scope global excludes fe80::, dynamic excludes the pinned
+                  # node ULA, and 2/3 restricts to 2000::/3 so fd2e:: is safe.
+                  /^ *inet6 / && /scope global/ && /deprecated/ && /dynamic/ {
+                    if ($2 ~ /^[23]/) print dev, $2
+                  }' | while read -r dev cidr; do
+                    if ip -6 addr del "$cidr" dev "$dev" 2>/dev/null; then
+                      echo "deleted deprecated $cidr from $dev"
+                    else
+                      echo "could not delete $cidr from $dev" >&2
+                    fi
+                  done
+                sleep "${INTERVAL}"
+              done
+          env:
+            # Bounds how long cilium can keep masquerading to a dead prefix.
+            - name: INTERVAL
+              value: "30"
+          securityContext:
+            # NET_ADMIN is only effective for uid 0; everything else is dropped.
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {add: ["NET_ADMIN"], drop: ["ALL"]}
+            seccompProfile: {type: RuntimeDefault}
+          resources:
+            requests:
+              cpu: 10m
+            limits:
+              memory: 32Mi
