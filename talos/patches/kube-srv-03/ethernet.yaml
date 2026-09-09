@@ -25,8 +25,17 @@ machine:
   sysctls:
     net.ipv6.conf.enp2s0.disable_ipv6: "1"
     net.ipv6.conf.enp3s0.disable_ipv6: "1"
-    # No IPv6 default route: pod IPv6 is a ULA with no routable source, so
-    # egress must fail immediately rather than blackhole until it times out.
+    # No IPv6 default route. Measured on this node with it set to "1": the route
+    # installs and host netns reaches the v6 internet in 39ms, but pod egress
+    # times out. BPF masquerade rewrites to the device's PRIMARY address, and
+    # cilium picks the lowest-sorted global one - the OLDEST delegated Telekom
+    # prefix, not the current one the kernel would choose - so pods leave with a
+    # source Telekom no longer routes and the reply never comes. The four stale
+    # 2001:9e8:* /64s here outlive each rotation, so the wrong one keeps winning.
+    #
+    # Only enableMasqueradeRouteSource fixes the source, and it is rejected
+    # alongside bpf.masquerade (#128). Without a route, egress at least fails
+    # immediately instead of blackholing until it times out.
     net.ipv6.conf.enp1s0f0.accept_ra_defrtr: "0"
   kubelet:
     # IPv4 first: kubelet orders a pod's IPs to match the node's, and a pod

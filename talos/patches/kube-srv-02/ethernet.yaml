@@ -7,8 +7,10 @@ wakeOnLan:
 ---
 machine:
   sysctls:
-    # No IPv6 default route: pod IPv6 is a ULA with no routable source, so
-    # egress must fail immediately rather than blackhole until it times out.
+    # No IPv6 default route. Not because the source is unroutable - cilium does
+    # masquerade pod IPv6 to a Telekom GUA - but because it picks the OLDEST
+    # delegated prefix rather than the current one. See kube-srv-03, where this
+    # was measured with the route in place.
     net.ipv6.conf.enp5s0f0np0.accept_ra_defrtr: "0"
   kubelet:
     # IPv4 first: kubelet orders a pod's IPs to match the node's, and a pod
