@@ -28,16 +28,43 @@ clients SLAAC an address in it and treat the whole /64 as directly reachable.
 
 The Network UI's IPv6 settings for this network are `Interface Type: Prefix Delegation` with the
 ULA entered under **Additional IPs**. That puts `fd2e:9a41:6b8c:1::1/64` on the gateway's own
-interface but does **not** add the prefix to the router advertisements — verified on the wire,
-where RA carried only the two delegated Telekom GUA prefixes. Without the on-link prefix, clients
-learn the ULA DNS server from RDNSS but have no ULA source address, and RFC 6724 source-address
-selection will not pair a GUA source with a ULA destination, so the queries never leave the host.
+interface. Without an on-link ULA prefix in RA, clients learn the ULA DNS server from RDNSS but
+have no ULA source address, and RFC 6724 source-address selection will not pair a GUA source with
+a ULA destination, so the queries never leave the host.
 
 This is what makes the cluster's IPv6 service VIPs reachable —
 `fd2e:9a41:6b8c:1::53` (blocky) and `fd2e:9a41:6b8c:1::150` (envoy-internal) are announced by
 Cilium over NDP and must look on-link to LAN clients.
 
-The lifetimes are the RFC 4861 defaults: 30 days valid, 7 days preferred.
+The lifetimes here are the RFC 4861 defaults: 30 days valid, 7 days preferred.
+
+#### This stanza may now be redundant — verify before relying on it
+
+It was added because **Additional IPs** did not put the ULA into RA, "verified on the wire, where
+RA carried only the two delegated Telekom GUA prefixes". That is no longer what the wire shows.
+Re-measured 2026-09-09 with `rdisc6 -1 enp1s0f0` from a host-network pod, the RA carries:
+
+| Prefix | Valid | Preferred | Source |
+| --- | --- | --- | --- |
+| one `2001:9e8:*::/64` | 86400 | 14400 | Telekom PD |
+| `fd2e:9a41:6b8c:1::/64` | 86400 | 14400 | UniFi, i.e. **Additional IPs now does advertise it** |
+| `fd2e:9a41:6b8c:1::/64` | 2592000 | 604800 | this fragment |
+
+So the ULA is advertised **twice, with conflicting lifetimes**, and only **one** Telekom prefix is
+delegated now rather than two. Nothing is broken — the kernel keeps the longer pair, and nodes show
+`valid_lft 2591630` — but the justification above no longer holds. Do not delete the stanza on the
+strength of this note alone: confirm on the wire first, since a UniFi upgrade could revert the
+behaviour and dropping it would then silently break every ULA VIP on the LAN.
+
+Router lifetime is 1800s, which is how long a client keeps the default route without a further RA.
+
+#### Rotated-away Telekom prefixes are not re-advertised
+
+Also measured, and load-bearing for `kube-system/slaac-janitor`: when the delegated prefix rotates,
+the previous one simply stops appearing in RA. It is never re-advertised with `preferred_lft 0`, so
+nodes deprecate the old address and count its `valid_lft` down from 86400 — up to 24h during which
+a stale, no-longer-routed GUA is still present on the interface. Deleting such an address is
+therefore permanent; no RA puts it back. That is what the janitor relies on.
 
 ### `interfaces.ethernet.eth0.address`
 
