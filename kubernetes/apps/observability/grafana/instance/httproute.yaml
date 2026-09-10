@@ -17,7 +17,15 @@ spec:
       namespace: network
       sectionName: https
   rules:
-    - backendRefs:
+    # Basic auth stays on for grafana-operator, which reaches the Service
+    # directly; dropping the header here keeps that off the public listener.
+    # Browser sessions are cookie-based, so only external API clients lose out.
+    - filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove:
+              - "Authorization"
+      backendRefs:
         - name: grafana-service
           port: 3000
       matches:
