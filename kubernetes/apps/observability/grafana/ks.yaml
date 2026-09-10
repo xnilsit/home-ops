@@ -44,8 +44,14 @@ metadata:
   namespace: flux-system
 spec:
   dependsOn:
+    # Writes the grafana-oidc Secret the ExternalSecret reads
+    - name: authentik-oidc
+      namespace: flux-system
     # Owns the ClusterSecretStore the credential is pulled through
     - name: external-secrets-stores-database
+      namespace: flux-system
+    # The OIDC credential comes through the tofu-controller store
+    - name: external-secrets-stores
       namespace: flux-system
     - name: grafana
       namespace: flux-system

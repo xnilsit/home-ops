@@ -14,9 +14,29 @@ spec:
       feedback_links_enabled: "false"
       reporting_enabled: "false"
     auth:
-      disable_login_form: "false"
+      # No password form on a publicly reachable host. Basic auth stays on for
+      # the API, which is how grafana-operator reconciles dashboards.
+      disable_login_form: "true"
+      # Real SSO logout; without it signing out leaves the authentik session up.
+      signout_redirect_url: ${AUTHENTIK_URL}/application/o/home-ops-grafana/end-session/
     auth.anonymous:
+      enabled: "false"
+    auth.generic_oauth:
       enabled: "true"
+      name: authentik
+      # client_id/client_secret arrive as env, from ./externalsecret-oidc.yaml.
+      # Endpoints pinned rather than discovered - the issuer path segment is the
+      # authentik application slug, which tofu keeps at home-ops-<app>.
+      auth_url: ${AUTHENTIK_URL}/application/o/authorize/
+      token_url: ${AUTHENTIK_URL}/application/o/token/
+      api_url: ${AUTHENTIK_URL}/application/o/userinfo/
+      # offline_access is what makes use_refresh_token below more than a no-op:
+      # authentik only issues a refresh token when it is requested.
+      scopes: openid email profile offline_access
+      use_refresh_token: "true"
+      # Only home-ops is bound to the application, so the fallback is unreachable
+      # today; it keeps a future group from silently landing as Admin.
+      role_attribute_path: contains(groups[*], 'home-ops') && 'Admin' || 'Viewer'
     log:
       mode: console
     metrics:
@@ -44,6 +64,17 @@ spec:
                     secretKeyRef:
                       name: grafana-admin-password-secret
                       key: GF_SECURITY_ADMIN_PASSWORD
+                # Env rather than spec.config, which is a plaintext ConfigMap.
+                - name: GF_AUTH_GENERIC_OAUTH_CLIENT_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: &oidcSecret grafana-oidc
+                      key: client-id
+                - name: GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: *oidcSecret
+                      key: client-secret
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true

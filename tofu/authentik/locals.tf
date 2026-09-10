@@ -57,6 +57,25 @@ locals {
       ]
     }
 
+    # No components/oidc: grafana-operator drives Grafana's HTTP API with basic
+    # auth, and an oauth2 filter in front of it would 302 every reconcile.
+    grafana = {
+      display_name = "Grafana"
+      description  = "Metrics, logs and alerting dashboards."
+      hostnames    = ["grafana.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/grafana.svg"
+      # The admin UIs' group. Every member maps to Grafana's Admin role - see
+      # role_attribute_path in the Grafana CR.
+      groups = ["home-ops"]
+      # Grafana makes a user record per login and reads role claims itself.
+      sub_mode                   = "user_username"
+      include_claims_in_id_token = true
+      gateway_callback           = false
+      extra_redirect_uris = [
+        "https://grafana.${var.domain}/login/generic_oauth",
+      ]
+    }
+
     # ── the LAN services proxied through external-services ────────────────────
     # Each pairs with a SecurityPolicy in
     # kubernetes/apps/network/external-services/app/oidc.yaml.
