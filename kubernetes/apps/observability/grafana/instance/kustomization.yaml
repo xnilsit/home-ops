@@ -6,6 +6,7 @@ components:
   - ../../../../components/kopiur/backup
 resources:
   - ./grafana.yaml
+  - ./externalsecret-oidc.yaml
   - ./httproute.yaml
   - ./servicemonitor.yaml
   - ./datasource-alerts.yaml

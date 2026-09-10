@@ -4,8 +4,8 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: grafana-route
-  # / is 200 only because anonymous auth is on; revoking that would turn the
-  # probe into a login-page check. /api/health needs no session either way.
+  # /api/health is the only unauthenticated endpoint left now that anonymous
+  # auth is off; / redirects to the OIDC login.
   annotations:
     gatus.home-operations.com/endpoint: |
       path: /api/health
