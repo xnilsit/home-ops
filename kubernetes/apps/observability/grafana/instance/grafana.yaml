@@ -24,6 +24,10 @@ spec:
     auth.generic_oauth:
       enabled: "true"
       name: authentik
+      # Skips the "Sign in with authentik" click. Safe to pair with
+      # signout_redirect_url: authentik ends its own session, so signing out
+      # lands on its login page rather than bouncing straight back in.
+      auto_login: "true"
       # client_id/client_secret arrive as env, from ./externalsecret-oidc.yaml.
       # Endpoints pinned rather than discovered - the issuer path segment is the
       # authentik application slug, which tofu keeps at home-ops-<app>.
