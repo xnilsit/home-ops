@@ -30,7 +30,9 @@ spec:
               SCANOPY_PUBLIC_URL: https://scanopy.${SECRET_DOMAIN}
               # Envoy terminates TLS.
               SCANOPY_USE_SECURE_SESSION_COOKIES: "true"
-              SCANOPY_CLIENT_IP_SOURCE: x-forwarded-for
+              # An axum_client_ip::ClientIpSource variant name, not a header
+              # name. Envoy is the only hop, so its entry is the rightmost one.
+              SCANOPY_CLIENT_IP_SOURCE: RightmostXForwardedFor
               # authentik is the only way in; see ./externalsecret-oidc.yaml.
               SCANOPY_DISABLE_REGISTRATION: "true"
               # The server provisions this daemon and mints its API key itself,
@@ -98,6 +100,9 @@ spec:
             env:
               TZ: ${TIMEZONE}
               SCANOPY_LOG_LEVEL: info
+              # Off, not a path: the daemon otherwise opens a file appender on
+              # /var/log/scanopy and panics against the read-only root.
+              SCANOPY_LOG_FILE: none
               SCANOPY_DAEMON_PORT: &daemonPort 60073
               SCANOPY_SERVER_URL: http://scanopy-app.network.svc.cluster.local:60072
               # Scan the LAN attachment only, never the pod network on eth0.
