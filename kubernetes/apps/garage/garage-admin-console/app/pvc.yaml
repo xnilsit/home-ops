@@ -1,0 +1,16 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/persistentvolumeclaim-v1.json
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: garage-admin-console
+spec:
+  # Holds only the cluster entries added through the UI - endpoint plus the
+  # admin token, encrypted with ENCRYPTION_KEY. Not backed up: re-adding the
+  # NAS cluster is one dialog, see synology/garage/README.md.
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: ceph-block

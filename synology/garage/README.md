@@ -54,10 +54,17 @@ in `kubernetes/apps/garage/` and applied by
 
 ## Day-to-day
 
-`garage.${SECRET_DOMAIN}` (garage-webui, in the `garage` namespace, LAN-only behind
-envoy-internal) shows the same cluster, bucket and key state in a browser. It holds the admin
-token, so it can read every S3 secret key Garage stores — hence the password on it and no
-external route.
+`garage.${SECRET_DOMAIN}` (garage-admin-console, in the `garage` namespace, LAN-only behind
+envoy-internal) shows the same cluster, bucket and key state in a browser, plus an S3 object
+browser at `/s3-browser`. It holds the admin token, so it can read every S3 secret key Garage
+stores — hence authentik in front of it, its own password behind that, and no external route.
+
+The cluster it talks to is **not** declared in git: the console keeps its cluster entries in a
+SQLite database on its PVC, encrypted with `ENCRYPTION_KEY`. After a first install or a lost
+volume, add the NAS back through the UI — "Connect Cluster", admin API `http://192.168.0.200:3903`,
+S3 endpoint `http://192.168.0.200:3900`, region `eu-central-1`, and the admin token from
+`sops -d kubernetes/apps/garage/garage/app/secret.sops.yaml`. The console password is in
+`kubernetes/apps/garage/garage-admin-console/app/secret.sops.yaml`.
 
 ```sh
 docker exec garage /garage status              # node health and layout

@@ -730,7 +730,7 @@
           "legendFormat": "{{table_name}}"
         }
       ],
-      "description": "Rows per Garage table. object/version/block_ref track object count; there are no per-bucket metrics in Garage 2.3.0 - use garage-webui for that."
+      "description": "Rows per Garage table. object/version/block_ref track object count; there are no per-bucket metrics in Garage 2.3.0 - use the garage admin console for that."
     },
     {
       "id": 13,

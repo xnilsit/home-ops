@@ -21,7 +21,7 @@ metadata:
   # Port 3900 has no unauthenticated 200 - a GET / is a ListBuckets without a
   # SigV4 signature and answers 403. The admin API on 3903 does, and it reports
   # cluster quorum rather than just "the listener is up"; it is unrouted, so the
-  # probe goes straight to the LAN address the webui and the scrape config use.
+  # probe goes straight to the LAN address the console and the scrape config use.
   annotations:
     gatus.home-operations.com/endpoint: |
       url: http://192.168.0.200:3903/health
