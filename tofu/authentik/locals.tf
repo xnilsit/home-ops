@@ -57,6 +57,22 @@ locals {
       ]
     }
 
+    scanopy = {
+      display_name = "Scanopy"
+      description  = "Network discovery and topology diagrams."
+      hostnames    = ["scanopy.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/scanopy.svg"
+      groups       = ["home-ops"]
+      # Scanopy makes a user record per login and reads the id token itself.
+      sub_mode                   = "user_username"
+      include_claims_in_id_token = true
+      gateway_callback           = false
+      extra_redirect_uris = [
+        # The path segment is the provider slug in SCANOPY_OIDC_PROVIDERS.
+        "https://scanopy.${var.domain}/api/auth/oidc/authentik/callback",
+      ]
+    }
+
     # No components/oidc: grafana-operator drives Grafana's HTTP API with basic
     # auth, and an oauth2 filter in front of it would 302 every reconcile.
     grafana = {

@@ -1,0 +1,31 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: scanopy-lan
+spec:
+  # No master: the plugin then enslaves the host's default-route interface,
+  # which is enp1s0f0 on kube-srv-01/03 and enp5s0f0np0 on kube-srv-02.
+  #
+  # No gateway and no routes: eth0 must keep the pod's default route, so only
+  # 192.168.0.0/23 leaves through net1 via the connected route.
+  #
+  # macvlan bridge mode cannot reach the host it runs on, so kubelet httpGet
+  # probes hang - the daemon uses exec probes. kubectl port-forward is out too.
+  #
+  # 192.168.1.40 is unmanaged: the Cilium LB-IPAM pool covers this /23 and does
+  # not know it is taken, and it must stay outside the UniFi DHCP pool.
+  config: |-
+    {
+      "cniVersion": "0.3.1",
+      "name": "scanopy-lan",
+      "type": "macvlan",
+      "mode": "bridge",
+      "ipam": {
+        "type": "static",
+        "addresses": [
+          { "address": "192.168.1.40/23" }
+        ]
+      }
+    }

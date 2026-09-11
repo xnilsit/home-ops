@@ -11,6 +11,7 @@ resources:
   - ./envoy-gateway/ks.yaml
   - ./external-services/ks.yaml
   - ./k8s-gateway/ks.yaml
+  - ./scanopy/ks.yaml
 components:
   - ../../flux/components/namespace
 patches:

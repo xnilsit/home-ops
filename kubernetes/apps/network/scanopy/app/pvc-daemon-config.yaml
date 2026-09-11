@@ -1,0 +1,15 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/persistentvolumeclaim-v1.json
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: scanopy-daemon-config
+spec:
+  # Holds only the server-minted API key. Not backed up - the server re-mints it
+  # on its next start - but persisted so a daemon-only restart keeps its identity.
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: ceph-block

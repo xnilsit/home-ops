@@ -1,0 +1,16 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Provisions the /data PVC (named ${APP}) and snapshots it to the NAS.
+  - ../../../../components/kopiur/backup
+  # The database on the shared CNPG cluster.
+  - ../../../../components/postgres-shared
+resources:
+  - ./networkattachmentdefinition.yaml
+  - ./pvc-daemon-config.yaml
+  # Must precede the HelmRelease, whose server reads the Secret it renders.
+  - ./externalsecret-oidc.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml

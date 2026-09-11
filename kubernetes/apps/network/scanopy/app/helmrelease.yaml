@@ -1,0 +1,206 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: scanopy
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: scanopy
+  interval: 1h
+  values:
+    controllers:
+      scanopy:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # RWO /data volume: two pods must never hold it at once.
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/scanopy/scanopy/server
+              tag: v0.17.14
+            env:
+              TZ: ${TIMEZONE}
+              SCANOPY_LOG_LEVEL: info
+              SCANOPY_SERVER_PORT: &port 60072
+              # The UI the image ships, served from disk rather than the binary.
+              SCANOPY_WEB_EXTERNAL_PATH: /app/static
+              SCANOPY_PUBLIC_URL: https://scanopy.${SECRET_DOMAIN}
+              # Envoy terminates TLS.
+              SCANOPY_USE_SECURE_SESSION_COOKIES: "true"
+              SCANOPY_CLIENT_IP_SOURCE: x-forwarded-for
+              # authentik is the only way in; see ./externalsecret-oidc.yaml.
+              SCANOPY_DISABLE_REGISTRATION: "true"
+              # The server provisions this daemon and mints its API key itself,
+              # so the daemon needs no enrolment and no stored credential.
+              SCANOPY_INTEGRATED_DAEMON_URL: http://scanopy-daemon.network.svc.cluster.local:60073
+              SCANOPY_DATABASE_URL:
+                valueFrom:
+                  secretKeyRef:
+                    name: scanopy-pg-shared
+                    key: uri
+            envFrom:
+              # SCANOPY_OIDC_PROVIDERS, rendered with the client secret in it.
+              - secretRef:
+                  name: scanopy-oidc
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/health
+                    port: *port
+                  initialDelaySeconds: 0
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness: *probe
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/health
+                    port: *port
+                  periodSeconds: 10
+                  failureThreshold: 30
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                memory: 2Gi
+        pod:
+          securityContext:
+            runAsNonRoot: true
+            # 1000 matches KOPIUR_PUID/PGID, which the movers reading /data run as.
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
+            seccompProfile:
+              type: RuntimeDefault
+      daemon:
+        # Single static macvlan address and an RWO config volume: never two pods.
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/scanopy/scanopy/daemon
+              tag: v0.17.14
+            env:
+              TZ: ${TIMEZONE}
+              SCANOPY_LOG_LEVEL: info
+              SCANOPY_DAEMON_PORT: &daemonPort 60073
+              SCANOPY_SERVER_URL: http://scanopy-app.network.svc.cluster.local:60072
+              # Scan the LAN attachment only, never the pod network on eth0.
+              SCANOPY_INTERFACES: net1
+            # exec, not httpGet: macvlan cannot answer a probe sourced from its
+            # own node, so the handshake would sit in SYN_RECV forever.
+            probes:
+              liveness: &daemonProbe
+                enabled: true
+                custom: true
+                spec:
+                  exec:
+                    command:
+                      - curl
+                      - -fsS
+                      - -o
+                      - /dev/null
+                      - -m
+                      - "10"
+                      - http://127.0.0.1:60073/api/health
+                  initialDelaySeconds: 0
+                  periodSeconds: 30
+                  timeoutSeconds: 15
+                  failureThreshold: 5
+              readiness: *daemonProbe
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  exec:
+                    command:
+                      - curl
+                      - -fsS
+                      - -o
+                      - /dev/null
+                      - -m
+                      - "10"
+                      - http://127.0.0.1:60073/api/health
+                  periodSeconds: 10
+                  failureThreshold: 30
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              # NET_RAW for ARP/ICMP discovery. Root because a non-root uid gets
+              # the capability permitted but not effective without file or
+              # ambient caps, and the image keeps its config under /root.
+              capabilities: {add: ["NET_RAW"], drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                memory: 1Gi
+        pod:
+          annotations:
+            # ./networkattachmentdefinition.yaml, which holds 192.168.1.40.
+            k8s.v1.cni.cncf.io/networks: scanopy-lan
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            seccompProfile:
+              type: RuntimeDefault
+    persistence:
+      data:
+        # Provisioned by components/kopiur/backup through its Restore populator.
+        existingClaim: scanopy
+        advancedMounts:
+          scanopy:
+            app:
+              - path: /data
+      daemon-config:
+        existingClaim: scanopy-daemon-config
+        advancedMounts:
+          daemon:
+            app:
+              - path: /root/.config/scanopy/daemon
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+    service:
+      app:
+        controller: scanopy
+        ports:
+          http:
+            port: *port
+      daemon:
+        controller: daemon
+        ports:
+          http:
+            port: *daemonPort
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /api/health
+        hostnames:
+          - "scanopy.${SECRET_DOMAIN}"
+        parentRefs:
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
