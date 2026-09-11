@@ -10,6 +10,7 @@ components:
 resources:
   - ./networkattachmentdefinition.yaml
   - ./pvc-daemon-config.yaml
+  - ./secret.sops.yaml
   # Must precede the HelmRelease, whose server reads the Secret it renders.
   - ./externalsecret-oidc.yaml
   - ./ocirepository.yaml
