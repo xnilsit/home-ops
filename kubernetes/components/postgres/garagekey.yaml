@@ -1,0 +1,37 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/garage.rajsingh.info/garagekey_v1beta1.json
+apiVersion: garage.rajsingh.info/v1beta1
+kind: GarageKey
+metadata:
+  name: ${APP}-postgres-backup
+spec:
+  clusterRef:
+    name: nas
+    namespace: garage
+  neverExpires: true
+  secretTemplate:
+    # Written straight into this namespace, which is where the ObjectStore needs
+    # it - its s3Credentials are SecretKeySelectors and cannot cross one. The
+    # keys the buckets in `garage` mint centrally are copied in by ESO instead;
+    # here the key belongs to the app, so nothing has to be mirrored.
+    name: ${APP}-postgres-backup
+    accessKeyIdKey: AWS_ACCESS_KEY_ID
+    secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
+    # Garage checks the region in the SigV4 credential scope and rejects a
+    # mismatch, so barman has to be told it. Hardcoded rather than
+    # includeRegion: the operator derives that from spec.s3Api.region, which a
+    # tier-less management handle does not carry - it would default to "garage"
+    # and every request would fail to authenticate.
+    includeRegion: false
+    # Same reason, and the operator hard-fails the key without it: it cannot
+    # infer an S3 endpoint from a handle's adminApiEndpoint. ./objectstore.yaml
+    # carries its own endpointURL anyway.
+    includeEndpoint: false
+    additionalData:
+      AWS_REGION: eu-central-1
+  bucketPermissions:
+    # ./garagebucket.yaml, in this namespace - no grant needed for this half.
+    - bucketRef:
+        name: ${APP}-postgres-backup
+      read: true
+      write: true

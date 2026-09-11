@@ -2,12 +2,46 @@
 # yaml-language-server: $schema=https://json.schemastore.org/kustomization
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
+# A CNPG cluster for one app, archiving to its own bucket on the Garage NAS.
 # Bootstraps with initdb. Add ../postgres-recovery after this component to swap
 # that for a restore from the object store - only once backups exist.
+#
+# Required in the app's ks.yaml postBuild.substitute:
+#   APP            names every object here, the database and the barman prefix
+#   PG_IMAGE_TAG   annotated for Renovate - see database/pg-shared/ks.yaml
+#
+# Optional, with the defaults in ./cluster.yaml: PG_INSTANCES, PG_STORAGE_SIZE,
+# PG_STORAGE_CLASS, PG_CPU_REQUEST, PG_MEMORY_REQUEST, PG_MEMORY_LIMIT,
+# PG_SHARED_BUFFERS, PG_EFFECTIVE_CACHE_SIZE, PG_WORK_MEM,
+# PG_MAINTENANCE_WORK_MEM, PG_RETENTION, PG_BACKUP_CRON.
+#
+# The app Kustomization must dependsOn barman-cloud-plugin, which the Cluster
+# references, and garage, which owns the GarageCluster handle and the
+# GarageReferenceGrant that lets ./garagebucket.yaml and ./garagekey.yaml point
+# at it from this namespace.
+#
+# Anything beyond those knobs - extensions, shared_preload_libraries, a GUC with
+# no variable here - is a patch on the Cluster in the app's own kustomization:
+#
+#   patches:
+#     - patch: |-
+#         apiVersion: postgresql.cnpg.io/v1
+#         kind: Cluster
+#         metadata:
+#           name: ${APP}-postgres
+#         spec:
+#           postgresql:
+#             parameters:
+#               max_locks_per_transaction: "128"
+#
+# No `target:` in that form on purpose: there, `name` is a REGEX and
+# `${APP}-postgres` would never match ($ anchors). With the selector taken from
+# the patch body instead, the name is matched literally.
 resources:
-  # Order matters on first reconcile: the OBC grants this namespace access to
-  # the shared bucket, and the Cluster cannot archive before that exists.
-  - ./objectbucketclaim.yaml
+  # Order matters on first reconcile: the bucket and its key have to exist
+  # before the Cluster can archive.
+  - ./garagebucket.yaml
+  - ./garagekey.yaml
   - ./objectstore.yaml
   - ./cluster.yaml
   - ./scheduledbackup.yaml

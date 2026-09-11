@@ -1,0 +1,20 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/garage.rajsingh.info/garagereferencegrant_v1beta1.json
+apiVersion: garage.rajsingh.info/v1beta1
+kind: GarageReferenceGrant
+metadata:
+  name: cluster-handle
+spec:
+  # Consent for an app namespace to point its own GarageBucket and GarageKey at
+  # the `nas` handle here - which is what kubernetes/components/postgres does,
+  # so a new CNPG cluster brings its own bucket and its own scoped key rather
+  # than borrowing a key minted in this namespace.
+  #
+  # An empty namespaceSelector matches every namespace. The grant only allows
+  # naming the handle; it grants no access to the buckets in this namespace,
+  # which each carry their own key.
+  from:
+    - kind: GarageBucket
+      namespaceSelector: {}
+    - kind: GarageKey
+      namespaceSelector: {}

@@ -29,15 +29,27 @@ spec:
       database: ${APP}
       owner: ${APP}
 
+  # Only the knobs every cluster ends up setting. Extensions,
+  # shared_preload_libraries and anything else are a patch on this Cluster from
+  # the app's own kustomization - see ./kustomization.yaml.
+  postgresql:
+    parameters:
+      shared_buffers: ${PG_SHARED_BUFFERS:=256MB}
+      effective_cache_size: ${PG_EFFECTIVE_CACHE_SIZE:=768MB}
+      work_mem: ${PG_WORK_MEM:=16MB}
+      maintenance_work_mem: ${PG_MAINTENANCE_WORK_MEM:=128MB}
+      wal_compression: "on"
+
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
         barmanObjectName: ${APP}-postgres-store
-        # cnpg-backup is shared with every other non-timescale cluster, and
-        # barman namespaces backups by serverName underneath destinationPath.
-        # Two clusters sharing a value would overwrite each other's WAL and base
-        # backups, so this must stay unique - it is why the name carries APP.
+        # Explicit although the bucket holds this cluster alone: barman
+        # namespaces backups by serverName underneath destinationPath, and the
+        # externalCluster in ../postgres-recovery has to name the same prefix -
+        # its own default would be that entry's name, which is not a prefix that
+        # exists.
         serverName: ${APP}-postgres
 
   resources:

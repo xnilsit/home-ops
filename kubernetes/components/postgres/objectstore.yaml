@@ -9,14 +9,12 @@ spec:
   configuration:
     # serverName is supplied as a plugin parameter on the Cluster, not here.
     #
-    # Still on RGW while pg-shared and timescale archive to Garage on the NAS.
-    # Porting this needs a GarageKey per consumer namespace plus a
-    # GarageReferenceGrant in `garage`, since one shared key would hand every
-    # namespace the same credentials - unlike the brownfield OBC below, which
-    # mints an rgw user each.
-    destinationPath: s3://cnpg-backup/
-    endpointURL: http://rook-ceph-rgw-ceph-objectstore.rook-ceph.svc:80
-    # Secret and key names come from the OBC, which names its Secret after itself
+    # Garage on the NAS, like every other cluster's archive, and deliberately by
+    # IP rather than through s3.${SECRET_DOMAIN}: backups must not depend on the
+    # ingress path. Own bucket per app - see ./garagebucket.yaml.
+    destinationPath: s3://${APP}-postgres-backup/
+    endpointURL: http://192.168.0.200:3900
+    # Written by ./garagekey.yaml, straight into this namespace.
     s3Credentials:
       accessKeyId:
         name: ${APP}-postgres-backup
@@ -24,6 +22,11 @@ spec:
       secretAccessKey:
         name: ${APP}-postgres-backup
         key: AWS_SECRET_ACCESS_KEY
+      # Garage checks the region in the SigV4 credential scope and rejects a
+      # mismatch.
+      region:
+        name: ${APP}-postgres-backup
+        key: AWS_REGION
     wal:
       compression: gzip
     data:
