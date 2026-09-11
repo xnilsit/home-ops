@@ -80,25 +80,22 @@ spec:
           - path: /tmp
     service:
       app:
+        # Probed here rather than through the route: ./kustomization.yaml takes
+        # passThroughAuthHeader off this app's SecurityPolicy, so the route only
+        # answers 302 without an authentik cookie. In-cluster the app answers
+        # /api/health itself, which is the half worth watching anyway.
+        annotations:
+          gatus.home-operations.com/enabled: "true"
+          gatus.home-operations.com/endpoint: |
+            url: http://garage-admin-console.garage.svc.cluster.local:3001/api/health
         ports:
           http:
             port: *port
     route:
       app:
-        # Probes authenticate rather than follow the SecurityPolicy's 302:
-        # gatus follows redirects, so an unauthenticated check would land on
-        # authentik's login page and call the app healthy. passThroughAuthHeader
-        # in components/oidc lets the resulting JWT past the oauth2 filter. $$
-        # keeps Flux's envsubst off the secret - gatus expands it itself.
         annotations:
-          gatus.home-operations.com/endpoint: |
-            path: /api/health
-            client:
-              oauth2:
-                token-url: ${AUTHENTIK_URL}/application/o/token/
-                client-id: home-ops-gatus-probe
-                client-secret: $${GATUS_PROBE_CLIENT_SECRET}
-                scopes: ["openid", "profile"]
+          # See the Service above.
+          gatus.home-operations.com/enabled: "false"
         hostnames:
           - "garage.${SECRET_DOMAIN}"
         # envoy-internal only, behind the OIDC SecurityPolicy: this is full
