@@ -121,17 +121,6 @@ spec:
         # The macvlan attachment in ./networkattachmentdefinition.yaml, which is
         # what makes LAN mDNS/SSDP work and what holds 192.168.1.30.
         k8s.v1.cni.cncf.io/networks: lan
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              # Anywhere but kube-srv-02, whose LAN NIC is enp5s0f0np0 rather
-              # than the enp1s0f0 the attachment names. amdgpu is the only label
-              # unique to that node - the same discriminator
-              # kube-system/generic-device-plugin and immich use.
-              - matchExpressions:
-                  - key: extensions.talos.dev/amdgpu
-                    operator: DoesNotExist
       securityContext:
         runAsNonRoot: true
         # The image ends `USER nobody:nogroup` but is uid-agnostic: HOME,
