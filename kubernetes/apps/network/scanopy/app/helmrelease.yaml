@@ -40,9 +40,9 @@ spec:
               # authentik's home-ops group gates. Closing it leaves the instance
               # with no way to create its first account.
               SCANOPY_DISABLE_REGISTRATION: "false"
-              # The server provisions this daemon and mints its API key itself,
-              # so the daemon needs no enrolment and no stored credential.
-              SCANOPY_INTEGRATED_DAEMON_URL: http://scanopy-daemon.network.svc.cluster.local:60073
+              # No SCANOPY_INTEGRATED_DAEMON_URL: the server only ever calls it
+              # from the onboarding handler, so it is dead weight once the
+              # instance is set up. The daemon carries its own key instead.
               SCANOPY_DATABASE_URL:
                 valueFrom:
                   secretKeyRef:
@@ -112,6 +112,14 @@ spec:
               SCANOPY_SERVER_URL: http://scanopy-app.network.svc.cluster.local:60072
               # Scan the LAN attachment only, never the pod network on eth0.
               SCANOPY_INTERFACES: net1
+              SCANOPY_NETWORK_ID: 6443aa33-73a4-4911-bbc9-c8df819a0b86
+              # Env beats the config file on the PVC, which still holds the key
+              # of a daemon record that no longer exists.
+              SCANOPY_DAEMON_API_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: scanopy-daemon
+                    key: SCANOPY_DAEMON_API_KEY
             # exec, not httpGet: macvlan cannot answer a probe sourced from its
             # own node, so the handshake would sit in SYN_RECV forever.
             probes:
