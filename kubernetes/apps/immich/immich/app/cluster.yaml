@@ -4,6 +4,10 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: ${APP}
+  annotations:
+    # Required by the recovery bootstrap below: CNPG otherwise refuses to start
+    # archiving when the destination prefix already holds WALs.
+    cnpg.io/skipEmptyWalArchiveCheck: "enabled"
 spec:
   instances: 3
   imageName: ghcr.io/cloudnative-pg/postgresql:${PG_IMAGE_TAG}
@@ -45,22 +49,38 @@ spec:
       max_parallel_maintenance_workers: "2"
       wal_compression: "on"
 
-  # initdb, unlike the other two clusters: this one starts with an empty
-  # s3://immich-backup/, and a recovery bootstrap against a catalog that does
-  # not exist yet fails outright. The section is only read at creation, so once
-  # the first ScheduledBackup has landed it should be swapped for the recovery
-  # stanza the other clusters use - that is what makes a rebuild after losing
-  # all three node-local PVCs come back with data rather than empty.
+  # Auto-restore, not initdb: recreating this Cluster after total loss (all
+  # three node-local PVCs gone) restores from Garage instead of coming up
+  # empty. The section is only read at creation, so it is inert while the
+  # cluster lives - switching it does NOT restore the running cluster.
   bootstrap:
-    initdb:
+    recovery:
+      source: &archive ${APP}-archive
       database: ${APP}
       owner: ${APP}
+
+  # Read side of the same ObjectStore. serverName is EXPLICIT: for an
+  # externalCluster the plugin defaults it to this entry's name, which would
+  # point at a prefix that does not exist. It must match the archiver below.
+  externalClusters:
+    - name: *archive
+      plugin:
+        enabled: true
+        isWALArchiver: false
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: ${APP}-store
+          serverName: ${APP}
 
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
         barmanObjectName: ${APP}-store
+        # Was implicit - the plugin defaults it to the Cluster name, which is
+        # the s3://immich-backup/immich/ prefix the catalog already lives under.
+        # Spelled out so the externalCluster above has something to match.
+        serverName: ${APP}
 
   resources:
     limits:
