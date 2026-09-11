@@ -2,12 +2,10 @@
 # yaml-language-server: $schema=https://json.schemastore.org/kustomization
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-components:
-  # In front of the console's own login, which cannot be disabled - so this is
-  # the group gate, not the only auth.
-  - ../../../../components/oidc
 resources:
-  - ./pvc.yaml
   - ./secret.sops.yaml
+  # Must precede the HelmRelease, whose Deployment reads the Secret it renders.
+  - ./externalsecret-oidc.yaml
   - ./ocirepository.yaml
   - ./helmrelease.yaml
+  - ./httproute.yaml
