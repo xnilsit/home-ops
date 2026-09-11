@@ -33,8 +33,13 @@ spec:
               # An axum_client_ip::ClientIpSource variant name, not a header
               # name. Envoy is the only hop, so its entry is the rightmost one.
               SCANOPY_CLIENT_IP_SOURCE: RightmostXForwardedFor
-              # authentik is the only way in; see ./externalsecret-oidc.yaml.
-              SCANOPY_DISABLE_REGISTRATION: "true"
+              # No local accounts at all: blocks password login, password
+              # registration and the email-availability probe.
+              SCANOPY_DISABLE_PASSWORD_LOGIN: "true"
+              # Open, and only reachable through the OIDC register flow, which
+              # authentik's home-ops group gates. Closing it leaves the instance
+              # with no way to create its first account.
+              SCANOPY_DISABLE_REGISTRATION: "false"
               # The server provisions this daemon and mints its API key itself,
               # so the daemon needs no enrolment and no stored credential.
               SCANOPY_INTEGRATED_DAEMON_URL: http://scanopy-daemon.network.svc.cluster.local:60073
