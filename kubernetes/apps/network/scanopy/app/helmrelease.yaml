@@ -30,9 +30,11 @@ spec:
               SCANOPY_PUBLIC_URL: https://scanopy.${SECRET_DOMAIN}
               # Envoy terminates TLS.
               SCANOPY_USE_SECURE_SESSION_COOKIES: "true"
-              # An axum_client_ip::ClientIpSource variant name, not a header
-              # name. Envoy is the only hop, so its entry is the rightmost one.
-              SCANOPY_CLIENT_IP_SOURCE: RightmostXForwardedFor
+              # No SCANOPY_CLIENT_IP_SOURCE, so ConnectInfo. It is one global
+              # setting, and a header-based source 500s every request that
+              # arrives without it - which is every call the daemon makes
+              # straight to the Service, bypassing envoy. Costs real client
+              # addresses in the audit log and one shared rate-limit bucket.
               # No local accounts at all: blocks password login, password
               # registration and the email-availability probe.
               SCANOPY_DISABLE_PASSWORD_LOGIN: "true"
