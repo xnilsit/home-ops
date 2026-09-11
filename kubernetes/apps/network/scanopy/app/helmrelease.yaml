@@ -178,7 +178,9 @@ spec:
         advancedMounts:
           daemon:
             app:
-              - path: /root/.config/scanopy/daemon
+              # Where the daemon actually writes config.json. Upstream's compose
+              # file mounts /root/.config/scanopy/daemon, which it never touches.
+              - path: /root/.config/daemon
       tmp:
         type: emptyDir
         globalMounts:
