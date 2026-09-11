@@ -198,8 +198,8 @@ locals {
     # ── the cluster's own admin UIs ───────────────────────────────────────────
     # Each pairs with the components/oidc component in the app's own tree. All
     # of them stay on envoy-internal, so authentik is the only auth they have -
-    # their built-in logins were removed once these existed. rook is the one
-    # exception: see its entry.
+    # their built-in logins were removed once these existed. rook and
+    # garage-admin-console are the exceptions: see their entries.
     flux = {
       display_name = "Flux"
       description  = "GitOps control plane."
@@ -210,7 +210,11 @@ locals {
     }
     # Quoted: an HCL object key cannot carry a hyphen unquoted. The key drives
     # the Secret name, so it must stay equal to ${APP} in the component.
-    "garage-webui" = {
+    #
+    # Keeps its own password as well: the console has no SSO or trusted-header
+    # mode and refuses to start without ADMIN_PASSWORD, so this is the group
+    # gate in front of a login that cannot be turned off.
+    "garage-admin-console" = {
       display_name = "Garage"
       description  = "S3 object store administration."
       hostnames    = ["garage.${var.domain}"]

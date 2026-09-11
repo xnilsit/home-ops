@@ -3,8 +3,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 components:
-  # The only login the webui has - AUTH_USER_PASS was dropped with it.
+  # In front of the console's own login, which cannot be disabled - so this is
+  # the group gate, not the only auth.
   - ../../../../components/oidc
 resources:
-  - ./helmrelease.yaml
+  - ./pvc.yaml
+  - ./secret.sops.yaml
   - ./ocirepository.yaml
+  - ./helmrelease.yaml
