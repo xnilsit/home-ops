@@ -3,12 +3,15 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
-  name: garage-admin-console
+  name: garage-ui
 spec:
   interval: 15m
   layerSelector:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy
+  # Upstream's own chart rather than app-template: it wires every secret through
+  # a SecretKeySelector and renders the config file, so app-template would mean
+  # rebuilding both by hand.
   ref:
-    tag: 5.1.0
-  url: oci://ghcr.io/bjw-s-labs/helm/app-template
+    tag: 0.12.1
+  url: oci://ghcr.io/noooste/charts/garage-ui

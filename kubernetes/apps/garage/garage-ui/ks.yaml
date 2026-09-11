@@ -1,0 +1,39 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app garage-ui
+  namespace: flux-system
+spec:
+  targetNamespace: garage
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/garage/garage-ui/app
+  dependsOn:
+    # Reads the admin token straight out of the garage-credentials Secret that
+    # Kustomization creates - same namespace, so nothing is copied
+    - name: garage
+      namespace: flux-system
+    # garage-ui-oidc is pulled from the Secret the tofu module writes
+    - name: authentik-oidc
+      namespace: flux-system
+    # Owns the ClusterSecretStore the credential ExternalSecret reads through
+    - name: external-secrets-stores
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: *app
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: garage
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: false
+  interval: 1h
+  timeout: 5m

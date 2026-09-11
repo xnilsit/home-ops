@@ -57,6 +57,23 @@ locals {
       ]
     }
 
+    # Quoted: an HCL object key cannot carry a hyphen unquoted. The key is also
+    # the client_id the app is configured with, home-ops-garage-ui.
+    "garage-ui" = {
+      display_name = "Garage"
+      description  = "S3 object store administration."
+      hostnames    = ["garage.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/garage.svg"
+      # Also what role_attribute_path/admin_role match on: authentik returns
+      # group names in the `groups` claim of the profile scope, and garage-ui
+      # promotes a member to cluster admin from it.
+      groups           = ["home-ops"]
+      gateway_callback = false
+      extra_redirect_uris = [
+        "https://garage.${var.domain}/auth/oidc/callback",
+      ]
+    }
+
     scanopy = {
       display_name = "Scanopy"
       description  = "Network discovery and topology diagrams."
@@ -198,8 +215,8 @@ locals {
     # ── the cluster's own admin UIs ───────────────────────────────────────────
     # Each pairs with the components/oidc component in the app's own tree. All
     # of them stay on envoy-internal, so authentik is the only auth they have -
-    # their built-in logins were removed once these existed. rook and
-    # garage-admin-console are the exceptions: see their entries.
+    # their built-in logins were removed once these existed. rook is the one
+    # exception: see its entry.
     flux = {
       display_name = "Flux"
       description  = "GitOps control plane."
@@ -207,19 +224,6 @@ locals {
       # selfh.st carries no flux mark; this is the CNCF project artwork.
       icon   = "https://raw.githubusercontent.com/cncf/artwork/main/projects/flux/icon/color/flux-icon-color.svg"
       groups = ["home-ops"]
-    }
-    # Quoted: an HCL object key cannot carry a hyphen unquoted. The key drives
-    # the Secret name, so it must stay equal to ${APP} in the component.
-    #
-    # Keeps its own password as well: the console has no SSO or trusted-header
-    # mode and refuses to start without ADMIN_PASSWORD, so this is the group
-    # gate in front of a login that cannot be turned off.
-    "garage-admin-console" = {
-      display_name = "Garage"
-      description  = "S3 object store administration."
-      hostnames    = ["garage.${var.domain}"]
-      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/garage.svg"
-      groups       = ["home-ops"]
     }
     kopia = {
       display_name = "Kopia"

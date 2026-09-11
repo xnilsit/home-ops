@@ -11,8 +11,7 @@ kind: Component
 # never carries an Authorization header. passThroughAuthHeader diverts every
 # request that does past the oauth2 filter and into the jwt one, which knows a
 # single issuer - so an app that authenticates its own XHR with a bearer token
-# of its own gets "Jwt issuer is not configured" 401 on every call. That is what
-# garage-admin-console does, and why it takes ../oidc alone.
+# of its own gets "Jwt issuer is not configured" 401 on every call.
 patches:
   # Targeted by kind rather than name: postBuild substitution has not run yet at
   # build time, so the SecurityPolicy is still literally named ${APP}-oidc.

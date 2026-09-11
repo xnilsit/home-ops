@@ -1,0 +1,89 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: garage-ui
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: garage-ui
+  interval: 1h
+  values:
+    # image deliberately unpinned: the chart's appVersion tracks the app it was
+    # cut from, so the OCIRepository tag is the single thing Renovate bumps.
+    config:
+      server:
+        environment: production
+        domain: garage.${SECRET_DOMAIN}
+        protocol: https
+        # Where authentik sends the browser back; the chart appends
+        # /auth/oidc/callback, which is the redirect URI tofu/authentik lists.
+        root_url: https://garage.${SECRET_DOMAIN}
+      garage:
+        # The NAS by IP, like every other consumer: this must not depend on the
+        # ingress path.
+        endpoint: http://192.168.0.200:3900
+        region: eu-central-1
+        admin_endpoint: http://192.168.0.200:3903
+        existingSecret:
+          # Read straight out of the Secret the garage Kustomization owns - same
+          # namespace, so nothing is copied.
+          name: garage-credentials
+          key: admin-token
+      auth:
+        jwt_private_key_secret:
+          name: garage-ui-jwt
+          key: jwt-key.pem
+        # /metrics at the top level, unauthenticated, which is the only way the
+        # ServiceMonitor below can scrape an instance that requires a login. It
+        # carries bucket counts, request rates and sizes - no object data, no
+        # keys - and the Service is not routed.
+        metrics_public: true
+        oidc:
+          enabled: true
+          provider_name: authentik
+          # The tofu module derives client_id from the app key, so it is fixed.
+          client_id: home-ops-garage-ui
+          existingSecret:
+            name: garage-ui-oidc
+            key: client-secret
+          issuer_url: ${AUTHENTIK_URL}/application/o/home-ops-garage-ui/
+          # authentik puts group names in the `groups` claim of the profile
+          # scope. Membership is already required to reach the app at all, so
+          # this is what makes a member a cluster admin rather than a 403.
+          role_attribute_path: groups
+          admin_role: home-ops
+          username_attribute: preferred_username
+      cors:
+        # Same-origin SPA; the chart's default allows every origin.
+        enabled: false
+    # Uploads stream through the process, but fiber still buffers multipart
+    # parts on disk - so a writable /tmp rather than a writable root.
+    extraVolumes:
+      - name: tmp
+        emptyDir: {}
+    extraVolumeMounts:
+      - name: tmp
+        mountPath: /tmp
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - "ALL"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        memory: 512Mi
+    serviceMonitor:
+      enabled: true
