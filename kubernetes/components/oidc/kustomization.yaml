@@ -16,11 +16,11 @@ kind: Component
 # creates the credentials this reads, and external-secrets-stores, which owns
 # the ClusterSecretStore it reads them through.
 #
-# The policy also trusts one shared JWT issuer, so gatus can probe the route with
-# a bearer token instead of being redirected to a login page it would report as
-# healthy. That half needs nothing from the app - the provider is fixed - but it
-# does mean an app behind this component is reachable by anything holding a token
-# from tofu/authentik/gatus-probe.tf.
+# An authentik cookie is the only way past this on its own. To let gatus probe
+# the route with a bearer token as well, add ../oidc-probe alongside it - which
+# also makes the route reachable by anything holding a token from
+# tofu/authentik/gatus-probe.tf, and breaks any app that sends an Authorization
+# header of its own.
 resources:
   - ./secret.yaml
   - ./externalsecret.yaml

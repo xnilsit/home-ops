@@ -6,3 +6,5 @@ components:
   # Split out of ../app so the authentik chain does not end up gating backups:
   # kopiur-repository dependsOn kopiur and is what every SnapshotPolicy waits on.
   - ../../../../components/oidc
+  # gatus probes this route with a bearer token; kopia sends none of its own.
+  - ../../../../components/oidc-probe

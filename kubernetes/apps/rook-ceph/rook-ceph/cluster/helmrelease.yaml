@@ -49,7 +49,7 @@ spec:
         # Probes authenticate rather than follow the SecurityPolicy's 302: gatus
         # follows redirects, so an unauthenticated check would land on
         # authentik's login page and call the dashboard healthy.
-        # passThroughAuthHeader in components/oidc lets the resulting JWT past
+        # passThroughAuthHeader in components/oidc-probe lets the resulting JWT past
         # the oauth2 filter. $$ keeps Flux's envsubst off the secret - gatus
         # expands it itself. Probing / and not /api/health: the ceph dashboard's
         # api router is secure=True and 401s without a dashboard session.
