@@ -80,10 +80,10 @@ spec:
           - path: /tmp
     service:
       app:
-        # Probed here rather than through the route: ./kustomization.yaml takes
-        # passThroughAuthHeader off this app's SecurityPolicy, so the route only
-        # answers 302 without an authentik cookie. In-cluster the app answers
-        # /api/health itself, which is the half worth watching anyway.
+        # Probed here rather than through the route: this app takes no
+        # components/oidc-probe - its own bearer tokens would collide with the
+        # jwt filter - so the route only answers 302 without an authentik
+        # cookie. In-cluster the app answers /api/health itself.
         annotations:
           gatus.home-operations.com/enabled: "true"
           gatus.home-operations.com/endpoint: |

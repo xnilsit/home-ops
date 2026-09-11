@@ -1,0 +1,48 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# Opt-in half of ../oidc: lets gatus probe the route with a bearer token instead
+# of being redirected to a login page it would report as healthy. Add it next to
+# ../oidc in the same kustomization, and give the route a
+# gatus.home-operations.com/endpoint with the client_credentials block.
+#
+# NOT part of ../oidc, because it is only safe for an app whose own traffic
+# never carries an Authorization header. passThroughAuthHeader diverts every
+# request that does past the oauth2 filter and into the jwt one, which knows a
+# single issuer - so an app that authenticates its own XHR with a bearer token
+# of its own gets "Jwt issuer is not configured" 401 on every call. That is what
+# garage-admin-console does, and why it takes ../oidc alone.
+patches:
+  # Targeted by kind rather than name: postBuild substitution has not run yet at
+  # build time, so the SecurityPolicy is still literally named ${APP}-oidc.
+  - target:
+      kind: SecurityPolicy
+    patch: |-
+      - op: add
+        path: /spec/oidc/passThroughAuthHeader
+        value: true
+      # REQUIRED - Envoy Gateway rejects passThroughAuthHeader without it. The
+      # jwt filter runs after oauth2, so a browser that just finished the OIDC
+      # flow arrives with no bearer token; without optional it gets "401 Jwt is
+      # missing" instead of the page. An invalid token still 401s, which is the
+      # point - failOpen would not.
+      - op: add
+        path: /spec/jwt
+        value:
+          optional: true
+          providers:
+            # One shared provider rather than this app's own: authentik scopes
+            # iss and aud per provider, so trusting each app's own would mean a
+            # separate credential per app. Only the service account in
+            # tofu/authentik/gatus-probe.tf can obtain a token from this one.
+            - name: gatus-probe
+              issuer: ${AUTHENTIK_URL}/application/o/home-ops-gatus-probe/
+              audiences:
+                - home-ops-gatus-probe
+              remoteJWKS:
+                # Fetched by the Envoy DATA plane, not the controller - the
+                # pinned endpoints in ../oidc are about keeping the controller
+                # independent of authentik, and this does not change that. Envoy
+                # already reaches authentik here for the code exchange.
+                uri: ${AUTHENTIK_URL}/application/o/home-ops-gatus-probe/jwks/

@@ -7,6 +7,9 @@ components:
   - ../../../../components/kopiur/backup
   # Puts the frontend behind authentik.
   - ../../../../components/oidc
+  # gatus probes this route with a bearer token; the frontend sends none of its
+  # own - its websocket carries no Authorization header.
+  - ../../../../components/oidc-probe
 patches:
   - path: ./snapshotpolicy.yaml
 resources:

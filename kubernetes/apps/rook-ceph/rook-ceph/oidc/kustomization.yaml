@@ -6,6 +6,10 @@ components:
   # Split out of ../cluster so the authentik chain does not end up gating
   # storage: rook-ceph-cluster is wait: true and half the cluster dependsOn it.
   - ../../../../components/oidc
+  # gatus probes this route with a bearer token. The dashboard reads the access
+  # token out of the cookie below, never out of an Authorization header, so
+  # nothing of its own is diverted into the jwt filter.
+  - ../../../../components/oidc-probe
 patches:
   # Targeted by kind rather than name: postBuild substitution has not run yet at
   # build time, so the SecurityPolicy is still literally named ${APP}-oidc. This

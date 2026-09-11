@@ -8,3 +8,5 @@ components:
   # deadlock a fresh cluster: that chain runs through tofu-controller and
   # rook-ceph, which need the very controllers flux-instance creates.
   - ../../../../components/oidc
+  # gatus probes this route with a bearer token; the UI sends none of its own.
+  - ../../../../components/oidc-probe
