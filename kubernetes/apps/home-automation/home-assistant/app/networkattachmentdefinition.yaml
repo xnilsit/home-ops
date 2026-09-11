@@ -35,9 +35,9 @@ kind: NetworkAttachmentDefinition
 metadata:
   name: lan
 spec:
-  # master is the LAN NIC's name, which is enp1s0f0 on kube-srv-01 and
-  # kube-srv-03 but enp5s0f0np0 on kube-srv-02 - which is why the HelmRelease
-  # keeps this pod off kube-srv-02.
+  # No `master`: the plugin then enslaves the host's default-route interface,
+  # which is enp1s0f0 on kube-srv-01 and kube-srv-03 but enp5s0f0np0 on
+  # kube-srv-02. Naming one meant pinning this pod off kube-srv-02.
   #
   # No `gateway`, and no `routes`: a gateway here would install a second default
   # route and steal the pod's egress from eth0. The connected route the /23
@@ -47,7 +47,6 @@ spec:
       "cniVersion": "0.3.1",
       "name": "lan",
       "type": "macvlan",
-      "master": "enp1s0f0",
       "mode": "bridge",
       "ipam": {
         "type": "static",
