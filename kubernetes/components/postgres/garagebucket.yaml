@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/garage.rajsingh.info/garagebucket_v1beta1.json
+apiVersion: garage.rajsingh.info/v1beta1
+kind: GarageBucket
+metadata:
+  name: ${APP}-postgres-backup
+spec:
+  # The handle lives in `garage`; the GarageReferenceGrant there is what lets
+  # this namespace point at it.
+  clusterRef:
+    name: nas
+    namespace: garage
+  # Retain, not the Delete default: removing the app must not take its backups
+  # with it.
+  deletionPolicy: Retain
+  # Own bucket rather than a prefix in the shared cnpg-backup one: a Garage key
+  # is scoped per bucket, not per prefix, so a shared bucket would hand this
+  # namespace read access to every other cluster's base backups.
