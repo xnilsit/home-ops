@@ -63,8 +63,9 @@ locals {
       hostnames    = ["scanopy.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/scanopy.svg"
       groups       = ["home-ops"]
-      # Scanopy makes a user record per login and reads the id token itself.
-      sub_mode                   = "user_username"
+      # sub_mode left at hashed_user_id, unlike the other apps here: Scanopy
+      # slices sub at 8 bytes to build a fallback email and aborts the server
+      # when it is shorter, which "nilsit" is.
       include_claims_in_id_token = true
       gateway_callback           = false
       extra_redirect_uris = [
