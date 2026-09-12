@@ -5,7 +5,7 @@ terraform {
     authentik = {
       source = "goauthentik/authentik"
       # renovate: datasource=terraform-provider depName=goauthentik/authentik
-      version = "2026.5.1"
+      version = "2026.8.0"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
