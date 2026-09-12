@@ -62,12 +62,12 @@ kind: Gateway
 metadata:
   name: envoy-external
   annotations:
-    external-dns.alpha.kubernetes.io/target: external.${SECRET_DOMAIN}
+    external-dns.kubernetes.io/target: external.${SECRET_DOMAIN}
 spec:
   gatewayClassName: envoy
   infrastructure:
     annotations:
-      external-dns.alpha.kubernetes.io/hostname: external.${SECRET_DOMAIN}
+      external-dns.kubernetes.io/hostname: external.${SECRET_DOMAIN}
       lbipam.cilium.io/ips: "192.168.1.151"
   listeners:
     - name: http
@@ -102,13 +102,13 @@ metadata:
   # home.${SECRET_DOMAIN}, unproxied, so no Cloudflare edge is in the path.
   name: envoy-external-direct
   annotations:
-    external-dns.alpha.kubernetes.io/target: home.${SECRET_DOMAIN}
+    external-dns.kubernetes.io/target: home.${SECRET_DOMAIN}
 spec:
   gatewayClassName: envoy
   infrastructure:
     annotations:
-      # No external-dns hostname annotation: this address is RFC-1918 and must
-      # never reach public DNS.
+      # No hostname annotation: this address is RFC-1918 and must never reach
+      # public DNS.
       lbipam.cilium.io/ips: "192.168.1.152"
   listeners:
     # Carries the https-redirect route, so UniFi forwards WAN:80 here too.
@@ -136,12 +136,12 @@ kind: Gateway
 metadata:
   name: envoy-internal
   annotations:
-    external-dns.alpha.kubernetes.io/target: internal.${SECRET_DOMAIN}
+    external-dns.kubernetes.io/target: internal.${SECRET_DOMAIN}
 spec:
   gatewayClassName: envoy
   infrastructure:
     annotations:
-      external-dns.alpha.kubernetes.io/hostname: internal.${SECRET_DOMAIN}
+      external-dns.kubernetes.io/hostname: internal.${SECRET_DOMAIN}
       lbipam.cilium.io/ips: "192.168.1.150,fd2e:9a41:6b8c:1::150"
   listeners:
     - name: http
@@ -224,7 +224,7 @@ kind: HTTPRoute
 metadata:
   name: https-redirect
   annotations:
-    external-dns.alpha.kubernetes.io/controller: none
+    external-dns.kubernetes.io/controller: none
 spec:
   parentRefs:
     - name: envoy-external
