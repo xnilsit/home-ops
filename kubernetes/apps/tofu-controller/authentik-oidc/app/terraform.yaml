@@ -76,7 +76,7 @@ spec:
       # the runner itself.
       initContainers:
         - name: chown-plugin-cache
-          image: mirror.gcr.io/library/alpine:3.22
+          image: mirror.gcr.io/library/alpine:3.24
           command:
             - "chown"
             - "65532:65532"
