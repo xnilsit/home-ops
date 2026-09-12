@@ -15,10 +15,9 @@ metadata:
   name: l2-policy
 spec:
   loadBalancerIPs: true
-  # NOTE: interfaces might need to be set if you have more than one active NIC on your hosts
-  # interfaces:
-  #   - ^eno[0-9]+
-  #   - ^eth[0-9]+
+  # Only the 10G ports; the 1G onboard NICs carry no f<n> function suffix.
+  interfaces:
+    - ^enp[0-9]+s[0-9]+f[0-9]+(np[0-9]+)?$
   nodeSelector:
     matchLabels:
       kubernetes.io/os: linux
