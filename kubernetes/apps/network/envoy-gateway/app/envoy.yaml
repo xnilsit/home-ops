@@ -68,7 +68,7 @@ spec:
   infrastructure:
     annotations:
       external-dns.kubernetes.io/hostname: external.${SECRET_DOMAIN}
-      lbipam.cilium.io/ips: "192.168.1.151"
+      lbipam.cilium.io/ips: "192.168.1.151,fd2e:9a41:6b8c:1::151"
   listeners:
     - name: http
       protocol: HTTP
@@ -109,7 +109,7 @@ spec:
     annotations:
       # No hostname annotation: this address is RFC-1918 and must never reach
       # public DNS.
-      lbipam.cilium.io/ips: "192.168.1.152"
+      lbipam.cilium.io/ips: "192.168.1.152,fd2e:9a41:6b8c:1::152"
   listeners:
     # Carries the https-redirect route, so UniFi forwards WAN:80 here too.
     - name: http
