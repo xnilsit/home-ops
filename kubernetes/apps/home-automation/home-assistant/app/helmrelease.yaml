@@ -31,7 +31,7 @@ spec:
             # cutover is verified.
             image:
               repository: ghcr.io/home-operations/home-assistant
-              tag: 2026.9.1
+              tag: 2026.9.2
             env:
               TZ: ${TIMEZONE}
               # Read by `recorder: db_url: !env_var HA_RECORDER_DB_URL` in the
