@@ -8,11 +8,8 @@ spec:
   blocks:
     - cidr: "192.168.0.0/23"
     - cidr: "fd2e:9a41:6b8c:1::/112"
-  # LB-IPAM satisfies one generic request per family, so whichever pool wins the
-  # IPv6 slot is the only one asked. Without this, the ULA block would satisfy
-  # the GUA-only service and network/ipv6-prefix-tracker's pool never gets a
-  # look in. Cilium synthesises this label on every service, so NotIn is
-  # unambiguous.
+  # One generic request per family is satisfied, so this block must not be
+  # eligible for the GUA-only service in network/ipv6-prefix-tracker.
   serviceSelector:
     matchExpressions:
       - key: io.kubernetes.service.name
