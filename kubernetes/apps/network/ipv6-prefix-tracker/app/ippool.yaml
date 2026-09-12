@@ -1,0 +1,21 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/cilium.io/ciliumloadbalancerippool_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: &name envoy-external-direct-gua
+  annotations:
+    # The tracker owns .spec after creation; edits here are no-ops until the
+    # object is deleted by hand.
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+spec:
+  # Documentation prefix, disabled: a rebuilt cluster must not announce an
+  # address nobody routes. The tracker flips both fields in one patch.
+  disabled: true
+  blocks:
+    - cidr: "2001:db8::152/128"
+  # allowFirstLastIPs is ignored for a /128, so it is omitted.
+  serviceSelector:
+    matchLabels:
+      io.kubernetes.service.namespace: network
+      io.kubernetes.service.name: *name

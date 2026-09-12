@@ -1,0 +1,124 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/deployment-apps-v1.json
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: &app ipv6-prefix-tracker
+  annotations:
+    # The args below are shell; flux would otherwise eat every ${...} in them.
+    kustomize.toolkit.fluxcd.io/substitute: disabled
+spec:
+  replicas: 1
+  strategy:
+    # Two of these would race each other patching the same pool.
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: *app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: *app
+    spec:
+      # /proc/net/if_inet6 is per netns, and the delegated prefix is only in the
+      # host's.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      # Public IPv6 ingress stops following the prefix without it.
+      priorityClassName: cluster-infra
+      serviceAccountName: *app
+      containers:
+        - name: app
+          # Alpine like slaac-janitor, with kubectl already in it: no apk at startup.
+          image: mirror.gcr.io/alpine/k8s:1.37.0
+          env:
+            # kubectl wants a writable cache dir under a read-only root.
+            - name: HOME
+              value: /tmp
+          command:
+            - "/bin/sh"
+            - "-c"
+          args:
+            # /proc/net/if_inet6 gives the fully expanded address, so the /64 is
+            # a substr() and not IPv6 text compression to undo. Fields are
+            # addr(32 hex) ifindex prefixlen scope flags devname; scope 00 is
+            # global, prefixlen 40 is /64, flag 0x20 deprecated and 0x01
+            # temporary. Only links the l2 policy announces on are eligible - a
+            # prefix seen elsewhere is not routed to that VIP.
+            - |
+              while :; do
+                pfx=$(awk '
+                  function hex(s,   i,c,n) {
+                    n = 0
+                    for (i = 1; i <= length(s); i++) {
+                      c = tolower(substr(s, i, 1))
+                      n = n * 16 + index("0123456789abcdef", c) - 1
+                    }
+                    return n
+                  }
+                  $4 == "00" && $3 == "40" && $6 ~ /^enp[0-9]+s[0-9]+f[0-9]+/ && substr($1, 1, 1) ~ /[23]/ {
+                    f = hex($5)
+                    if (int(f / 32) % 2 == 1) next
+                    if (f % 2 == 1) next
+                    out = ""
+                    for (i = 0; i < 4; i++) {
+                      g = substr($1, i * 4 + 1, 4)
+                      sub(/^0+/, "", g)
+                      if (g == "") g = "0"
+                      out = (i == 0) ? g : out ":" g
+                    }
+                    print out
+                    exit
+                  }' /proc/net/if_inet6)
+
+                if [ -z "$pfx" ]; then
+                  echo "no delegated prefix on an announced link"
+                else
+                  vip="$pfx::152"
+                  have=$(kubectl get ciliumloadbalancerippool envoy-external-direct-gua \
+                    -o jsonpath='{.spec.blocks[0].cidr}{"|"}{.spec.disabled}' 2>/dev/null)
+                  # One merge patch, never add-then-remove: an old block still in
+                  # range keeps its allocation valid and LB-IPAM will not migrate.
+                  if [ "$have" != "$vip/128|false" ]; then
+                    echo "pool block $have -> $vip/128"
+                    kubectl patch ciliumloadbalancerippool envoy-external-direct-gua --type=merge \
+                      -p '{"spec":{"disabled":false,"blocks":[{"cidr":"'"$vip"'/128"}]}}' || true
+                    sleep 2
+                  fi
+
+                  # Publish what cilium assigned and is announcing, never what
+                  # this loop derived.
+                  live=$(kubectl --namespace network get service envoy-external-direct-gua \
+                    -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+                  case "$live" in ""|f*|2001:db8:*) live="" ;; esac
+                  if [ -n "$live" ]; then
+                    cur=$(kubectl --namespace network get configmap envoy-external-direct-gua \
+                      -o jsonpath='{.data.address}' 2>/dev/null)
+                    if [ "$live" != "$cur" ]; then
+                      echo "published address $cur -> $live"
+                      kubectl --namespace network patch configmap envoy-external-direct-gua --type=merge \
+                        -p '{"data":{"address":"'"$live"'"}}' || true
+                    fi
+                  fi
+                fi
+                sleep 30
+              done
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+            seccompProfile: {type: RuntimeDefault}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 10m
+            limits:
+              memory: 128Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -40,7 +40,7 @@
     {
       description: "Kubernetes Group: topf.yaml, the KubernetesUpgrade CR and the kubectl CLI",
       groupName: "kubernetes",
-      matchPackageNames: ["ghcr.io/siderolabs/kubelet"],
+      matchPackageNames: ["ghcr.io/siderolabs/kubelet", "mirror.gcr.io/alpine/k8s"],
       group: {
         commitMessageTopic: "{{{groupName}}} group",
       },

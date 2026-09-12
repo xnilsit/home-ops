@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/configmap-v1.json
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-external-direct-gua
+  annotations:
+    # Written by the tracker; shipped only so a consumer has something to mount.
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+# No keys on purpose: an empty mount means a missing file, which favonia's file
+# provider treats as failed detection and preserves records. An empty file would
+# mean "no address" and could delete them.
+data: {}
