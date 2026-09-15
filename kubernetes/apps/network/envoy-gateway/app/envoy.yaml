@@ -45,6 +45,53 @@ spec:
         compression:
           type: Zstd
 ---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  # Referenced by the two gateways that run coraza; envoy-internal keeps the
+  # class-level EnvoyProxy.
+  name: envoy-waf
+spec:
+  # Merges into the class-level `envoy` instead of replacing it, so ipFamily,
+  # the dual-stack Service patch and the drain timeout carry over.
+  mergeType: StrategicMerge
+  # Worker threads per proxy pod, and with it the number of coraza wasm VMs.
+  # Unset means one per host core.
+  concurrency: 2
+  bootstrap:
+    type: JSONPatch
+    jsonPatches:
+      # Splits coraza's labels back out of the stat name
+      # (waf_filter.tx.interruptions_ruleid=942100_phase=...) into prometheus
+      # labels.
+      - op: add
+        path: /stats_config
+        value:
+          # Keeps envoy's own cluster/listener extractors alongside these.
+          use_all_default_tags: true
+          stats_tags:
+            - tag_name: phase
+              regex: "(_phase=([a-z_]+))"
+            - tag_name: rule_id
+              regex: "(_ruleid=([0-9]+))"
+            - tag_name: identifier
+              regex: "(_identifier=([0-9a-z.:]+))"
+            - tag_name: owner
+              regex: "(_owner=([0-9a-z.:]+))"
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyDeployment:
+        container:
+          resources:
+            requests:
+              cpu: 200m
+              # Envoy plus one compiled CRS rule set per worker thread.
+              memory: 768Mi
+            limits:
+              # V8 doubles its heap while compiling the module.
+              memory: 2Gi
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
 metadata:
@@ -66,6 +113,11 @@ metadata:
 spec:
   gatewayClassName: envoy
   infrastructure:
+    # Sizing, worker count and WAF stat tags for a gateway running coraza.
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: envoy-waf
     annotations:
       external-dns.kubernetes.io/hostname: external.${SECRET_DOMAIN}
       lbipam.cilium.io/ips: "192.168.1.151,fd2e:9a41:6b8c:1::151"
@@ -106,6 +158,11 @@ metadata:
 spec:
   gatewayClassName: envoy
   infrastructure:
+    # Sizing, worker count and WAF stat tags for a gateway running coraza.
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: envoy-waf
     annotations:
       # No hostname annotation: this address is RFC-1918 and must never reach
       # public DNS.
