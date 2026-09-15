@@ -79,6 +79,15 @@ spec:
                     secretKeyRef:
                       name: *oidcSecret
                       key: client-secret
+                # Installs the plugin ./datasource-logs.yaml needs at container
+                # start. plugin_admin_enabled stays false.
+                - name: GF_INSTALL_PLUGINS
+                  value: victoriametrics-logs-datasource
+              volumeMounts:
+                # Writable scratch for the plugin installer's download, which
+                # readOnlyRootFilesystem otherwise refuses.
+                - name: tmp
+                  mountPath: /tmp
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
@@ -96,6 +105,8 @@ spec:
             fsGroup: 1000
             fsGroupChangePolicy: OnRootMismatch
           volumes:
+            - name: tmp
+              emptyDir: {}
             - name: grafana-data
               # Owned by the kopiur backup component, which populates it from
               # the newest snapshot before this starts. spec.persistentVolumeClaim

@@ -10,6 +10,7 @@ resources:
   - ./httproute.yaml
   - ./servicemonitor.yaml
   - ./datasource-alerts.yaml
+  - ./datasource-logs.yaml
   - ./datasource-metrics.yaml
   - ./datasource-querylog.yaml
   - ./externalsecret-timescale.yaml
