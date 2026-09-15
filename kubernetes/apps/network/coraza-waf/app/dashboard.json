@@ -405,32 +405,97 @@
       ]
     },
     {
-      "type": "logs",
+      "type": "table",
       "title": "Recent decisions",
       "datasource": {
         "type": "victoriametrics-logs-datasource",
         "uid": "${DS_VICTORIALOGS}"
       },
       "gridPos": {
-        "h": 14,
+        "h": 16,
         "w": 24,
         "x": 0,
         "y": 41
       },
       "options": {
-        "showTime": true,
-        "wrapLogMessage": true,
-        "sortOrder": "Descending",
-        "enableLogDetails": true
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false
+        }
       },
       "targets": [
         {
           "refId": "A",
           "queryType": "instant",
+          "format": "table",
           "maxLines": 500,
-          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[severity \"<severity>\"]' | extract '[uri \"<uri>\"]' | extract '[client \"<client>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" \"WAF request context\" | extract '[data \"host=<host> score=<score>\"]' | extract '[unique_id \"<uid>\"]' | fields uid, host)"
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[severity \"<severity>\"]' | extract '[uri \"<uri>\"]' | extract '[client \"<client>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" \"WAF request context\" | extract '[data \"host=<host> score=<score>\"]' | extract '[unique_id \"<uid>\"]' | fields uid, host) | fields _time, host, uri, rule_id, msg, severity, client | sort by (_time desc) | limit 200"
         }
-      ]
+      ],
+      "description": "host comes from rule 10020's context line, joined on unique_id. Coraza's own [hostname] is the envoy pod IP, and the access log's :authority is on a different row with no shared key.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "host"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "rule_id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "severity"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "_time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
