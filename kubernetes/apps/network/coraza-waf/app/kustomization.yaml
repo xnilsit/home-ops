@@ -14,6 +14,6 @@ configMapGenerator:
         # Leaves the ${DS_VICTORIALOGS} and ${DS_PROMETHEUS} grafana-operator
         # inputs in the JSON untouched.
         kustomize.toolkit.fluxcd.io/substitute: disabled
-generatorOptions:
-  # Keeps the name GrafanaDashboard.spec.configMapRef points at stable.
-  disableNameSuffixHash: true
+configurations:
+  # Propagates the generated name hash into GrafanaDashboard.spec.configMapRef.
+  - ./kustomizeconfig.yaml
