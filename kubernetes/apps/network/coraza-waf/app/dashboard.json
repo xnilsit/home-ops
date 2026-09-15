@@ -93,7 +93,7 @@
     {
       "type": "stat",
       "title": "Requests inspected /s",
-      "description": "envoy_wasmcustom_waf_filter_tx_total - every transaction the wasm VM saw, including allowlisted ones.",
+      "description": "Every transaction the wasm VM saw, including allowlisted ones. Envoy Gateway emits coraza's proxy-wasm counters unprefixed, not under envoy_wasmcustom_.",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "gridPos": { "h": 5, "w": 6, "x": 18, "y": 5 },
       "fieldConfig": { "defaults": { "unit": "reqps", "decimals": 2 }, "overrides": [] },
@@ -101,7 +101,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(envoy_wasmcustom_waf_filter_tx_total[$__rate_interval]))"
+          "expr": "sum(rate(waf_filter_tx_total[$__rate_interval]))"
         }
       ]
     },
@@ -196,7 +196,7 @@
         {
           "refId": "A",
           "legendFormat": "{{rule_id}} / {{phase}}",
-          "expr": "sum by (rule_id, phase) (rate(envoy_wasmcustom_waf_filter_tx_interruptions[$__rate_interval]))"
+          "expr": "sum by (rule_id, phase) (rate(waf_filter_tx_interruptions[$__rate_interval]))"
         }
       ]
     },

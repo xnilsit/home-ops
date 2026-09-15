@@ -66,20 +66,28 @@ spec:
               setvar:tx.inbound_anomaly_score_threshold=10,
               setvar:tx.outbound_anomaly_score_threshold=4"
 
-            # Turns the rule engine off for the rest of the transaction when the
-            # client is on the LAN. Placed before the CRS include so it runs in
-            # phase 1, ahead of the phase 2 anomaly evaluation.
+            # Exempts LAN clients. Runs in phase 1, before the CRS include.
+            #
+            # skipAfter jumps the rest of this phase to the marker below.
+            # ctl:ruleEngine=Off covers phases 2 and up, which check the engine
+            # on entry. `allow` is not used: coraza does not enforce it while
+            # SecRuleEngine is DetectionOnly, and ctl alone does not stop the
+            # remaining rules of the phase it fires in.
             #
             # REMOTE_ADDR is the TCP peer: the client itself on
             # envoy-external-direct, the cloudflared pod on envoy-external. The
             # pod CIDR is not listed, or the WAF would be off for the tunnel.
             - >-
               SecRule REMOTE_ADDR "@ipMatch 192.168.0.0/23,fd2e:9a41:6b8c:1::/64"
-              "id:10001,phase:1,pass,nolog,ctl:ruleEngine=Off"
+              "id:10001,phase:1,pass,nolog,ctl:ruleEngine=Off,skipAfter:END-LAN-EXEMPT"
             # x-envoy-external-address is the client address envoy derives from
             # x-forwarded-for using the trustedCIDRs in ClientTrafficPolicy/envoy.
             - >-
               SecRule REQUEST_HEADERS:X-Envoy-External-Address "@ipMatch 192.168.0.0/23,fd2e:9a41:6b8c:1::/64"
-              "id:10002,phase:1,pass,nolog,ctl:ruleEngine=Off"
+              "id:10002,phase:1,pass,nolog,ctl:ruleEngine=Off,skipAfter:END-LAN-EXEMPT"
 
             - Include @owasp_crs/*.conf
+
+            # Landing point for the skipAfter above. Markers are evaluated in
+            # every phase, so it also ends the skip for phase 2 rules.
+            - SecMarker END-LAN-EXEMPT
