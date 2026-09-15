@@ -71,6 +71,9 @@ spec:
       rules:
         KubeHpaMaxedOut:
           enabled: false
+        # Losing a node's headroom during upgrades is expected, not an incident.
+        KubeMemoryOvercommit:
+          enabled: false
 
     alertmanager:
       enabled: true
