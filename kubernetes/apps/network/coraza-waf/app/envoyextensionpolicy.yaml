@@ -1,0 +1,85 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/gateway.envoyproxy.io/envoyextensionpolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyExtensionPolicy
+metadata:
+  name: coraza-waf
+spec:
+  # The two public gateways. envoy-internal is not attached.
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: envoy-external
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: envoy-external-direct
+  wasm:
+    - name: coraza
+      # rootID omitted: the module registers its context with an empty root_id.
+      code:
+        type: Image
+        image:
+          # renovate: datasource=docker depName=ghcr.io/corazawaf/coraza-proxy-wasm
+          url: ghcr.io/corazawaf/coraza-proxy-wasm:0.6.0
+        # Serves the controller's cached copy of the 18.5 MB module until the
+        # policy changes.
+        pullPolicy: IfNotPresent
+      # Passes traffic through unfiltered when the module fails to load, run, or
+      # parse its config. false returns 5xx instead.
+      failOpen: true
+      config:
+        default_directives: default
+        # Emitted as owner/identifier labels on the waf_filter stats, via the
+        # stats_tags patch on EnvoyProxy/envoy-waf.
+        metric_labels:
+          owner: coraza
+          identifier: public
+        directives_map:
+          default:
+            # Coraza's baseline: transformations, unicode map, argument and PCRE
+            # limits. Everything below overrides it.
+            - Include @recommended-conf
+
+            # DetectionOnly logs matches and blocks nothing. On enforces.
+            - SecRuleEngine DetectionOnly
+            - SecRequestBodyAccess On
+            # Bytes of request body inspected, buffered inside the wasm VM.
+            - SecRequestBodyLimit 4096
+            - SecRequestBodyInMemoryLimit 4096
+            # Inspects the first SecRequestBodyLimit bytes of a larger body and
+            # forwards the rest. Reject would 413 it.
+            - SecRequestBodyLimitAction ProcessPartial
+            # Leaves responses uninspected and unbuffered.
+            - SecResponseBodyAccess Off
+            # Disables the audit log. Matches still reach the proxy's
+            # application log, which victoria-logs-collector ships.
+            - SecAuditEngine Off
+
+            - Include @crs-setup-conf
+
+            # Paranoia level and anomaly score thresholds. IDs 1-99999 are the
+            # range CRS leaves to local rules.
+            - >-
+              SecAction "id:10000,phase:1,pass,nolog,t:none,
+              setvar:tx.blocking_paranoia_level=1,
+              setvar:tx.detection_paranoia_level=1,
+              setvar:tx.inbound_anomaly_score_threshold=10,
+              setvar:tx.outbound_anomaly_score_threshold=4"
+
+            # Turns the rule engine off for the rest of the transaction when the
+            # client is on the LAN. Placed before the CRS include so it runs in
+            # phase 1, ahead of the phase 2 anomaly evaluation.
+            #
+            # REMOTE_ADDR is the TCP peer: the client itself on
+            # envoy-external-direct, the cloudflared pod on envoy-external. The
+            # pod CIDR is not listed, or the WAF would be off for the tunnel.
+            - >-
+              SecRule REMOTE_ADDR "@ipMatch 192.168.0.0/23,fd2e:9a41:6b8c:1::/64"
+              "id:10001,phase:1,pass,nolog,ctl:ruleEngine=Off"
+            # x-envoy-external-address is the client address envoy derives from
+            # x-forwarded-for using the trustedCIDRs in ClientTrafficPolicy/envoy.
+            - >-
+              SecRule REQUEST_HEADERS:X-Envoy-External-Address "@ipMatch 192.168.0.0/23,fd2e:9a41:6b8c:1::/64"
+              "id:10002,phase:1,pass,nolog,ctl:ruleEngine=Off"
+
+            - Include @owasp_crs/*.conf

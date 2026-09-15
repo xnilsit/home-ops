@@ -1,0 +1,224 @@
+{
+  "title": "Coraza WAF",
+  "uid": "coraza-waf",
+  "tags": ["network", "security"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": true,
+  "refresh": "1m",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "gateway",
+        "label": "Gateway",
+        "type": "custom",
+        "query": "envoy-external,envoy-external-direct",
+        "includeAll": true,
+        "allValue": ".+",
+        "current": { "text": "All", "value": "$__all" },
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "text",
+      "title": "How to read this",
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "**In `SecRuleEngine DetectionOnly` the Prometheus panels stay flat at zero** - `waf_filter.tx.interruptions` only counts an *actual* interrupt. Everything below the log panels is the truth during the detection soak.\n\n**Coraza's `[client \"...\"]` is the TCP peer**, i.e. a cloudflared pod IP on `envoy-external`. The real client is the first element of `x-forwarded-for` on the matching access-log line - join on `unique_id` = `x-request-id`.\n\nRule `949110` is the CRS inbound anomaly evaluation: a hit there is a request that *would* be blocked once the engine is flipped to `On`. LAN sources (192.168.0.0/23, fd2e:9a41:6b8c:1::/64) are exempted by local rules 10001/10002 and never appear here."
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Detections",
+      "description": "Coraza alert lines in the selected range.",
+      "datasource": { "type": "victoriametrics-logs-datasource", "uid": "${DS_VICTORIALOGS}" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 5 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "stats",
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | stats count() hits"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Would be blocked",
+      "description": "CRS rule 949110 - inbound anomaly score over threshold.",
+      "datasource": { "type": "victoriametrics-logs-datasource", "uid": "${DS_VICTORIALOGS}" },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 5 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "stats",
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[id \"<rule_id>\"]' | filter rule_id:=\"949110\" | stats count() hits"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Distinct rules hit",
+      "datasource": { "type": "victoriametrics-logs-datasource", "uid": "${DS_VICTORIALOGS}" },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 5 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "stats",
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[id \"<rule_id>\"]' | stats count_uniq(rule_id) rules"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Requests inspected /s",
+      "description": "envoy_wasmcustom_waf_filter_tx_total - every transaction the wasm VM saw, including allowlisted ones.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 5 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "decimals": 2 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(envoy_wasmcustom_waf_filter_tx_total[$__rate_interval]))"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Detections over time by rule",
+      "datasource": { "type": "victoriametrics-logs-datasource", "uid": "${DS_VICTORIALOGS}" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 10 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" }, "lineWidth": 0 }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": ["sum"] } },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "statsRange",
+          "step": "$__interval",
+          "legendFormat": "{{rule_id}}",
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[id \"<rule_id>\"]' | stats by (rule_id) count() hits"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Top rules - the false-positive tuning list",
+      "description": "Work this to zero legitimate hits before flipping SecRuleEngine to On.",
+      "datasource": { "type": "victoriametrics-logs-datasource", "uid": "${DS_VICTORIALOGS}" },
+      "gridPos": { "h": 11, "w": 14, "x": 0, "y": 19 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": { "showHeader": true, "sortBy": [{ "displayName": "hits", "desc": true }] },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "stats",
+          "format": "table",
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[severity \"<severity>\"]' | stats by (rule_id, msg, severity) count() hits | sort by (hits desc) | limit 25"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Top targets",
+      "datasource": { "type": "victoriametrics-logs-datasource", "uid": "${DS_VICTORIALOGS}" },
+      "gridPos": { "h": 11, "w": 10, "x": 14, "y": 19 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": { "showHeader": true, "sortBy": [{ "displayName": "hits", "desc": true }] },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "stats",
+          "format": "table",
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[uri \"<uri>\"]' | stats by (uri) count() hits | sort by (hits desc) | limit 25"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Top external source addresses (all requests)",
+      "description": "First element of x-forwarded-for on the access log, i.e. the real client. Watch for the home WAN IP here - those are LAN devices bypassing blocky, and they are NOT exempted by rules 10001/10002.",
+      "datasource": { "type": "victoriametrics-logs-datasource", "uid": "${DS_VICTORIALOGS}" },
+      "gridPos": { "h": 11, "w": 12, "x": 0, "y": 30 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": { "showHeader": true, "sortBy": [{ "displayName": "hits", "desc": true }] },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "stats",
+          "format": "table",
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" | extract_regexp \"^(?P<client_ip>[^,]+)\" from \"x-forwarded-for\" | stats by (client_ip) count() hits | sort by (hits desc) | limit 25"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Interruptions by rule - blocking mode only",
+      "description": "Flat at zero while SecRuleEngine is DetectionOnly. Labels come from the stats_config.stats_tags patch on EnvoyProxy/envoy-waf.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 11, "w": 12, "x": 12, "y": 30 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" }, "lineWidth": 0 }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": ["sum"] } },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{rule_id}} / {{phase}}",
+          "expr": "sum by (rule_id, phase) (rate(envoy_wasmcustom_waf_filter_tx_interruptions[$__rate_interval]))"
+        }
+      ]
+    },
+    {
+      "type": "logs",
+      "title": "Recent decisions",
+      "datasource": { "type": "victoriametrics-logs-datasource", "uid": "${DS_VICTORIALOGS}" },
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 41 },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "instant",
+          "maxLines": 500,
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[severity \"<severity>\"]' | extract '[uri \"<uri>\"]' | extract '[unique_id \"<request_id>\"]'"
+        }
+      ]
+    }
+  ]
+}
