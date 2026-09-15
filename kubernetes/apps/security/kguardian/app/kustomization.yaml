@@ -15,6 +15,16 @@ patches:
       - op: add
         path: /spec/oidc/forwardAccessToken
         value: true
+      # forwardAccessToken puts an Authorization header on every request, which
+      # ../oidc-probe's passThroughAuthHeader then routes into the jwt filter -
+      # so this app's own issuer has to be one the filter knows.
+      - op: add
+        path: /spec/jwt/providers/-
+        value:
+          name: kguardian
+          issuer: ${AUTHENTIK_URL}/application/o/home-ops-kguardian/
+          remoteJWKS:
+            uri: ${AUTHENTIK_URL}/application/o/home-ops-kguardian/jwks/
 resources:
   - ./secret.sops.yaml
   - ./ocirepository.yaml
