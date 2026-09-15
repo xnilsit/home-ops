@@ -1,0 +1,63 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/gateway.networking.k8s.io/httproute_v1.json
+# The chart only renders an Ingress, so both routes are written here.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kguardian
+  # Probes authenticate rather than follow the SecurityPolicy's 302, which gatus
+  # would otherwise report as healthy. $$ keeps Flux's envsubst off the secret.
+  annotations:
+    gatus.home-operations.com/endpoint: |
+      client:
+        oauth2:
+          token-url: ${AUTHENTIK_URL}/application/o/token/
+          client-id: home-ops-gatus-probe
+          client-secret: $${GATUS_PROBE_CLIENT_SECRET}
+          scopes: ["openid", "profile"]
+spec:
+  hostnames:
+    - "kguardian.${SECRET_DOMAIN}"
+  parentRefs:
+    # Guarded by the SecurityPolicy in ../oidc: the UI has no login of its own.
+    - name: envoy-internal
+      namespace: network
+      sectionName: https
+  rules:
+    - backendRefs:
+        # The UI proxies /api to the broker itself, so one backend covers both.
+        - name: kguardian-frontend
+          port: 5173
+      matches:
+        - path:
+            type: PathPrefix
+            value: /
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/gateway.networking.k8s.io/httproute_v1.json
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kguardian-mcp
+  annotations:
+    # A bare GET is a 401, and the bearer token is not gatus's to hold.
+    gatus.home-operations.com/enabled: "false"
+spec:
+  hostnames:
+    # CLUSTER_DOMAIN, not SECRET_DOMAIN: this host is written into the committed
+    # .mcp.json, and cluster-settings already carries it in plaintext.
+    - "kguardian-mcp.${CLUSTER_DOMAIN}"
+  parentRefs:
+    # No SecurityPolicy on this route - the oauth2 filter would swallow the MCP
+    # client's own Authorization header. The bearer token is the gate.
+    - name: envoy-internal
+      namespace: network
+      sectionName: https
+  rules:
+    - backendRefs:
+        - name: kguardian-llm-bridge
+          port: 8080
+      matches:
+        # /mcp only, so the bridge's chat routes stay unreachable.
+        - path:
+            type: PathPrefix
+            value: /mcp

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "kguardian": {
+      "type": "http",
+      "url": "https://kguardian-mcp.nilsit.de/mcp",
+      "headers": {
+        "Authorization": "Bearer ${KGUARDIAN_MCP_TOKEN}"
+      }
+    }
+  }
+}

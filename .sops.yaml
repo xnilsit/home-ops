@@ -1,5 +1,10 @@
 ---
 creation_rules:
+  # Env vars mise loads into the shell, not a cluster manifest: every value is a
+  # secret, so no encrypted_regex.
+  - path_regex: ^mcp\.sops\.json$
+    mac_only_encrypted: true
+    age: "age1hxyyusztx42n4ympwpu8jwzyvegzd8ynzl3jeve952rewvrj2aesy3s74t"
   - path_regex: talos/.*\.sops\.ya?ml
     mac_only_encrypted: true
     age: "age1hxyyusztx42n4ympwpu8jwzyvegzd8ynzl3jeve952rewvrj2aesy3s74t"
