@@ -1,0 +1,17 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/gateway.envoyproxy.io/backend_v1alpha1.json
+# authentik as an upstream for the userinfo rule in ./httproute.yaml.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: authentik
+spec:
+  endpoints:
+    # AUTHENTIK_URL carries the scheme; a Backend wants the bare host.
+    - fqdn:
+        hostname: ${AUTHENTIK_URL#https://}
+        port: 443
+  tls:
+    # A public certificate, so the proxy's own trust store verifies it.
+    wellKnownCACertificates: System
+    autoSNIFromEndpointHostname: true
