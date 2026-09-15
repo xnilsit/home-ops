@@ -1,0 +1,53 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/pooler_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  # The Service takes this name verbatim; pg-shared-rw is the Cluster's own.
+  name: pg-shared-pooler-rw
+spec:
+  cluster:
+    name: pg-shared
+  type: rw
+
+  # PgBouncer's databases section is operator-managed and wildcarded, so this
+  # one Pooler serves every database on the Cluster.
+  instances: 2
+
+  pgbouncer:
+    # Session state does not survive between transactions: LISTEN/NOTIFY,
+    # session-level SET, WITH HOLD cursors and temp tables break.
+    poolMode: transaction
+    parameters:
+      # Lets PgBouncer track named prepared statements across the pool.
+      max_prepared_statements: "100"
+      # Per (user, database) pair, per pod: four databases over two pods caps
+      # backends at 40, against max_connections=100.
+      default_pool_size: "5"
+      max_client_conn: "500"
+
+  template:
+    metadata:
+      labels:
+        # Matched by the anti-affinity below.
+        app.kubernetes.io/name: pg-shared-pooler-rw
+    spec:
+      # The name must be pgbouncer - the operator merges overrides by it. The
+      # containers field itself is mandatory, empty list included.
+      containers:
+        - name: pgbouncer
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+      # Losing the pool takes every consumer's database with it.
+      priorityClassName: cluster-platform
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: pg-shared-pooler-rw
+              topologyKey: kubernetes.io/hostname

@@ -225,6 +225,12 @@ locals {
       icon   = "https://raw.githubusercontent.com/cncf/artwork/main/projects/flux/icon/color/flux-icon-color.svg"
       groups = ["home-ops"]
     }
+    kguardian = {
+      display_name = "kguardian"
+      description  = "Observed pod traffic and generated network policies."
+      hostnames    = ["kguardian.${var.domain}"]
+      groups       = ["home-ops"]
+    }
     kopia = {
       display_name = "Kopia"
       description  = "Backup repository browser."

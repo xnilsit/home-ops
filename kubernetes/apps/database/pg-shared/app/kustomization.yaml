@@ -18,4 +18,6 @@ resources:
   - ./databaserole-ntfy.yaml
   - ./database-ntfy.yaml
   - ./scheduledbackup.yaml
+  - ./pooler.yaml
   - ./podmonitor.yaml
+  - ./podmonitor-pooler.yaml

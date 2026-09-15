@@ -42,6 +42,13 @@ spec:
       kind: Cluster
       name: *app
       namespace: database
+    # The Pooler CR has no observedGeneration and no Ready condition, so kstatus
+    # calls it Current on apply. The Deployment the operator derives from it is
+    # what says whether PgBouncer is actually serving.
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: pg-shared-pooler-rw
+      namespace: database
   healthCheckExprs:
     - apiVersion: postgresql.cnpg.io/v1
       kind: Cluster

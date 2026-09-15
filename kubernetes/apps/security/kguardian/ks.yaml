@@ -1,0 +1,68 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app kguardian
+  namespace: flux-system
+spec:
+  targetNamespace: security
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/security/kguardian/app
+  dependsOn:
+    # Reads database/pg-shared-kguardian through the ClusterSecretStore it owns
+    - name: external-secrets-stores-database
+      namespace: flux-system
+    # Mints kguardian-oidc, which guards the UI
+    - name: authentik-oidc
+      namespace: flux-system
+    # Owns the ClusterSecretStore the OIDC credential ExternalSecret reads through
+    - name: external-secrets-stores
+      namespace: flux-system
+    # Two HTTPRoutes, and the component a SecurityPolicy
+    - name: envoy-gateway
+      namespace: flux-system
+    # ServiceMonitors are rendered, and on a from-scratch bootstrap the CRD
+    # would not exist yet
+    - name: prometheus-operator-crds
+      namespace: flux-system
+  postBuild:
+    # substituteFrom is NOT set here: cluster-apps patches cluster-settings and
+    # cluster-secrets onto every child Kustomization, and being a list it is
+    # replaced wholesale rather than merged.
+    substitute:
+      APP: *app
+      OIDC_HOST: kguardian.${SECRET_DOMAIN}
+      # The UI route in ./app/httproute.yaml. The /mcp route is deliberately not
+      # named here - an MCP client sends its own Authorization header.
+      OIDC_ROUTE: *app
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: security
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: SecurityPolicy
+      name: kguardian-oidc
+      namespace: security
+  healthCheckExprs:
+    # SecurityPolicy reports Gateway API PolicyStatus - status.ancestors[], one
+    # entry per attached parent - not the flat status.conditions kstatus reads.
+    # With no ancestors yet neither expr matches, which is the InProgress that
+    # lets Flux retry while ESO is still filling in the Secret.
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: SecurityPolicy
+      failed: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'False'))
+      current: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'True'))
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # wait: false, since wait: true would ignore the healthCheckExprs above.
+  wait: false
+  interval: 1h
+  # 10m rather than 5m: the first install rolls out a DaemonSet on every node and
+  # the broker migrates an empty schema before it reports ready.
+  timeout: 10m

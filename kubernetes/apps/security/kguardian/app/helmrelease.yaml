@@ -1,0 +1,51 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kguardian
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: kguardian
+  interval: 1h
+  values:
+    # Daily version check-in to the project's endpoint. Nothing here needs it.
+    telemetry:
+      enabled: false
+
+    database:
+      # The bundled postgres Deployment has no backup and no HA; pg-shared has both.
+      enabled: false
+      user: &db kguardian
+      databaseName: *db
+      # Minted by components/postgres-shared, which also creates the role and database.
+      existingSecret: kguardian-pg-shared
+      passwordSecretKey: password
+      external:
+        host: pg-shared-pooler-rw.database.svc.cluster.local
+        # CNPG serves a self-signed certificate, so encrypt without verifying.
+        sslMode: require
+
+    ai:
+      # Schedules the llm-bridge, which is what serves /mcp. No provider is set,
+      # so the assistant stays dark and nothing calls out to a vendor.
+      enabled: true
+      mcp:
+        enabled: true
+        auth:
+          existingSecret: kguardian-mcp-token
+
+    llmBridge:
+      # The /mcp rate limit counts per replica, and one is plenty for a single client.
+      replicaCount: 1
+
+    broker:
+      metrics:
+        serviceMonitor:
+          # The only component that actually serves /metrics today.
+          enabled: true
+
+    # Audit-only: reports flows an AuditNetworkPolicy would have denied, never blocks.
+    evaluator:
+      enabled: true
