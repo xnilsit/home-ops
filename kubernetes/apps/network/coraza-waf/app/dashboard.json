@@ -164,7 +164,7 @@
         {
           "refId": "A",
           "queryType": "stats",
-          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" \"WAF request context\" | extract '[data \"host=<host> score=<score>\"]' | stats count_uniq(host) hosts"
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[data \"host=<host>\"]' | filter NOT host:=\"\" | stats count_uniq(host) hosts"
         }
       ]
     },
@@ -333,7 +333,7 @@
           "refId": "A",
           "queryType": "stats",
           "format": "table",
-          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" \"WAF request context\" | extract '[data \"host=<host> score=<score>\"]' | extract '[unique_id \"<uid>\"]' | fields uid, host) | stats by (host, rule_id, msg) count() hits | sort by (hits desc) | limit 25"
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[data \"host=<host>\"]' | extract '[unique_id \"<uid>\"]' | filter NOT host:=\"\" | fields uid, host) | stats by (host, rule_id, msg) count() hits | sort by (hits desc) | limit 25"
         }
       ],
       "transformations": [
@@ -436,7 +436,7 @@
           "refId": "A",
           "queryType": "stats",
           "format": "table",
-          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[uri \"<uri>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" \"WAF request context\" | extract '[data \"host=<host> score=<score>\"]' | extract '[unique_id \"<uid>\"]' | fields uid, host) | stats by (host, uri) count() hits | sort by (hits desc) | limit 25"
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[uri \"<uri>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[data \"host=<host>\"]' | extract '[unique_id \"<uid>\"]' | filter NOT host:=\"\" | fields uid, host) | stats by (host, uri) count() hits | sort by (hits desc) | limit 25"
         }
       ],
       "description": "Joined to rule 10020's context line on unique_id, so the host is the one the client asked for.",
@@ -641,7 +641,7 @@
           "refId": "A",
           "queryType": "instant",
           "maxLines": 200,
-          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[severity \"<severity>\"]' | extract '[uri \"<uri>\"]' | extract '[client \"<client>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" \"WAF request context\" | extract '[data \"host=<host> score=<score>\"]' | extract '[unique_id \"<uid>\"]' | fields uid, host) | fields _time, host, uri, rule_id, msg, severity, client"
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[severity \"<severity>\"]' | extract '[uri \"<uri>\"]' | extract '[client \"<client>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[data \"host=<host>\"]' | extract '[unique_id \"<uid>\"]' | filter NOT host:=\"\" | fields uid, host) | fields _time, host, uri, rule_id, msg, severity, client"
         }
       ],
       "description": "host comes from rule 10020's context line, joined on unique_id. The datasource returns a logs frame, so the fields arrive inside a JSON labels column and are split out by the extractFields transformation.",
