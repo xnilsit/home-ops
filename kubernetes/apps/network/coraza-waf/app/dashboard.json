@@ -420,6 +420,12 @@
       "options": {
         "showHeader": true,
         "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "Time",
+            "desc": true
+          }
+        ],
         "footer": {
           "show": false,
           "reducer": [
@@ -431,57 +437,30 @@
       "targets": [
         {
           "refId": "A",
-          "queryType": "stats",
-          "format": "table",
-          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[severity \"<severity>\"]' | extract '[uri \"<uri>\"]' | extract '[client \"<client>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" \"WAF request context\" | extract '[data \"host=<host> score=<score>\"]' | extract '[unique_id \"<uid>\"]' | fields uid, host) | stats by (_time, host, uri, rule_id, msg, severity, client) count() n | sort by (_time desc) | limit 200"
+          "queryType": "instant",
+          "maxLines": 200,
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[severity \"<severity>\"]' | extract '[uri \"<uri>\"]' | extract '[client \"<client>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" \"WAF request context\" | extract '[data \"host=<host> score=<score>\"]' | extract '[unique_id \"<uid>\"]' | fields uid, host) | fields _time, host, uri, rule_id, msg, severity, client"
         }
       ],
-      "description": "host comes from rule 10020's context line, joined on unique_id. Coraza's own [hostname] is the envoy pod IP, and the access log's :authority is on a different row with no shared key.",
+      "description": "host comes from rule 10020's context line, joined on unique_id. The datasource returns a logs frame, so the fields arrive inside a JSON labels column and are split out by the extractFields transformation.",
       "fieldConfig": {
         "defaults": {
           "custom": {
             "align": "auto",
-            "filterable": true
+            "filterable": true,
+            "inspect": true
           }
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "n"
+              "options": "Time"
             },
             "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Value"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "_time"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "time"
-              },
               {
                 "id": "custom.width",
-                "value": 210
+                "value": 180
               }
             ]
           },
@@ -493,7 +472,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 210
+                "value": 200
               }
             ]
           },
@@ -517,7 +496,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 100
+                "value": 105
               }
             ]
           },
@@ -529,12 +508,23 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 150
+                "value": 155
               }
             ]
           }
         ]
-      }
+      },
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "labels",
+            "format": "json",
+            "replace": true,
+            "keepTime": true
+          }
+        }
+      ]
     }
   ]
 }
