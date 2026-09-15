@@ -1,0 +1,39 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app coraza-waf
+  namespace: flux-system
+spec:
+  targetNamespace: network
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/network/coraza-waf/app
+  dependsOn:
+    # Owns the EnvoyExtensionPolicy CRD and the two Gateways this attaches to.
+    - name: envoy-gateway
+      namespace: flux-system
+  healthChecks:
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: EnvoyExtensionPolicy
+      name: *app
+      namespace: network
+  healthCheckExprs:
+    # EnvoyExtensionPolicy reports Gateway API PolicyStatus - status.ancestors[],
+    # one entry per attached Gateway - not the flat status.conditions kstatus
+    # reads. With no ancestors yet neither expr matches, which is the InProgress
+    # that lets Flux retry while envoy-gateway is still translating.
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: EnvoyExtensionPolicy
+      failed: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'False'))
+      current: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'True'))
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # wait: false, since wait: true would ignore the healthCheckExprs above.
+  wait: false
+  interval: 1h
+  timeout: 5m

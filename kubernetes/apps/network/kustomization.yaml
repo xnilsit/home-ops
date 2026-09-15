@@ -8,6 +8,7 @@ resources:
   - ./cloudflare-dns/ks.yaml
   - ./cloudflare-dns-direct/ks.yaml
   - ./cloudflare-tunnel/ks.yaml
+  - ./coraza-waf/ks.yaml
   - ./envoy-gateway/ks.yaml
   - ./external-services/ks.yaml
   - ./ipv6-prefix-tracker/ks.yaml
