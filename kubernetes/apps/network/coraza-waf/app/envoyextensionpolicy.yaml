@@ -97,11 +97,17 @@ spec:
             # address, which here is the envoy pod IP. SERVER_NAME is the
             # :authority the plugin hands the transaction, port stripped.
             #
-            # phase 5 runs even after an interruption, so this still fires for
-            # requests blocked in phase 1 once the engine is On. It shares the
-            # transaction's unique_id with the rule alerts, which is what joins
-            # them in the dashboard.
+            # phase 2, after the CRS include, so 949160 has already summed
+            # tx.detection_inbound_anomaly_score. Phase 5 would survive an
+            # interruption and would be the better home, but no phase 5 rule
+            # produces an alert under coraza-proxy-wasm 0.6.0 - CRS's own 980170
+            # never appears either. While SecRuleEngine is DetectionOnly nothing
+            # interrupts, so this covers every flagged request; once it is On,
+            # requests denied by 949110 will lose their context line.
+            #
+            # It shares the transaction's unique_id with the rule alerts, which
+            # is what joins them in the dashboard.
             - >-
               SecRule TX:DETECTION_INBOUND_ANOMALY_SCORE "@gt 0"
-              "id:10020,phase:5,pass,log,msg:'WAF request context',
+              "id:10020,phase:2,pass,log,msg:'WAF request context',
               logdata:'host=%{SERVER_NAME} score=%{TX.DETECTION_INBOUND_ANOMALY_SCORE}'"
