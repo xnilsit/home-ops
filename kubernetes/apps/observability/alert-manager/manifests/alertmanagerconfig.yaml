@@ -61,22 +61,23 @@ spec:
             name: telegram
             key: BOT_TOKEN
           chatID: ${TELEGRAM_CHAT_ID}
+          # Escaped HTML: an unpaired `_` in a metric name is a 400 under Markdown.
           message: |-
             {{ if gt (len .Alerts.Firing) 0 }}
-            🚨 *FIRING ALERTS*
+            🚨 <b>FIRING ALERTS</b>
             {{ range .Alerts.Firing }}
-              *Alert:* {{ .Labels.alertname }}
-              *Summary:* {{ .Annotations.summary }}
+              <b>Alert:</b> {{ .Labels.alertname | html }}
+              <b>Summary:</b> {{ .Annotations.summary | html }}
             {{ end }}
             {{ end }}
             {{ if gt (len .Alerts.Resolved) 0 }}
-            ✅ *RESOLVED ALERTS*
+            ✅ <b>RESOLVED ALERTS</b>
             {{ range .Alerts.Resolved }}
-              *Alert:* {{ .Labels.alertname }}
-              *Summary:* {{ .Annotations.summary }}
+              <b>Alert:</b> {{ .Labels.alertname | html }}
+              <b>Summary:</b> {{ .Annotations.summary | html }}
             {{ end }}
             {{ end }}
-          parseMode: Markdown
+          parseMode: HTML
     - name: ntfy
       webhookConfigs:
         # ?template=alertmanager selects ntfy's BUILT-IN Alertmanager template
