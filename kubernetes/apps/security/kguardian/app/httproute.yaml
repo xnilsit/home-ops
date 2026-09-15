@@ -24,6 +24,28 @@ spec:
       namespace: network
       sectionName: https
   rules:
+    # Answers the UI's /oauth2/userinfo identity fetch from authentik's claims.
+    - matches:
+        - path:
+            type: Exact
+            value: /oauth2/userinfo
+      filters:
+        # The bearer token from forwardAccessToken is the credential here.
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove:
+              - "Cookie"
+        - type: URLRewrite
+          urlRewrite:
+            hostname: ${AUTHENTIK_URL#https://}
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /application/o/userinfo/
+      backendRefs:
+        - group: gateway.envoyproxy.io
+          kind: Backend
+          name: authentik
+          port: 443
     - backendRefs:
         # The UI proxies /api to the broker itself, so one backend covers both.
         - name: kguardian-frontend

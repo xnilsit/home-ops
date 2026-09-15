@@ -6,8 +6,18 @@ components:
   - ../../../../components/postgres-shared
   - ../../../../components/oidc
   - ../../../../components/oidc-probe
+patches:
+  # Scoped here rather than added to ../oidc: only this app proxies a request
+  # onward to authentik, which needs the token the filter otherwise keeps.
+  - target:
+      kind: SecurityPolicy
+    patch: |-
+      - op: add
+        path: /spec/oidc/forwardAccessToken
+        value: true
 resources:
   - ./secret.sops.yaml
   - ./ocirepository.yaml
   - ./helmrelease.yaml
+  - ./backend.yaml
   - ./httproute.yaml
