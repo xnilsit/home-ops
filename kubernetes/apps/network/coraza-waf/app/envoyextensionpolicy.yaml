@@ -86,6 +86,19 @@ spec:
               SecRule REQUEST_HEADERS:X-Envoy-External-Address "@ipMatch 192.168.0.0/23,fd2e:9a41:6b8c:1::/64"
               "id:10002,phase:1,pass,nolog,ctl:ruleEngine=Off,skipAfter:END-LAN-EXEMPT"
 
+            # Exempts GitHub's webhook senders, same mechanism as the LAN rules.
+            # Their JSON payloads trip 932235, 932380 and 933120 and reach the
+            # anomaly threshold, so konflate and flux-webhook would both be
+            # blocked once SecRuleEngine is On. Both receivers verify an HMAC
+            # signature of their own.
+            #
+            # The list is the `hooks` array of https://api.github.com/meta and
+            # has no feed renovate can follow; re-check it if deliveries start
+            # showing up as detections again.
+            - >-
+              SecRule REMOTE_ADDR "@ipMatch 192.30.252.0/22,185.199.108.0/22,140.82.112.0/20,143.55.64.0/20,2a0a:a440::/29,2606:50c0::/32"
+              "id:10003,phase:1,pass,nolog,ctl:ruleEngine=Off,skipAfter:END-LAN-EXEMPT"
+
             - Include @owasp_crs/*.conf
 
             # Landing point for the skipAfter above. Markers are evaluated in
