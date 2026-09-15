@@ -91,3 +91,17 @@ spec:
             # Landing point for the skipAfter above. Markers are evaluated in
             # every phase, so it also ends the skip for phase 2 rules.
             - SecMarker END-LAN-EXEMPT
+
+            # One extra line per flagged request carrying the requested host.
+            # CRS alerts do not have it: coraza's [hostname] is the server
+            # address, which here is the envoy pod IP. SERVER_NAME is the
+            # :authority the plugin hands the transaction, port stripped.
+            #
+            # phase 5 runs even after an interruption, so this still fires for
+            # requests blocked in phase 1 once the engine is On. It shares the
+            # transaction's unique_id with the rule alerts, which is what joins
+            # them in the dashboard.
+            - >-
+              SecRule TX:DETECTION_INBOUND_ANOMALY_SCORE "@gt 0"
+              "id:10020,phase:5,pass,log,msg:'WAF request context',
+              logdata:'host=%{SERVER_NAME} score=%{TX.DETECTION_INBOUND_ANOMALY_SCORE}'"
