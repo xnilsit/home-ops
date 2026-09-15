@@ -49,3 +49,16 @@ spec:
     # Audit-only: reports flows an AuditNetworkPolicy would have denied, never blocks.
     evaluator:
       enabled: true
+
+  postRenderers:
+    # The chart's ServiceMonitor selects app.kubernetes.io/name, which its own
+    # Service does not carry, so the scrape pool discovers nothing.
+    - kustomize:
+        patches:
+          - target:
+              kind: Service
+              name: kguardian-broker
+            patch: |-
+              - op: add
+                path: /metadata/labels/app.kubernetes.io~1name
+                value: kguardian-broker
