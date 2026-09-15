@@ -16,7 +16,11 @@ conditional:
     localdomain: 192.168.0.1
     .: 192.168.0.1
 customDNS:
-  mapping: {}
+  mapping:
+    # Answers home.<domain> with the envoy-external-direct VIP on the LAN.
+    # k8s-gateway has no record for it, so it would otherwise resolve to the
+    # WAN address via public DNS.
+    home.${SECRET_DOMAIN}: 192.168.1.152
     # Above the conditional mapping in the chain, so this wins. Points the hood's
     # NTP endpoint at the stratum-2 gateway and finally answers the AAAA it asks
     # for 40x/s. Revert this line if its clock stops - BSH serve NTS off a private
