@@ -51,6 +51,14 @@ spec:
             - SecRequestBodyLimitAction ProcessPartial
             # Leaves responses uninspected and unbuffered.
             - SecResponseBodyAccess Off
+            # 200002 and 200003 from @recommended-conf deny with a 400 whenever
+            # REQBODY_ERROR or MULTIPART_STRICT_ERROR is set, outside the anomaly
+            # score. SecRequestBodyLimitAction ProcessPartial truncates every
+            # body over SecRequestBodyLimit, which leaves a half-read multipart
+            # and sets both, so an immich or paperless upload from outside the
+            # LAN would get a hard 400 the moment SecRuleEngine is On.
+            - SecRuleRemoveById 200002
+            - SecRuleRemoveById 200003
             # Disables the audit log. Matches still reach the proxy's
             # application log, which victoria-logs-collector ships.
             - SecAuditEngine Off
