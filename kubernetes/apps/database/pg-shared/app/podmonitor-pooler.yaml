@@ -3,21 +3,15 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  name: pg-shared
+  name: pg-shared-pooler-rw
 spec:
-  # Hand-written rather than spec.monitoring.enablePodMonitor, which is
-  # deprecated since CNPG 1.27.1.
-  #
-  # Known trap: scraping this way drops the namespace/pod labels from
-  # cnpg_pg_database_xid_age and friends, which breaks those panels on the
-  # stock CNPG Grafana dashboard. Relabelings below put them back.
+  # Pooler pods also carry cnpg.io/cluster=pg-shared, so this selects on the
+  # pooler name to keep the two scrape jobs apart.
   selector:
     matchLabels:
-      cnpg.io/cluster: pg-shared
-      # Pooler pods carry the cluster label too and expose their own metrics
-      # port; podmonitor-pooler.yaml scrapes those.
-      cnpg.io/podRole: instance
+      cnpg.io/poolerName: pg-shared-pooler-rw
   podMetricsEndpoints:
+    # Port 9127 on the pgbouncer container, serving the cnpg_pgbouncer_* metrics.
     - port: metrics
       relabelings:
         - sourceLabels:
