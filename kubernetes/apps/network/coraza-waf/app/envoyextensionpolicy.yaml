@@ -40,8 +40,8 @@ spec:
             # limits. Everything below overrides it.
             - Include @recommended-conf
 
-            # DetectionOnly logs matches and blocks nothing. On enforces.
-            - SecRuleEngine DetectionOnly
+            # On enforces. DetectionOnly logs matches and blocks nothing.
+            - SecRuleEngine On
             - SecRequestBodyAccess On
             # Bytes of request body inspected, buffered inside the wasm VM.
             - SecRequestBodyLimit 4096
@@ -131,4 +131,12 @@ spec:
             - >-
               SecRule TX:DETECTION_INBOUND_ANOMALY_SCORE "@gt 0"
               "id:10020,phase:2,pass,log,msg:'WAF request context',
-              logdata:'host=%{SERVER_NAME} score=%{TX.DETECTION_INBOUND_ANOMALY_SCORE}'"
+              logdata:'host=%{SERVER_NAME}'"
+
+            # 10020 sits after the CRS include, so an interruption from 949110
+            # or 949111 skips it and a blocked request would carry no host.
+            # Putting the same logdata on the two blocking rules covers that;
+            # only one of the three can fire per request. A space anywhere in
+            # the value makes coraza reject the directive.
+            - SecRuleUpdateActionById 949110 "logdata:'host=%{SERVER_NAME}'"
+            - SecRuleUpdateActionById 949111 "logdata:'host=%{SERVER_NAME}'"
