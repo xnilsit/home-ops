@@ -67,10 +67,16 @@ spec:
 
             # Paranoia level and anomaly score thresholds. IDs 1-99999 are the
             # range CRS leaves to local rules.
+            #
+            # detection > blocking runs the PL2 rules in log-only mode: they add
+            # to tx.detection_inbound_anomaly_score, not the blocking score, so
+            # they never deny. Soaks what a future blocking_paranoia_level=2
+            # would catch. Legitimate traffic produced zero PL1 detections, so
+            # this is free visibility ahead of that bump.
             - >-
               SecAction "id:10000,phase:1,pass,nolog,t:none,
               setvar:tx.blocking_paranoia_level=1,
-              setvar:tx.detection_paranoia_level=1,
+              setvar:tx.detection_paranoia_level=2,
               setvar:tx.inbound_anomaly_score_threshold=10,
               setvar:tx.outbound_anomaly_score_threshold=4"
 

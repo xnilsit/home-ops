@@ -84,8 +84,8 @@
     },
     {
       "type": "stat",
-      "title": "Would be blocked",
-      "description": "CRS rule 949110 - inbound anomaly score over threshold.",
+      "title": "Blocked",
+      "description": "CRS rules 949110/949111 - inbound anomaly score over threshold, denied 403 under enforcement.",
       "datasource": {
         "type": "victoriametrics-logs-datasource",
         "uid": "${DS_VICTORIALOGS}"
