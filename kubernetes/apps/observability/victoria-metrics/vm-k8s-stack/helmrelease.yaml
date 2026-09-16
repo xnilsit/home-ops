@@ -74,6 +74,10 @@ spec:
         # Losing a node's headroom during upgrades is expected, not an incident.
         KubeMemoryOvercommit:
           enabled: false
+        # Fires on netbird's wt0, and CephNodeNetworkPacketErrors already covers
+        # the physical NICs from the same metric, more sensitively.
+        NodeNetworkTransmitErrs:
+          enabled: false
 
     alertmanager:
       enabled: true
