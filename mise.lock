@@ -781,7 +781,7 @@ url = "https://github.com/pypa/pipx/releases/download/1.17.3/pipx.pyz"
 url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/566798685"
 
 [[tools."pipx:makejinja"]]
-version = "2.8.3"
+version = "2.9.1"
 backend = "pipx:makejinja"
 
 [[tools.python]]
