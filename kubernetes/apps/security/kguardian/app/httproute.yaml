@@ -65,8 +65,8 @@ metadata:
     gatus.home-operations.com/enabled: "false"
 spec:
   hostnames:
-    # CLUSTER_DOMAIN, not SECRET_DOMAIN: this host is written into the committed
-    # .mcp.json, and cluster-settings already carries it in plaintext.
+    # CLUSTER_DOMAIN, not SECRET_DOMAIN: cluster-settings already carries this
+    # host in plaintext.
     - "kguardian-mcp.${CLUSTER_DOMAIN}"
   parentRefs:
     # No SecurityPolicy on this route - the oauth2 filter would swallow the MCP

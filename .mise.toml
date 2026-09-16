@@ -1,7 +1,5 @@
 [env]
 _.python.venv = { path = "{{config_root}}/.venv", create = true } # required:template
-# Decrypted with the age key below; supplies KGUARDIAN_MCP_TOKEN to .mcp.json.
-_.file = { path = "{{config_root}}/mcp.sops.json", redact = true }
 KUBECONFIG = "{{config_root}}/kubeconfig"
 SOPS_CONFIG = "{{config_root}}/.sops.yaml"
 SOPS_AGE_KEY_FILE = "{{config_root}}/age.key"
