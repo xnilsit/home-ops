@@ -1,0 +1,82 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: netbird
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: netbird
+  interval: 1h
+  values:
+    controllers:
+      netbird:
+        type: daemonset
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: docker.io/netbirdio/netbird
+              tag: 0.78.2
+            # Carries NB_SETUP_KEY and NB_MANAGEMENT_URL.
+            envFrom:
+              - secretRef:
+                  name: netbird-secret
+            env:
+              # The peer name shown in the dashboard.
+              NB_HOSTNAME:
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              # Resolver state belongs to the host, not this container.
+              NB_DISABLE_DNS: "true"
+              # Image default also writes /var/log/netbird/client.log.
+              NB_LOG_FILE: console
+              # Image default puts the socket in /var/run, which is not writable.
+              NB_DAEMON_ADDR: unix:///var/lib/netbird/netbird.sock
+            securityContext:
+              # NET_ADMIN for the interface and nftables, SYS_ADMIN for eBPF,
+              # SYS_RESOURCE for its memlock limit.
+              runAsUser: 0
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {add: ["NET_ADMIN", "SYS_ADMIN", "SYS_RESOURCE"], drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                memory: 256Mi
+    defaultPodOptions:
+      # wt0 has to land in the node's network namespace to reach the LAN.
+      hostNetwork: true
+      # blocky, so the management host resolves the way the LAN does.
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - "192.168.1.53"
+      # The remote path in, but not node-critical for Kubernetes itself.
+      priorityClassName: cluster-infra
+      automountServiceAccountToken: false
+      tolerations:
+        - operator: Exists
+          effect: NoSchedule
+        - operator: Exists
+          effect: NoExecute
+    persistence:
+      # The node's peer identity, kept across restarts.
+      state:
+        type: hostPath
+        hostPath: /var/lib/netbird
+        hostPathType: DirectoryOrCreate
+        globalMounts:
+          - path: /var/lib/netbird
+      # Userspace WireGuard falls back to this when the kernel module is not usable.
+      dev-tun:
+        type: hostPath
+        hostPath: /dev/net/tun
+        hostPathType: CharDevice
+        globalMounts:
+          - path: /dev/net/tun
