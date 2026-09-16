@@ -50,6 +50,8 @@ spec:
     loadBalancer:
       algorithm: maglev
       mode: "dsr"
+    # Pinned: autodetect follows netbird's 1280 wt0 down and shrinks the pod network.
+    MTU: 1500
     localRedirectPolicies:
       enabled: true
     operator:
