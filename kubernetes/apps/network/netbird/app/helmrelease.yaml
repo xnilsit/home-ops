@@ -37,12 +37,12 @@ spec:
               # Image default puts the socket in /var/run, which is not writable.
               NB_DAEMON_ADDR: unix:///var/lib/netbird/netbird.sock
             securityContext:
-              # NET_ADMIN for the interface and nftables, SYS_ADMIN for eBPF,
-              # SYS_RESOURCE for its memlock limit.
+              # NET_ADMIN for the interface and nftables, NET_RAW for the raw
+              # socket, SYS_ADMIN for eBPF, SYS_RESOURCE for its memlock limit.
               runAsUser: 0
               allowPrivilegeEscalation: false
               readOnlyRootFilesystem: true
-              capabilities: {add: ["NET_ADMIN", "SYS_ADMIN", "SYS_RESOURCE"], drop: ["ALL"]}
+              capabilities: {add: ["NET_ADMIN", "NET_RAW", "SYS_ADMIN", "SYS_RESOURCE"], drop: ["ALL"]}
             resources:
               requests:
                 cpu: 50m
