@@ -18,7 +18,7 @@ ARG PG_MAJOR=18
 # Debian codename must match the operand image (trixie -> ~debian13 packages)
 ARG DISTRO=trixie
 # renovate: datasource=github-releases depName=timescale/timescaledb
-ARG TS_VERSION=2.30.0
+ARG TS_VERSION=2.30.1
 # renovate: datasource=github-releases depName=timescale/timescaledb-toolkit
 ARG TOOLKIT_VERSION=1.26.0
 
