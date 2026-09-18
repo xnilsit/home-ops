@@ -10,7 +10,7 @@ spec:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy
   ref:
-    tag: 5.1.0
+    tag: 5.2.1
   # app-template, not the upstream trek chart: that one is a plain HTTP Helm
   # repo, renders an Ingress rather than an HTTPRoute, and ships no probes or
   # securityContext.
