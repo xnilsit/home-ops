@@ -21,128 +21,93 @@ spec:
         image:
           # renovate: datasource=docker depName=ghcr.io/corazawaf/coraza-proxy-wasm
           url: ghcr.io/corazawaf/coraza-proxy-wasm:0.6.0
-        # Serves the controller's cached copy of the 18.5 MB module until the
-        # policy changes.
         pullPolicy: IfNotPresent
-      # Passes traffic through unfiltered when the module fails to load, run, or
-      # parse its config. false returns 5xx instead.
+      # Passes traffic through unfiltered when the module fails to load or parse.
       failOpen: true
       config:
         default_directives: default
-        # Emitted as owner/identifier labels on the waf_filter stats, via the
-        # stats_tags patch on EnvoyProxy/envoy-waf.
+        # Emitted as labels on the waf_filter stats.
         metric_labels:
           owner: coraza
           identifier: public
         directives_map:
           default:
-            # Coraza's baseline: transformations, unicode map, argument and PCRE
-            # limits. Everything below overrides it.
+            # Coraza's baseline. Everything below overrides it.
             - Include @recommended-conf
 
-            # On enforces. DetectionOnly logs matches and blocks nothing.
             - SecRuleEngine On
             - SecRequestBodyAccess On
             # Bytes of request body inspected, buffered inside the wasm VM.
-            - SecRequestBodyLimit 4096
-            - SecRequestBodyInMemoryLimit 4096
-            # Inspects the first SecRequestBodyLimit bytes of a larger body and
-            # forwards the rest. Reject would 413 it.
+            - SecRequestBodyLimit 32768
+            - SecRequestBodyInMemoryLimit 32768
+            # Truncates a larger body instead of rejecting it with a 413.
             - SecRequestBodyLimitAction ProcessPartial
-            # Leaves responses uninspected and unbuffered.
             - SecResponseBodyAccess Off
-            # 200002 and 200003 from @recommended-conf deny with a 400 whenever
-            # REQBODY_ERROR or MULTIPART_STRICT_ERROR is set, outside the anomaly
-            # score. SecRequestBodyLimitAction ProcessPartial truncates every
-            # body over SecRequestBodyLimit, which leaves a half-read multipart
-            # and sets both, so an immich or paperless upload from outside the
-            # LAN would get a hard 400 the moment SecRuleEngine is On.
+            # Both 400 on the truncated multipart ProcessPartial leaves behind.
             - SecRuleRemoveById 200002
             - SecRuleRemoveById 200003
-            # Disables the audit log. Matches still reach the proxy's
-            # application log, which victoria-logs-collector ships.
+            # Matches still reach the proxy's application log.
             - SecAuditEngine Off
 
             - Include @crs-setup-conf
 
-            # Paranoia level and anomaly score thresholds. IDs 1-99999 are the
-            # range CRS leaves to local rules.
-            #
-            # detection > blocking runs the PL2 rules in log-only mode: they add
-            # to tx.detection_inbound_anomaly_score, not the blocking score, so
-            # they never deny. Soaks what a future blocking_paranoia_level=2
-            # would catch. Legitimate traffic produced zero PL1 detections, so
-            # this is free visibility ahead of that bump.
+            # Paranoia levels and anomaly thresholds. IDs 1-99999 are local.
+            # detection > blocking runs the PL3 rules in log-only mode.
             - >-
               SecAction "id:10000,phase:1,pass,nolog,t:none,
-              setvar:tx.blocking_paranoia_level=1,
-              setvar:tx.detection_paranoia_level=2,
-              setvar:tx.inbound_anomaly_score_threshold=10,
+              setvar:tx.blocking_paranoia_level=2,
+              setvar:tx.detection_paranoia_level=3,
+              setvar:tx.inbound_anomaly_score_threshold=5,
               setvar:tx.outbound_anomaly_score_threshold=4"
 
-            # Exempts LAN clients. Runs in phase 1, before the CRS include.
-            #
-            # skipAfter jumps the rest of this phase to the marker below.
-            # ctl:ruleEngine=Off covers phases 2 and up, which check the engine
-            # on entry. `allow` is not used: coraza does not enforce it while
-            # SecRuleEngine is DetectionOnly, and ctl alone does not stop the
-            # remaining rules of the phase it fires in.
-            #
-            # REMOTE_ADDR is the TCP peer: the client itself on
-            # envoy-external-direct, the cloudflared pod on envoy-external. The
-            # pod CIDR is not listed, or the WAF would be off for the tunnel.
+            # Exempts LAN clients. skipAfter covers phase 1, ctl phases 2 and up.
+            # REMOTE_ADDR is the real client on both gateways: envoy resolves it
+            # from x-forwarded-for against ClientTrafficPolicy/envoy trustedCIDRs.
             - >-
               SecRule REMOTE_ADDR "@ipMatch 192.168.0.0/23,fd2e:9a41:6b8c:1::/64"
               "id:10001,phase:1,pass,nolog,ctl:ruleEngine=Off,skipAfter:END-LAN-EXEMPT"
-            # x-envoy-external-address is the client address envoy derives from
-            # x-forwarded-for using the trustedCIDRs in ClientTrafficPolicy/envoy.
-            - >-
-              SecRule REQUEST_HEADERS:X-Envoy-External-Address "@ipMatch 192.168.0.0/23,fd2e:9a41:6b8c:1::/64"
-              "id:10002,phase:1,pass,nolog,ctl:ruleEngine=Off,skipAfter:END-LAN-EXEMPT"
 
-            # Exempts GitHub's webhook senders, same mechanism as the LAN rules.
-            # Their JSON payloads trip 932235, 932380 and 933120 and reach the
-            # anomaly threshold, so konflate and flux-webhook would both be
-            # blocked once SecRuleEngine is On. Both receivers verify an HMAC
-            # signature of their own.
-            #
-            # The list is the `hooks` array of https://api.github.com/meta and
-            # has no feed renovate can follow; re-check it if deliveries start
-            # showing up as detections again.
+            # Exempts GitHub's webhook senders on the two receiver hosts only.
+            # Both receivers verify an HMAC signature of their own.
+            # The list is the `hooks` array of https://api.github.com/meta.
+            # ctl goes on the last rule of the chain: coraza runs a starter's
+            # non-disruptive actions on the starter's own match.
+            # SERVER_NAME is empty in phase 1, hence REQUEST_HEADERS:Host.
             - >-
               SecRule REMOTE_ADDR "@ipMatch 192.30.252.0/22,185.199.108.0/22,140.82.112.0/20,143.55.64.0/20,2a0a:a440::/29,2606:50c0::/32"
-              "id:10003,phase:1,pass,nolog,ctl:ruleEngine=Off,skipAfter:END-LAN-EXEMPT"
+              "id:10003,phase:1,pass,nolog,chain,skipAfter:END-LAN-EXEMPT"
+            - >-
+              SecRule REQUEST_HEADERS:Host "@rx ^(?:konflate|flux-webhook)\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+              "t:none,ctl:ruleEngine=Off"
+
+            # The Home Assistant app's client_id=https://home-assistant.io/...
+            # reads as an off-domain RFI reference to 931130. 931130 declares
+            # ARGS, so the exclusion names ARGS:client_id, not ARGS_POST.
+            - >-
+              SecRule REQUEST_HEADERS:Host "@rx ^ha\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+              "id:10011,phase:1,pass,nolog,t:none,chain"
+            - >-
+              SecRule REQUEST_URI "@beginsWith /auth/token"
+              "t:none,ctl:ruleRemoveTargetById=931130;ARGS:client_id"
 
             - Include @owasp_crs/*.conf
 
-            # Landing point for the skipAfter above. Markers are evaluated in
-            # every phase, so it also ends the skip for phase 2 rules.
+            # Landing point for the skipAfter above. Markers run in every phase.
             - SecMarker END-LAN-EXEMPT
 
-            # One extra line per flagged request carrying the requested host.
-            # CRS alerts do not have it: coraza's [hostname] is the server
-            # address, which here is the envoy pod IP. SERVER_NAME is the
-            # :authority the plugin hands the transaction, port stripped.
-            #
-            # phase 2, after the CRS include, so 949160 has already summed
-            # tx.detection_inbound_anomaly_score. Phase 5 would survive an
-            # interruption and would be the better home, but no phase 5 rule
-            # produces an alert under coraza-proxy-wasm 0.6.0 - CRS's own 980170
-            # never appears either. While SecRuleEngine is DetectionOnly nothing
-            # interrupts, so this covers every flagged request; once it is On,
-            # requests denied by 949110 will lose their context line.
-            #
-            # It shares the transaction's unique_id with the rule alerts, which
-            # is what joins them in the dashboard.
+            # One extra line per flagged request carrying the requested host,
+            # which CRS alerts lack: coraza's [hostname] is the envoy pod IP.
+            # phase 2, after 949160 has summed the detection score. A request
+            # denied by 949110 never reaches it.
+            # Shares unique_id with the rule alerts, which joins them in the
+            # dashboard.
             - >-
               SecRule TX:DETECTION_INBOUND_ANOMALY_SCORE "@gt 0"
               "id:10020,phase:2,pass,log,msg:'WAF request context',
               logdata:'host=%{SERVER_NAME}'"
 
-            # 10020 sits after the CRS include, so an interruption from 949110
-            # or 949111 skips it and a blocked request would carry no host.
-            # Putting the same logdata on the two blocking rules covers that;
-            # only one of the three can fire per request. A space anywhere in
-            # the value makes coraza reject the directive.
+            # Carries the same host onto the blocking rules, which interrupt
+            # before 10020. A space in the value makes coraza reject the
+            # directive.
             - SecRuleUpdateActionById 949110 "logdata:'host=%{SERVER_NAME}'"
             - SecRuleUpdateActionById 949111 "logdata:'host=%{SERVER_NAME}'"
