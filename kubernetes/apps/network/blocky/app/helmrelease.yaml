@@ -25,6 +25,9 @@ spec:
             image:
               repository: ghcr.io/0xerr0r/blocky
               tag: v0.35.0
+            env:
+              # Soft heap ceiling, kept below limits.memory.
+              GOMEMLIMIT: 1750MiB
             probes:
               startup: &probe
                 enabled: true
@@ -47,10 +50,10 @@ spec:
             resources:
               requests:
                 cpu: 50m
-                memory: 512Mi
+                memory: 640Mi
               limits:
                 cpu: 1
-                memory: 1Gi
+                memory: 2Gi
     defaultPodOptions:
       # Blocky is the LAN's only resolver, so it outranks ordinary workloads
       # for scheduling and is evicted last under node pressure.
