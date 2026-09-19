@@ -5,5 +5,6 @@ kind: Kustomization
 resources:
   - ./helmrelease.yaml
   - ./service.yaml
+  - ./httproute.yaml
   - ./storageclass.yaml
   - ./storageclass-cephfs-shallow.yaml
