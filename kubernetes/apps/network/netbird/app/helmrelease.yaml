@@ -19,7 +19,7 @@ spec:
           app:
             image:
               repository: docker.io/netbirdio/netbird
-              tag: 0.78.2
+              tag: 0.79.0
             # Carries NB_SETUP_KEY and NB_MANAGEMENT_URL.
             envFrom:
               - secretRef:
