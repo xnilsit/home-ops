@@ -59,7 +59,9 @@ items:
                     exit 0
                   fi
                   echo "RGW state is empty; restoring from Garage"
+                  # Skips .tflock - a restored lock has no holder to release it.
                   exec rclone copy garage:tofu-state/authentik rgw:tofu-state/authentik \
+                    --exclude "*.tflock" \
                     --s3-no-check-bucket \
                     --stats-one-line
               env: &rcloneEnv
@@ -127,9 +129,24 @@ items:
                       # instead of destroying it - without it a corrupted state
                       # reaches the only other copy within the hour and there is
                       # nothing to roll back to.
-                      exec rclone copy rgw:tofu-state/authentik garage:tofu-state/authentik \
+                      # Skips .tflock - copy never deletes, so a lock copied
+                      # here would outlive the holder that took it.
+                      rclone copy rgw:tofu-state/authentik garage:tofu-state/authentik \
                         --backup-dir "garage:tofu-state/history/$(date -u +%Y%m%dT%H%M%SZ)" \
+                        --exclude "*.tflock" \
                         --s3-no-check-bucket \
                         --stats 30s \
                         --stats-one-line
+
+                      # history/ names are fixed-width UTC, so a reverse sort
+                      # is newest-first; everything past 48 snapshots goes.
+                      # $$ escapes Flux postBuild, which also eats a bare $dir.
+                      rclone lsf garage:tofu-state/history --dirs-only \
+                        | sort -r \
+                        | awk -v keep=48 'NR > keep { sub("/$", ""); print }' \
+                        | while IFS= read -r dir; do
+                            echo "pruning history/$${dir}"
+                            rclone purge "garage:tofu-state/history/$${dir}" \
+                              --s3-no-check-bucket
+                          done
                   env: *rcloneEnv
