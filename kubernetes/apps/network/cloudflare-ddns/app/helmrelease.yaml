@@ -18,7 +18,7 @@ spec:
           app:
             image:
               repository: docker.io/favonia/cloudflare-ddns
-              tag: 1.17.0
+              tag: 1.17.1
             env:
               # The A record every route on envoy-external-direct CNAMEs to.
               DOMAINS: home.${SECRET_DOMAIN}
