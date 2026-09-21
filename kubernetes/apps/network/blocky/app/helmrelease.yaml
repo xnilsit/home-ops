@@ -28,6 +28,9 @@ spec:
             env:
               # Soft heap ceiling, kept below limits.memory.
               GOMEMLIMIT: 1750MiB
+              # A folder, not a file: blocky merges every *.yml under it in
+              # lexical order, keeping the lancache mapping out of config.yaml.
+              BLOCKY_CONFIG_FILE: /app/config
             probes:
               startup: &probe
                 enabled: true
@@ -119,8 +122,13 @@ spec:
         type: configMap
         name: blocky-config
         globalMounts:
-          - path: /app/config.yml
+          # subPath per file, never the bare volume: a ConfigMap mount is a
+          # symlink farm plus a timestamped dir, and blocky walks the folder.
+          - path: /app/config/00-blocky.yml
             subPath: config.yml
+            readOnly: true
+          - path: /app/config/10-lancache.yml
+            subPath: lancache.yml
             readOnly: true
       dragonfly-auth:
         type: secret
