@@ -55,6 +55,12 @@ spec:
   # Merges into the class-level `envoy` instead of replacing it, so ipFamily,
   # the dual-stack Service patch and the drain timeout carry over.
   mergeType: StrategicMerge
+  logging:
+    # Repeated from the class-level proxy, whose value the merge would otherwise
+    # lose to this resource's defaulted `warn`. Coraza logs its NOTICE-severity
+    # rules at info.
+    level:
+      default: info
   # Worker threads per proxy pod, and with it the number of coraza wasm VMs.
   # Unset means one per host core.
   concurrency: 2
@@ -70,8 +76,10 @@ spec:
           # Keeps envoy's own cluster/listener extractors alongside these.
           use_all_default_tags: true
           stats_tags:
+            # Spelled out: a character class would run on into the `_identifier`
+            # or `_owner` that follows, and coraza emits those two in either order.
             - tag_name: phase
-              regex: "(_phase=([a-z_]+))"
+              regex: "(_phase=(http_request_headers|http_request_body|http_response_headers|http_response_body))"
             - tag_name: rule_id
               regex: "(_ruleid=([0-9]+))"
             - tag_name: identifier

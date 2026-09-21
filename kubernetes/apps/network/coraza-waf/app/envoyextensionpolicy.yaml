@@ -90,13 +90,27 @@ spec:
               SecRule REQUEST_URI "@beginsWith /auth/token"
               "t:none,ctl:ruleRemoveTargetById=931130;ARGS:client_id"
 
+            # The app posts the device's IPv6 addresses, whose colons 942431 reads
+            # as SQL special characters.
+            - >-
+              SecRule REQUEST_HEADERS:Host "@rx ^ha\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+              "id:10012,phase:1,pass,nolog,t:none,chain"
+            - >-
+              SecRule REQUEST_URI "@beginsWith /api/webhook/"
+              "t:none,ctl:ruleRemoveById=942431"
+
             - Include @owasp_crs/*.conf
+
+            # Scores any backend 5xx, and one alone exceeds the outbound threshold.
+            - SecRuleRemoveById 950100
 
             # Landing point for the skipAfter above. Markers run in every phase.
             - SecMarker END-LAN-EXEMPT
 
             # One extra line per flagged request carrying the requested host,
             # which CRS alerts lack: coraza's [hostname] is the envoy pod IP.
+            # The score covers the NOTICE-severity rules, which envoy logs below
+            # its own level.
             # phase 2, after 949160 has summed the detection score. A request
             # denied by 949110 never reaches it.
             # Shares unique_id with the rule alerts, which joins them in the
@@ -104,7 +118,7 @@ spec:
             - >-
               SecRule TX:DETECTION_INBOUND_ANOMALY_SCORE "@gt 0"
               "id:10020,phase:2,pass,log,msg:'WAF request context',
-              logdata:'host=%{SERVER_NAME}'"
+              logdata:'host=%{SERVER_NAME} score=%{tx.detection_inbound_anomaly_score}'"
 
             # Carries the same host onto the blocking rules, which interrupt
             # before 10020. A space in the value makes coraza reject the
