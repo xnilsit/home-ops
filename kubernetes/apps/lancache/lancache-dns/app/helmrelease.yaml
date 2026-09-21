@@ -31,10 +31,13 @@ spec:
               # Space separated, and every address must be RFC1918 or startup
               # is fatal. One A record per IP, served round robin.
               LANCACHE_IP: "192.168.1.61 192.168.1.62 192.168.1.63 192.168.1.64"
-              # blocky, for everything this is not authoritative for. Safe from
-              # looping only because blocky's mapping lists exactly the zones
-              # generated here - see blocky's config-lancache.yaml.
-              UPSTREAM_DNS: "192.168.1.53"
+              # The gateway, NOT blocky. blocky conditional-forwards the cache
+              # domains here, so anything this is not authoritative for and
+              # sends back to blocky is mapped straight back - an infinite
+              # loop. The RPZ holds `*.windowsupdate.com` and no apex record,
+              # while blocky's mapping key matches the apex too, so that gap is
+              # real and not hypothetical. Same upstream blocky uses for `.`.
+              UPSTREAM_DNS: "192.168.0.1"
               # No git pull at startup: freezes the zone set to the image so it
               # matches the committed blocky mapping, and so both replicas agree.
               NOFETCH: "true"
