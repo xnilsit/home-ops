@@ -13,5 +13,5 @@ spec:
   # a SecretKeySelector and renders the config file, so app-template would mean
   # rebuilding both by hand.
   ref:
-    tag: 0.12.1
+    tag: 0.13.0
   url: oci://ghcr.io/noooste/charts/garage-ui
