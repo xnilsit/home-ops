@@ -1,0 +1,9 @@
+---
+apiVersion: v1alpha1
+kind: UdevRulesConfig
+rules:
+  # Samsung PM863a
+  - ACTION=="add|change", SUBSYSTEM=="block", ENV{DEVTYPE}=="disk", ATTRS{model}=="SAMSUNG MZ7LM1T9*", ATTR{queue/write_cache}="write through"
+  # Samsung PM983
+  - ACTION=="add|change", SUBSYSTEM=="block", ENV{DEVTYPE}=="disk", ATTRS{model}=="SAMSUNG MZQLB1T9HAJR*", ATTR{queue/write_cache}="write through"
+  - ACTION=="add|change", SUBSYSTEM=="block", ENV{DEVTYPE}=="disk", ATTRS{model}=="SAMSUNG MZ1LB960HAJQ*", ATTR{queue/write_cache}="write through"
