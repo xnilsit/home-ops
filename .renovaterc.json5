@@ -15,6 +15,17 @@
     enabled: true,
     schedule: ["every weekend"],
   },
+  customManagers: [
+    {
+      description: "Spegel dashboard, the tag sits inside the raw.githubusercontent URL",
+      customType: "regex",
+      managerFilePatterns: ["/kubernetes/apps/kube-system/spegel/app/grafanadashboard\\.yaml$/"],
+      matchStrings: [
+        "raw\\.githubusercontent\\.com/(?<depName>spegel-org/spegel)/(?<currentValue>v[^/]+)/charts/",
+      ],
+      datasourceTemplate: "github-releases",
+    },
+  ],
   packageRules: [
     // ---------------------------------------------------------------------
     // Groups: things that share a version and must move in lockstep
@@ -59,6 +70,14 @@
       groupName: "talos",
       matchManagers: ["mise"],
       matchDepNames: ["talosctl"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
+    {
+      description: "Spegel Group: the helm chart and the dashboard pinned to the matching tag",
+      groupName: "spegel",
+      matchPackageNames: ["ghcr.io/spegel-org/helm-charts/spegel", "spegel-org/spegel"],
       group: {
         commitMessageTopic: "{{{groupName}}} group",
       },
