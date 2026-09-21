@@ -6,8 +6,10 @@
 # Exact hostnames from uklans/cache-domains, never rolled up to registrable
 # domains - the list holds amupdatedl.microsoft.com and blzddist1-a.akamaihd.net,
 # and mapping microsoft.com or akamaihd.net wholesale would divert the internet
-# into the cache. Regenerate in the same PR as a lancache-dns digest bump, or
-# blocky forwards names lancache-dns is not authoritative for and they loop:
+# into the cache. Worth regenerating alongside a lancache-dns digest bump so
+# the two lists stay in step; a name here that lancache-dns does not rewrite
+# just misses the cache, because lancache-dns forwards to the gateway and not
+# back to blocky:
 #
 #   git clone --depth 1 https://github.com/uklans/cache-domains.git && cd cache-domains
 #   cat $(jq -r '.cache_domains[].domain_files[]' cache_domains.json | sort -u) \
