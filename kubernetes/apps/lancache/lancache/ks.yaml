@@ -1,0 +1,36 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app lancache
+  namespace: flux-system
+spec:
+  targetNamespace: lancache
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/lancache/lancache/app
+  dependsOn:
+    # ceph-block for the cache volume
+    - name: rook-ceph-cluster
+      namespace: flux-system
+    # defaultPodOptions.priorityClassName references cluster-platform; pods are
+    # rejected outright while that PriorityClass is missing.
+    - name: priority-classes
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: *app
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: lancache
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: false
+  interval: 1h
+  timeout: 20m

@@ -16,6 +16,7 @@ configMapGenerator:
   - name: blocky-config
     files:
       - config.yml=./config.yaml
+      - lancache.yml=./config-lancache.yaml
   - name: blocky-dashboard
     files:
       - dashboard.json=./dashboard.json

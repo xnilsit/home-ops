@@ -1,0 +1,139 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/0xERR0R/blocky/v0.34.0/docs/config.schema.json
+# Merged into config.yaml by blocky itself: BLOCKY_CONFIG_FILE points at the
+# folder both files are mounted in, and blocky deep-merges conditional.mapping.
+#
+# Exact hostnames from uklans/cache-domains, never rolled up to registrable
+# domains - the list holds amupdatedl.microsoft.com and blzddist1-a.akamaihd.net,
+# and mapping microsoft.com or akamaihd.net wholesale would divert the internet
+# into the cache. Regenerate in the same PR as a lancache-dns digest bump, or
+# blocky forwards names lancache-dns is not authoritative for and they loop:
+#
+#   git clone --depth 1 https://github.com/uklans/cache-domains.git && cd cache-domains
+#   cat $(jq -r '.cache_domains[].domain_files[]' cache_domains.json | sort -u) \
+#     | sed 's/#.*//' | tr -d ' \r' | grep -v '^$' | sed 's/^\*\.//' | sort -u \
+#     | awk '{print "    " $0 ": 192.168.1.60"}'
+conditional:
+  mapping:
+    amupdatedl2.microsoft.com: 192.168.1.60
+    amupdatedl3.microsoft.com: 192.168.1.60
+    amupdatedl4.microsoft.com: 192.168.1.60
+    amupdatedl5.microsoft.com: 192.168.1.60
+    amupdatedl.microsoft.com: 192.168.1.60
+    assetcdn.101.arenanetworks.com: 192.168.1.60
+    assetcdn.102.arenanetworks.com: 192.168.1.60
+    assetcdn.103.arenanetworks.com: 192.168.1.60
+    assets1.xboxlive.com: 192.168.1.60
+    assets1.xboxlive.com.nsatc.net: 192.168.1.60
+    assets2.xboxlive.com: 192.168.1.60
+    blizzard.vo.llnwd.net: 192.168.1.60
+    blzddist1-a.akamaihd.net: 192.168.1.60
+    blzddist2-a.akamaihd.net: 192.168.1.60
+    blzddist3-a.akamaihd.net: 192.168.1.60
+    canary.lancache.net: 192.168.1.60
+    canary.uklans.net: 192.168.1.60
+    ccs.cdn.wup.shop.nintendo.net.edgesuite.net: 192.168.1.60
+    cdn-11.eft-store.com: 192.168.1.60
+    cdn1.epicgames.com: 192.168.1.60
+    cdn1.unrealengine.com: 192.168.1.60
+    cdn2.epicgames.com: 192.168.1.60
+    cdn2.unrealengine.com: 192.168.1.60
+    cdn3.unrealengine.com: 192.168.1.60
+    cdn.blizzard.com: 192.168.1.60
+    cdn-eu1.homecomingservers.com: 192.168.1.60
+    cdn-na1.homecomingservers.com: 192.168.1.60
+    cdn-na2.homecomingservers.com: 192.168.1.60
+    cdn-na3.homecomingservers.com: 192.168.1.60
+    cdn-patch.swtor.com: 192.168.1.60
+    cdn.ubi.com: 192.168.1.60
+    cdn.unrealengine.com: 192.168.1.60
+    cdn.zaonce.net: 192.168.1.60
+    cl-453343cd.gcdn.co: 192.168.1.60
+    cloudflare.epicgamescdn.com: 192.168.1.60
+    cod-assets.cdn.callofduty.com: 192.168.1.60
+    cod-assets.cdn.callofduty.com.edgesuite.net: 192.168.1.60
+    content.warframe.com: 192.168.1.60
+    d1.xboxlive.com: 192.168.1.60
+    dist.blizzard.com: 192.168.1.60
+    dist.blizzard.com.edgesuite.net: 192.168.1.60
+    dl2.wargaming.net: 192.168.1.60
+    dl.delivery.mp.microsoft.com: 192.168.1.60
+    dl-wot-ak.wargaming.net: 192.168.1.60
+    dl-wot-cdx.wargaming.net: 192.168.1.60
+    dl-wot-gc.wargaming.net: 192.168.1.60
+    dl-wot-se.wargaming.net: 192.168.1.60
+    dl-wowp-ak.wargaming.net: 192.168.1.60
+    dl-wowp-cdx.wargaming.net: 192.168.1.60
+    dl-wowp-gc.wargaming.net: 192.168.1.60
+    dl-wowp-se.wargaming.net: 192.168.1.60
+    dl-wows-ak.wargaming.net: 192.168.1.60
+    dl-wows-cdx.wargaming.net: 192.168.1.60
+    dl-wows-gc.wargaming.net: 192.168.1.60
+    dl-wows-se.wargaming.net: 192.168.1.60
+    do.dsp.mp.microsoft.com: 192.168.1.60
+    download2.epicgames.com: 192.168.1.60
+    download3.epicgames.com: 192.168.1.60
+    download4.epicgames.com: 192.168.1.60
+    download.epicgames.com: 192.168.1.60
+    dyn.riotcdn.net: 192.168.1.60
+    ecs-lp1.hac.shop.nintendo.net: 192.168.1.60
+    edge.blizzard.top.comcast.net: 192.168.1.60
+    egdownload.fastly-edge.com: 192.168.1.60
+    egs-cloudfront-chunks.epicgamescdn.com: 192.168.1.60
+    epicgames-download1.akamaized.net: 192.168.1.60
+    fastly-download.epicgames.com: 192.168.1.60
+    filedelivery.nexusmods.com: 192.168.1.60
+    geisha-wup.cdn.nintendo.net: 192.168.1.60
+    geisha-wup.cdn.nintendo.net.edgekey.net: 192.168.1.60
+    gs2.sonycoment.loris-e.llnwd.net: 192.168.1.60
+    gs2.ww.prod.dl.playstation.net: 192.168.1.60
+    gs2.ww.prod.dl.playstation.net.edgesuite.net: 192.168.1.60
+    gs2-ww-prod.psn.akadns.net: 192.168.1.60
+    gs-sec.ww.np.dl.playstation.net: 192.168.1.60
+    gst.prod.dl.playstation.net: 192.168.1.60
+    hac.lp1.d4c.nintendo.net: 192.168.1.60
+    hac.lp1.eshop.nintendo.net: 192.168.1.60
+    idbe-wup.cdn.nintendo.net: 192.168.1.60
+    idbe-wup.cdn.nintendo.net.edgekey.net: 192.168.1.60
+    l3cdn.riotgames.com: 192.168.1.60
+    lancache.steamcontent.com: 192.168.1.60
+    level3.blizzard.com: 192.168.1.60
+    level3.nwhttppatch.crypticstudios.com: 192.168.1.60
+    litmus.lancache.net: 192.168.1.60
+    litmus.uklans.net: 192.168.1.60
+    live.patcher.elderscrollsonline.com: 192.168.1.60
+    lvlt.cdn.ea.com: 192.168.1.60
+    microsoft.com.edgesuite.net: 192.168.1.60
+    nydus.battle.net: 192.168.1.60
+    officecdn.microsoft.com: 192.168.1.60
+    officecdn.microsoft.com.edgesuite.net: 192.168.1.60
+    origin-a.akamaihd.net: 192.168.1.60
+    patchcdn.pathofexile.com: 192.168.1.60
+    patch-dl.ffxiv.com: 192.168.1.60
+    patches.rockstargames.com: 192.168.1.60
+    patches.totemarts.games: 192.168.1.60
+    patches.totemarts.services: 192.168.1.60
+    playstation4.sony.akadns.net: 192.168.1.60
+    pls.patch.daybreakgames.com: 192.168.1.60
+    psnobj.prod.dl.playstation.net: 192.168.1.60
+    receive-lp1.dg.srv.nintendo.net: 192.168.1.60
+    riotgamespatcher-a.akamaihd.net: 192.168.1.60
+    riotgamespatcher-a.akamaihd.net.edgesuite.net: 192.168.1.60
+    sgst.prod.dl.playstation.net: 192.168.1.60
+    theia.dl.playstation.net: 192.168.1.60
+    tmdb.np.dl.playstation.net: 192.168.1.60
+    trigger.lancache.net: 192.168.1.60
+    trigger.uklans.net: 192.168.1.60
+    uef.np.dl.playstation.net: 192.168.1.60
+    update.microsoft.com: 192.168.1.60
+    vulcan.dl.playstation.net: 192.168.1.60
+    wg.gcdn.co: 192.168.1.60
+    wgus-wotasia.wargaming.net: 192.168.1.60
+    wgus-woteu.wargaming.net: 192.168.1.60
+    windowsupdate.com: 192.168.1.60
+    worldwide.l3cdn.riotgames.com: 192.168.1.60
+    wup.eshop.nintendo.net: 192.168.1.60
+    wup.shop.nintendo.net: 192.168.1.60
+    xbox-mbr.xboxlive.com: 192.168.1.60
+    xvcf1.xboxlive.com: 192.168.1.60
+    xvcf2.xboxlive.com: 192.168.1.60
