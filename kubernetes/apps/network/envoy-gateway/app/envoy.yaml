@@ -268,10 +268,6 @@ spec:
   rateLimit:
     type: Global
     global:
-      # shadowMode records the decision without enforcing it. Flip it off once
-      # the counters confirm the bucket key is the real client address and not
-      # the cloudflared pod, which would put the whole tunnel in one bucket.
-      #
       # shared, so a client cannot multiply its budget across HTTPRoutes: a
       # Gateway-targeted rule is otherwise counted per Route.
       rules:
@@ -283,7 +279,6 @@ spec:
             requests: 1200
             unit: Minute
           shared: true
-          shadowMode: true
         # A separate rule - an IPv4 CIDR never matches an IPv6 client.
         - clientSelectors:
             - sourceCIDR:
@@ -293,7 +288,6 @@ spec:
             requests: 1200
             unit: Minute
           shared: true
-          shadowMode: true
   retry:
     numRetries: 2
     retryOn:
