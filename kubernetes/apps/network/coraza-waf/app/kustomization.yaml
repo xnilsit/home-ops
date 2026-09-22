@@ -5,6 +5,7 @@ kind: Kustomization
 resources:
   - ./envoyextensionpolicy.yaml
   - ./grafanadashboard.yaml
+  - ./prometheusrule.yaml
 configMapGenerator:
   - name: coraza-waf-dashboard
     files:

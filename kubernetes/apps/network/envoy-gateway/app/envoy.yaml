@@ -18,6 +18,19 @@ spec:
         pod:
           # Every ingress request into the cluster goes through these pods.
           priorityClassName: cluster-infra
+          # matchLabelKeys keeps each Gateway's pods a separate spread domain -
+          # all three share this EnvoyProxy, so the labelSelector alone would
+          # balance them as one pool.
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: envoy
+                  app.kubernetes.io/component: proxy
+              matchLabelKeys:
+                - gateway.envoyproxy.io/owning-gateway-name
         container:
           imageRepository: mirror.gcr.io/envoyproxy/envoy
           resources:
@@ -27,6 +40,9 @@ spec:
               memory: 512Mi
             limits:
               memory: 1Gi
+      # Without it a drain can take both replicas of a gateway at once.
+      envoyPDB:
+        minAvailable: 1
       envoyService:
         externalTrafficPolicy: Cluster
         patch:
@@ -94,8 +110,9 @@ spec:
           resources:
             requests:
               cpu: 200m
-              # Envoy plus one compiled CRS rule set per worker thread.
-              memory: 768Mi
+              # Envoy plus one compiled CRS rule set per worker thread; measured
+              # at 260-390Mi across the four pods.
+              memory: 512Mi
             limits:
               # V8 doubles its heap while compiling the module.
               memory: 2Gi
@@ -248,6 +265,35 @@ spec:
       brotli: {}
     - type: Gzip
       gzip: {}
+  rateLimit:
+    type: Global
+    global:
+      # shadowMode records the decision without enforcing it. Flip it off once
+      # the counters confirm the bucket key is the real client address and not
+      # the cloudflared pod, which would put the whole tunnel in one bucket.
+      #
+      # shared, so a client cannot multiply its budget across HTTPRoutes: a
+      # Gateway-targeted rule is otherwise counted per Route.
+      rules:
+        - clientSelectors:
+            - sourceCIDR:
+                type: Distinct
+                value: 0.0.0.0/0
+          limit:
+            requests: 1200
+            unit: Minute
+          shared: true
+          shadowMode: true
+        # A separate rule - an IPv4 CIDR never matches an IPv6 client.
+        - clientSelectors:
+            - sourceCIDR:
+                type: Distinct
+                value: ::/0
+          limit:
+            requests: 1200
+            unit: Minute
+          shared: true
+          shadowMode: true
   retry:
     numRetries: 2
     retryOn:

@@ -12,6 +12,12 @@ spec:
     - port: metrics
       path: /stats/prometheus
       honorLabels: true
+      # Splits the per-gateway series apart; the coraza stats carry no label of
+      # their own that distinguishes the two public gateways.
+      relabelings:
+        - sourceLabels:
+            - __meta_kubernetes_pod_label_gateway_envoyproxy_io_owning_gateway_name
+          targetLabel: gateway
   selector:
     matchLabels:
       app.kubernetes.io/component: proxy

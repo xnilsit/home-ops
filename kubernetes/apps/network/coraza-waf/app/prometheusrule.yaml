@@ -1,0 +1,83 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: coraza-waf-rules
+spec:
+  groups:
+    # EnvoyExtensionPolicy/coraza-waf sets failOpen: true, so a module that
+    # fails to fetch, parse or start is not an error anywhere - every request
+    # is simply forwarded unfiltered. These alerts are the only signal.
+    - name: coraza-waf-availability
+      rules:
+        - alert: CorazaWafAbsent
+          annotations:
+            summary: >-
+              no coraza wasm VM on {{ $labels.gateway }} - failOpen is on, so
+              public traffic is reaching the backends unfiltered
+          expr: |-
+            max by (gateway) (
+              envoy_wasm_wasm_vm_count{namespace="network", gateway=~"envoy-external|envoy-external-direct"}
+            ) == 0
+            or
+            absent(envoy_wasm_wasm_vm_count{namespace="network", gateway="envoy-external"})
+            or
+            absent(envoy_wasm_wasm_vm_count{namespace="network", gateway="envoy-external-direct"})
+          for: 10m
+          labels:
+            severity: critical
+
+        - alert: CorazaWafVMReloadFailing
+          annotations:
+            summary: >-
+              coraza wasm VM reload failed {{ $value }} times on {{ $labels.pod }} -
+              the filter is restarting instead of inspecting
+          expr: |-
+            increase(
+              envoy_wasm_coraza_vm_reload_failure{namespace="network"}[30m]
+            ) > 0
+          for: 5m
+          labels:
+            severity: critical
+
+        - alert: CorazaWafModuleFetchFailing
+          annotations:
+            summary: >-
+              {{ $labels.pod }} cannot fetch the coraza wasm image
+          expr: |-
+            increase(
+              envoy_wasm_remote_load_fetch_failures{namespace="network"}[30m]
+            ) > 0
+          for: 5m
+          labels:
+            severity: warning
+
+    - name: coraza-waf-traffic
+      rules:
+        # A gateway that inspects nothing for an hour has either lost its
+        # listener or lost the filter; both look identical from outside.
+        - alert: CorazaWafInspectingNothing
+          annotations:
+            summary: >-
+              {{ $labels.gateway }} has inspected no request in an hour
+          expr: |-
+            sum by (gateway) (
+              increase(waf_filter_tx_total{gateway=~"envoy-external|envoy-external-direct"}[1h])
+            ) == 0
+          for: 30m
+          labels:
+            severity: warning
+
+        - alert: CorazaWafInterruptionSpike
+          annotations:
+            summary: >-
+              {{ $labels.gateway }} is blocking {{ $value | humanize }} req/s on rule
+              {{ $labels.rule_id }}
+          expr: |-
+            sum by (gateway, rule_id) (
+              rate(waf_filter_tx_interruptions{gateway=~"envoy-external|envoy-external-direct"}[5m])
+            ) > 1
+          for: 10m
+          labels:
+            severity: warning

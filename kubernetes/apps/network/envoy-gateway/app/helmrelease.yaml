@@ -20,8 +20,45 @@ spec:
       envoyGateway:
         extensionApis:
           enableBackend: true # required for the Backend CRs used by external-services
+        rateLimit:
+          backend:
+            type: Redis
+            redis:
+              # Bare host:port - the ratelimit service builds the URL itself.
+              url: ratelimit-dragonfly.network.svc.cluster.local:6379
+          # A ratelimit service that cannot be reached lets traffic through
+          # rather than 500ing every request into the cluster.
+          failClosed: false
         provider:
           type: Kubernetes
           kubernetes:
             deploy:
               type: GatewayNamespace
+            rateLimitDeployment:
+              replicas: 2
+              pod:
+                priorityClassName: cluster-infra
+                topologySpreadConstraints:
+                  - maxSkew: 1
+                    topologyKey: kubernetes.io/hostname
+                    whenUnsatisfiable: DoNotSchedule
+                    labelSelector:
+                      matchLabels:
+                        app.kubernetes.io/name: envoy-ratelimit
+              container:
+                # Envoy Gateway sets REDIS_URL but never REDIS_AUTH; without it
+                # every descriptor lookup fails against an authenticated server.
+                env:
+                  - name: REDIS_AUTH
+                    valueFrom:
+                      secretKeyRef:
+                        name: ratelimit-dragonfly-auth
+                        key: password
+                resources:
+                  requests:
+                    cpu: 50m
+                    memory: 64Mi
+                  limits:
+                    memory: 256Mi
+            rateLimitPDB:
+              minAvailable: 1

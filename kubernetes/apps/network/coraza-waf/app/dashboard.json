@@ -201,7 +201,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(waf_filter_tx_total[$__rate_interval]))"
+          "expr": "sum(rate(waf_filter_tx_total{gateway=~\"$gateway\"}[$__rate_interval]))"
         }
       ]
     },
@@ -602,7 +602,7 @@
         {
           "refId": "A",
           "legendFormat": "{{rule_id}} / {{phase}}",
-          "expr": "sum by (rule_id, phase) (rate(waf_filter_tx_interruptions[$__rate_interval]))"
+          "expr": "sum by (rule_id, phase) (rate(waf_filter_tx_interruptions{gateway=~\"$gateway\"}[$__rate_interval]))"
         }
       ]
     },
