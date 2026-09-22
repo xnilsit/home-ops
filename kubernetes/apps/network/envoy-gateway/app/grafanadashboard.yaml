@@ -51,3 +51,21 @@ spec:
       dashboards: grafana
   # cAdvisor only, no envoy metrics: CPU and memory of the proxy and controller.
   url: "https://raw.githubusercontent.com/envoyproxy/gateway/main/charts/gateway-addons-helm/dashboards/resources-monitor.gen.json"
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/grafana.integreatly.org/grafanadashboard_v1beta1.json
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: envoy-ratelimit
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  # Replaces the ${DS_PROMETHEUS} placeholder in the JSON with the datasource uid.
+  datasources:
+    - datasourceName: prometheus
+      inputName: DS_PROMETHEUS
+  configMapRef:
+    name: envoy-ratelimit-dashboard
+    key: dashboard.json
