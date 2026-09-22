@@ -52,9 +52,9 @@ spec:
               # pointed at blocky would proxy to itself. The 443 stream path has
               # no loop detection at all.
               UPSTREAM_DNS: "192.168.0.1"
-              # Below the 300Gi claim, with min_free as the statfs-based guard.
+              # Below the 500Gi claim, with min_free as the statfs-based guard.
               # Neither is in the CONFIGHASH, so both stay retunable.
-              CACHE_DISK_SIZE: 260g
+              CACHE_DISK_SIZE: 460g
               MIN_FREE_DISK: 20g
               CACHE_INDEX_SIZE: 500m
               # In the CONFIGHASH: changing it later hard-fails startup until
