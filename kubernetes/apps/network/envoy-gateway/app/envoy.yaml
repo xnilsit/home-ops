@@ -7,6 +7,11 @@ spec:
   # Envoy binds Gateway listeners on 0.0.0.0 only unless told otherwise, so the
   # IPv6 LoadBalancer VIP would reach the pod and be refused.
   ipFamily: DualStack
+  # oauth2 runs first by default, so an unauthenticated request to an OIDC-gated
+  # route is answered with a 302 before the limiter ever counts it.
+  filterOrder:
+    - name: envoy.filters.http.ratelimit
+      before: envoy.filters.http.oauth2
   logging:
     level:
       default: info
@@ -279,7 +284,9 @@ spec:
             requests: 1200
             unit: Minute
           shared: true
-        # A separate rule - an IPv4 CIDR never matches an IPv6 client.
+        # Belt and braces, not a requirement: envoy's remote_address_match on
+        # 0.0.0.0/0 above matches IPv6 clients too, so this rule sees almost no
+        # traffic. Kept in case that ever stops being true.
         - clientSelectors:
             - sourceCIDR:
                 type: Distinct
