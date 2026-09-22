@@ -38,7 +38,8 @@ spec:
       # Explicit, or it would default to the limit.
       memory: 128Mi
     limits:
-      memory: 256Mi
+      # Dragonfly refuses to start below 256MiB of maxmemory per thread.
+      memory: 512Mi
   pdb:
     maxUnavailable: 1
   serviceSpec:
