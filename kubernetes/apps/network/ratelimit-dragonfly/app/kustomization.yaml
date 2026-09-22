@@ -1,0 +1,9 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Must precede dragonfly.yaml, which cannot start without its password Secret.
+  - ./externalsecret-password.yaml
+  - ./dragonfly.yaml
+  - ./podmonitor.yaml
