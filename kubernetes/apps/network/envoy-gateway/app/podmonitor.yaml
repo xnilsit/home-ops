@@ -26,6 +26,22 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
+  name: envoy-ratelimit
+spec:
+  jobLabel: envoy-ratelimit
+  namespaceSelector:
+    matchNames:
+      - network
+  podMetricsEndpoints:
+    - port: metrics
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: ratelimit
+      app.kubernetes.io/name: envoy-ratelimit
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
   name: envoy-gateway
 spec:
   jobLabel: envoy-gateway

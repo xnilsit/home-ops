@@ -1,0 +1,10 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+# Teaches kustomize that GrafanaDashboard.spec.configMapRef.name is a ConfigMap
+# reference, so the generated name hash is propagated into it.
+nameReference:
+  - kind: ConfigMap
+    version: v1
+    fieldSpecs:
+      - path: spec/configMapRef/name
+        kind: GrafanaDashboard

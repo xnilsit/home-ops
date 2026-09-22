@@ -8,3 +8,14 @@ resources:
   - ./helmrelease.yaml
   - ./ocirepository.yaml
   - ./podmonitor.yaml
+configMapGenerator:
+  - name: envoy-ratelimit-dashboard
+    files:
+      - dashboard.json=./dashboard-ratelimit.json
+    options:
+      annotations:
+        # Leaves the ${DS_PROMETHEUS} grafana-operator input in the JSON untouched.
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+configurations:
+  # Propagates the generated name hash into GrafanaDashboard.spec.configMapRef.
+  - ./kustomizeconfig.yaml

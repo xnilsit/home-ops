@@ -1,0 +1,581 @@
+{
+  "title": "Envoy Rate Limit",
+  "uid": "envoy-ratelimit",
+  "tags": [
+    "network",
+    "security"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": true,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "panels": [
+    {
+      "type": "text",
+      "title": "How to read this",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "`ratelimit_service_*` comes from the shared envoy-ratelimit service and has no gateway label. `envoy_cluster_ratelimit_*` comes from the proxies and does, plus the HTTPRoute as `envoy_cluster_name`.\n\n`key1` is the rule (`rule/0` is IPv4, `rule/1` is IPv6), `key2` is the CIDR the rule selects on, not the client. The limiter deliberately emits no series per client address, so **there is no top-talkers view here** - that lives in the access logs, on the Coraza WAF dashboard's *Top external source addresses* panel.\n\n**Fail-open** is the one to watch: it counts requests the proxy let through because the limiter did not answer. A non-zero rate means nothing is being limited."
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Checked /s",
+      "description": "Requests the limiter evaluated, across both rules.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(ratelimit_service_rate_limit_total_hits[$__rate_interval]))"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Over limit /s",
+      "description": "Requests answered with a 429. Zero until a single address passes 1200/minute.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.001
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(ratelimit_service_rate_limit_over_limit[$__rate_interval]))"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Near limit /s",
+      "description": "Requests in the last 20% of an address's budget. The early warning before 429s start.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(ratelimit_service_rate_limit_near_limit[$__rate_interval]))"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Fail-open /s",
+      "description": "Requests the proxy allowed because the limiter did not answer. failClosed is false, so this is the silent-bypass counter.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.001
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(envoy_cluster_ratelimit_failure_mode_allowed[$__rate_interval]))"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Checks and 429s by rule",
+      "description": "rule/0 is the IPv4 selector, rule/1 the IPv6 one.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 1
+          },
+          "noValue": "0"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "over limit.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "checked {{key2}}",
+          "expr": "sum by (key2) (rate(ratelimit_service_rate_limit_total_hits[$__rate_interval]))"
+        },
+        {
+          "refId": "B",
+          "legendFormat": "over limit {{key2}}",
+          "expr": "sum by (key2) (rate(ratelimit_service_rate_limit_over_limit[$__rate_interval]))"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Proxy-side decisions by gateway",
+      "description": "What each proxy did with the limiter's answer. error paired with fail-open means the limiter was unreachable.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 1
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "ok {{gateway}}",
+          "expr": "sum by (gateway) (rate(envoy_cluster_ratelimit_ok[$__rate_interval]))"
+        },
+        {
+          "refId": "B",
+          "legendFormat": "over limit {{gateway}}",
+          "expr": "sum by (gateway) (rate(envoy_cluster_ratelimit_over_limit[$__rate_interval]))"
+        },
+        {
+          "refId": "C",
+          "legendFormat": "error {{gateway}}",
+          "expr": "sum by (gateway) (rate(envoy_cluster_ratelimit_error[$__rate_interval]))"
+        },
+        {
+          "refId": "D",
+          "legendFormat": "fail-open {{gateway}}",
+          "expr": "sum by (gateway) (rate(envoy_cluster_ratelimit_failure_mode_allowed[$__rate_interval]))"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Busiest routes",
+      "description": "Rate limit checks per HTTPRoute. The closest thing to a per-target view, since the limiter emits no per-client series.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "stacking": {
+              "mode": "normal"
+            },
+            "lineWidth": 0
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{envoy_cluster_name}}",
+          "expr": "topk(15, sum by (envoy_cluster_name) (rate(envoy_cluster_ratelimit_ok[$__rate_interval])))"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Limiter errors",
+      "description": "should_rate_limit errors are the limiter's own, split by err_type. A redis_error means it cannot reach Dragonfly.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 1
+          },
+          "noValue": "0 - no limiter errors"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{err_type}}",
+          "expr": "sum by (err_type) (rate(ratelimit_service_should_rate_limit_error[$__rate_interval]))"
+        },
+        {
+          "refId": "B",
+          "legendFormat": "config load errors",
+          "expr": "sum(rate(ratelimit_service_config_load_error[$__rate_interval]))"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Limiter gRPC latency",
+      "description": "How long the proxy waits for a verdict. The proxy gives up after 20ms by default and fails open.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 27
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 1
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "p50",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(ratelimit_service_response_time_seconds_bucket[$__rate_interval])))"
+        },
+        {
+          "refId": "B",
+          "legendFormat": "p99",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(ratelimit_service_response_time_seconds_bucket[$__rate_interval])))"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Dragonfly buckets held",
+      "description": "One key per address per rule per minute window. Roughly the number of distinct clients seen in the last minute.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 27
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 1
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "keys",
+          "expr": "sum(dragonfly_db_keys{app=\"ratelimit-dragonfly\"})"
+        },
+        {
+          "refId": "B",
+          "legendFormat": "connected clients",
+          "expr": "sum(dragonfly_connected_clients{app=\"ratelimit-dragonfly\"})"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Dragonfly key churn",
+      "description": "Windows ageing out. Evictions rather than expirations would mean maxmemory is too low for the number of distinct clients.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 27
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 1
+          },
+          "noValue": "0"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "evicted"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "expired",
+          "expr": "sum(rate(dragonfly_expired_keys_total{app=\"ratelimit-dragonfly\"}[$__rate_interval]))"
+        },
+        {
+          "refId": "B",
+          "legendFormat": "evicted",
+          "expr": "sum(rate(dragonfly_evicted_keys_total{app=\"ratelimit-dragonfly\"}[$__rate_interval]))"
+        }
+      ]
+    }
+  ]
+}
