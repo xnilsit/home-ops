@@ -10,13 +10,6 @@ locals {
   #   include_claims_in_id_token
   #                 only for an app that reads the id token itself
   apps = {
-    echo = {
-      display_name = "Echo"
-      description  = "Request echo. Renders the request back as JSON."
-      hostnames    = ["echo.${var.domain}"]
-      groups       = ["home-ops"]
-    }
-
     # ── apps that speak OIDC themselves ───────────────────────────────────────
     # No components/oidc here: a gateway-level SecurityPolicy 302s the Immich
     # mobile app's /api/* calls to a login page it cannot render, so Immich runs
