@@ -97,16 +97,10 @@ spec:
           # Keeps envoy's own cluster/listener extractors alongside these.
           use_all_default_tags: true
           stats_tags:
-            # Spelled out: a character class would run on into the `_identifier`
-            # or `_owner` that follows, and coraza emits those two in either order.
             - tag_name: phase
               regex: "(_phase=(http_request_headers|http_request_body|http_response_headers|http_response_body))"
             - tag_name: rule_id
               regex: "(_ruleid=([0-9]+))"
-            - tag_name: identifier
-              regex: "(_identifier=([0-9a-z.:]+))"
-            - tag_name: owner
-              regex: "(_owner=([0-9a-z.:]+))"
   provider:
     type: Kubernetes
     kubernetes:

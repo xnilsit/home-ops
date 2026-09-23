@@ -26,10 +26,6 @@ spec:
       failOpen: true
       config:
         default_directives: default
-        # Emitted as labels on the waf_filter stats.
-        metric_labels:
-          owner: coraza
-          identifier: public
         directives_map:
           default:
             # Coraza's baseline. Everything below overrides it.
