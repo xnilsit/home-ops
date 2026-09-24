@@ -131,6 +131,14 @@ spec:
               SecRule REQUEST_URI "@beginsWith /api/ds/query"
               "t:none,ctl:requestBodyAccess=Off"
 
+            # DSM posts its login form client-side encrypted as __cIpHeRtExT.
+            - >-
+              SecRule REQUEST_HEADERS:Host "@rx ^oni\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+              "id:10017,phase:1,pass,nolog,t:none,chain"
+            - >-
+              SecRule REQUEST_FILENAME "@beginsWith /webapi/"
+              "t:none,ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:__cIpHeRtExT"
+
             - Include @owasp_crs/*.conf
 
             # Scores any backend 5xx, and one alone exceeds the outbound threshold.
