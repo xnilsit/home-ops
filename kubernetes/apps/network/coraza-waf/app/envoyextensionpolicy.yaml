@@ -83,7 +83,7 @@ spec:
               SecRule REQUEST_HEADERS:Host "@rx ^ha\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
               "id:10011,phase:1,pass,nolog,t:none,chain"
             - >-
-              SecRule REQUEST_URI "@beginsWith /auth/token"
+              SecRule REQUEST_URI "@rx ^/auth/(?:token|authorize)(?:\?|$)"
               "t:none,ctl:ruleRemoveTargetById=931130;ARGS:client_id"
 
             # The app posts the device's IPv6 addresses, whose colons 942431 reads
