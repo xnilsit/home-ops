@@ -18,6 +18,12 @@ spec:
     # Owns the ClusterSecretStore the recorder credential is pulled through
     - name: external-secrets-stores-database
       namespace: flux-system
+    # Writes the home-assistant-oidc Secret the ExternalSecret reads
+    - name: authentik-oidc
+      namespace: flux-system
+    # Owns the tofu-controller ClusterSecretStore
+    - name: external-secrets-stores
+      namespace: flux-system
     # Owns the NetworkAttachmentDefinition CRD the LAN attachment is
     - name: multus
       namespace: flux-system

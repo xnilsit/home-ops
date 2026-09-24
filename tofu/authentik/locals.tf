@@ -84,6 +84,20 @@ locals {
       ]
     }
 
+    # No components/oidc: HA runs its own OIDC via the auth_oidc integration.
+    "home-assistant" = {
+      display_name = "Home Assistant"
+      description  = "Home automation."
+      hostnames    = ["ha.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/home-assistant.svg"
+      # home-assistant-admin is also roles.admin in HA.
+      groups           = ["home-assistant", "home-assistant-admin"]
+      gateway_callback = false
+      extra_redirect_uris = [
+        "https://ha.${var.domain}/auth/oidc/callback",
+      ]
+    }
+
     # No components/oidc: grafana-operator drives Grafana's HTTP API with basic
     # auth, and an oauth2 filter in front of it would 302 every reconcile.
     grafana = {
@@ -231,10 +245,7 @@ locals {
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/kopia.svg"
       groups       = ["home-ops"]
     }
-    # Home Assistant itself is deliberately absent: its companion app is the
-    # same shape as Immich's, so its route stays open at the gateway. This is
-    # only the Zigbee frontend, which has no auth of its own and can re-pair or
-    # factory-reset every device in the house.
+    # The Zigbee frontend; no auth of its own.
     zigbee2mqtt = {
       display_name = "Zigbee2MQTT"
       description  = "Zigbee network administration."

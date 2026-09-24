@@ -46,6 +46,17 @@ spec:
                   secretKeyRef:
                     name: home-assistant-pg-shared
                     key: uri
+              # Read by auth_oidc in configuration.yaml.
+              OIDC_CLIENT_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: home-assistant-oidc
+                    key: client-id
+              OIDC_CLIENT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: home-assistant-oidc
+                    key: client-secret
             # exec, not httpGet, and it is the macvlan attachment that forces
             # it. A kubelet httpGet probe dials the pod IP FROM THE NODE, and
             # this cluster runs Cilium with bpf.hostLegacyRouting: true (see
@@ -173,6 +184,26 @@ spec:
                 # forge X-Forwarded-For and spoof its address past ip_ban.
                 - 10.42.0.0/16
                 - fd2e:9a41:6b8c:4200::/56
+
+            # Authentik login via the HACS hass-oidc-auth integration.
+            auth_oidc:
+              client_id: !env_var OIDC_CLIENT_ID
+              client_secret: !env_var OIDC_CLIENT_SECRET
+              discovery_url: ${AUTHENTIK_URL}/application/o/home-ops-home-assistant/.well-known/openid-configuration
+              display_name: Authentik
+              features:
+                automatic_user_linking: false
+                # Groups arrive in the profile scope; authentik has no groups scope.
+                include_groups_scope: false
+                # Local login stays reachable via ?skip_oidc_redirect=true.
+                default_redirect: false
+              claims:
+                username: preferred_username
+                display_name: name
+                groups: groups
+              roles:
+                admin: home-assistant-admin
+                user: home-assistant
 
             recorder:
               # pg-shared, via the env var the container reads out of the
