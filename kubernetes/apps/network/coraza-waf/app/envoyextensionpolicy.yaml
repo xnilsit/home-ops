@@ -103,13 +103,14 @@ spec:
               SecRule REQUEST_URI "@beginsWith /auth/oidc/"
               "t:none,ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:redirect_uri"
 
-            # auth_oidc's injection.js posts the login flow's JSON as text/plain.
+            # auth_oidc's injection.js posts the login flow's JSON as text/plain,
+            # and the app's client_id appears there as json.client_id.
             - >-
               SecRule REQUEST_HEADERS:Host "@rx ^ha\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
               "id:10015,phase:1,pass,nolog,t:none,chain"
             - >-
               SecRule REQUEST_URI "@streq /auth/login_flow"
-              "t:none,ctl:ruleRemoveById=920420,ctl:requestBodyProcessor=JSON"
+              "t:none,ctl:ruleRemoveById=920420,ctl:requestBodyProcessor=JSON,ctl:ruleRemoveTargetById=931130;ARGS:json.client_id"
 
             # Grafana query bodies carry PromQL/LogsQL, which the SQLi, RCE and
             # PHP rules read as attacks. Headers and URI are still inspected.
