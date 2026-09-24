@@ -193,6 +193,8 @@ spec:
               display_name: Authentik
               features:
                 automatic_user_linking: false
+                # Rewrites the request base URL to https.
+                force_https: true
                 # Groups arrive in the profile scope; authentik has no groups scope.
                 include_groups_scope: false
                 # Local login stays reachable via ?skip_oidc_redirect=true.
