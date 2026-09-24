@@ -11,6 +11,9 @@ locals {
     # gets a user in.
     "trek"       = {}
     "trek-admin" = {}
+    # Home Assistant login; the -admin one maps to HA's admin role.
+    "home-assistant"       = {}
+    "home-assistant-admin" = {}
   }
 }
 

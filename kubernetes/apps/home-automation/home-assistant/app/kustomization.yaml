@@ -10,6 +10,7 @@ components:
 patches:
   - path: ./snapshotpolicy.yaml
 resources:
+  - ./externalsecret-oidc.yaml
   - ./networkattachmentdefinition.yaml
   - ./ocirepository.yaml
   - ./helmrelease.yaml
