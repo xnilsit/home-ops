@@ -103,7 +103,7 @@ spec:
           app:
             image:
               repository: ghcr.io/scanopy/scanopy/daemon
-              tag: v0.17.16
+              tag: v0.17.17
             env:
               TZ: ${TIMEZONE}
               SCANOPY_LOG_LEVEL: info
