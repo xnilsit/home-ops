@@ -87,13 +87,23 @@ spec:
               "t:none,ctl:ruleRemoveTargetById=931130;ARGS:client_id"
 
             # The app posts the device's IPv6 addresses, whose colons 942431 reads
-            # as SQL special characters.
+            # as SQL special characters, and update_registration carries the
+            # push relay URL.
             - >-
               SecRule REQUEST_HEADERS:Host "@rx ^ha\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
               "id:10012,phase:1,pass,nolog,t:none,chain"
             - >-
               SecRule REQUEST_URI "@beginsWith /api/webhook/"
-              "t:none,ctl:ruleRemoveById=942431"
+              "t:none,ctl:ruleRemoveById=942431,ctl:ruleRemoveTargetById=931130;ARGS:json.data.app_data.push_url"
+
+            # The app's registration carries the push relay URL, an off-domain
+            # reference to 931130.
+            - >-
+              SecRule REQUEST_HEADERS:Host "@rx ^ha\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+              "id:10016,phase:1,pass,nolog,t:none,chain"
+            - >-
+              SecRule REQUEST_URI "@streq /api/mobile_app/registrations"
+              "t:none,ctl:ruleRemoveTargetById=931130;ARGS:json.app_data.push_url"
 
             # auth_oidc's redirect_uri is base64; its == padding trips CRS.
             - >-
