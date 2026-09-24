@@ -131,13 +131,22 @@ spec:
               SecRule REQUEST_URI "@beginsWith /api/ds/query"
               "t:none,ctl:requestBodyAccess=Off"
 
-            # DSM posts its login form client-side encrypted as __cIpHeRtExT.
+            # DSM's web API posts JSON-encoded form fields. Headers and URI are
+            # still inspected; API names ending in .Profile trip 930130.
             - >-
               SecRule REQUEST_HEADERS:Host "@rx ^oni\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
               "id:10017,phase:1,pass,nolog,t:none,chain"
             - >-
               SecRule REQUEST_FILENAME "@beginsWith /webapi/"
-              "t:none,ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:__cIpHeRtExT"
+              "t:none,ctl:requestBodyAccess=Off,ctl:ruleRemoveTargetById=930130;REQUEST_FILENAME"
+
+            # DSM's socket.io polling posts text/plain.
+            - >-
+              SecRule REQUEST_HEADERS:Host "@rx ^oni\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+              "id:10018,phase:1,pass,nolog,t:none,chain"
+            - >-
+              SecRule REQUEST_FILENAME "@beginsWith /synoscgi.sock/socket.io/"
+              "t:none,ctl:ruleRemoveById=920420"
 
             - Include @owasp_crs/*.conf
 
