@@ -198,7 +198,7 @@ spec:
                 # Groups arrive in the profile scope; authentik has no groups scope.
                 include_groups_scope: false
                 # Local login stays reachable via ?skip_oidc_redirect=true.
-                default_redirect: false
+                default_redirect: true
               claims:
                 username: preferred_username
                 display_name: name
