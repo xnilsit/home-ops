@@ -4,3 +4,4 @@ kind: TimeSyncConfig
 ntp:
   servers:
     - 192.168.0.1
+    - time.cloudflare.com
