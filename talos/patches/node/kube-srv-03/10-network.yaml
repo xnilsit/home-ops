@@ -26,6 +26,9 @@ kind: SysctlConfig
 params:
   net.ipv6.conf.enp2s0.disable_ipv6: "1"
   net.ipv6.conf.enp3s0.disable_ipv6: "1"
+  # No ARP replies on the WoL-only ports.
+  net.ipv4.conf.enp2s0.arp_ignore: "8"
+  net.ipv4.conf.enp3s0.arp_ignore: "8"
   # Pod IPv6 egress. Cilium masquerades to this device's primary GUA, which
   # kube-system/slaac-janitor keeps pointed at the live Telekom prefix.
   net.ipv6.conf.enp1s0f0.accept_ra_defrtr: "1"
