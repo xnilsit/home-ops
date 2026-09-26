@@ -96,6 +96,8 @@ spec:
           bdev_enable_discard: "true" # quote
           bdev_async_discard_threads: "1" # quote
           osd_class_update_on_start: "false" # quote
+          # Caps the mon hunt tick at 15s, under the 30s ping timeout.
+          mon_client_hunt_interval_max_multiple: "5" # quote
           # PG budget on 3 OSDs. Every pool is bounded - the RGW pools pinned at
           # both ends, the CephFS pools capped by pg_num_max - so the autoscaler
           # has little left to move and the target below is largely advisory.
