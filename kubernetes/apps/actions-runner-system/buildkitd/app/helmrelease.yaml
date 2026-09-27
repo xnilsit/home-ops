@@ -12,8 +12,8 @@ spec:
   values:
     controllers:
       buildkitd:
-        # RWO cache volume.
-        strategy: Recreate
+        type: statefulset
+        replicas: 2
         annotations:
           secret.reloader.stakater.com/reload: buildkitd-server
         containers:
@@ -35,6 +35,10 @@ spec:
               - "--oci-worker-no-process-sandbox"
               # gVisor has no nested overlayfs.
               - "--oci-worker-snapshotter=native"
+            # AWS SDK default chain for the s3 cache backend, from the OBC Secret.
+            envFrom:
+              - secretRef:
+                  name: buildkit-cache
             probes:
               liveness: &probes
                 enabled: true
@@ -59,8 +63,23 @@ spec:
                 cpu: 100m
               limits:
                 memory: 8Gi
+        statefulset:
+          volumeClaimTemplates:
+            - name: state
+              accessMode: ReadWriteOnce
+              size: 30Gi
+              storageClass: ceph-block
+              globalMounts:
+                - path: /home/user/.local/share/buildkit
     defaultPodOptions:
       runtimeClassName: gvisor
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: buildkitd
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -80,10 +99,3 @@ spec:
         globalMounts:
           - path: /certs
             readOnly: true
-      cache:
-        type: persistentVolumeClaim
-        accessMode: ReadWriteOnce
-        size: 30Gi
-        storageClass: ceph-block
-        globalMounts:
-          - path: /home/user/.local/share/buildkit

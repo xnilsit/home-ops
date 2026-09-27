@@ -34,3 +34,22 @@ spec:
         - ports:
             - port: "1234"
               protocol: TCP
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: buildkitd-to-rgw
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: buildkitd
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: rook-ceph
+            app: rook-ceph-rgw
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP

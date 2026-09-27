@@ -1,0 +1,10 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/objectbucket.io/objectbucketclaim_v1alpha1.json
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: buildkit-cache
+spec:
+  bucketName: buildkit-cache
+  # Disposable layer cache.
+  storageClassName: ceph-bucket-delete
