@@ -3,30 +3,29 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: &app home-ops-runner
+  name: &app buildkitd
   namespace: flux-system
 spec:
   targetNamespace: actions-runner-system
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
-  path: ./kubernetes/apps/actions-runner-system/home-ops-runner/app
+  path: ./kubernetes/apps/actions-runner-system/buildkitd/app
   dependsOn:
-    - name: actions-runner-controller
+    - name: cert-manager
       namespace: flux-system
-    # ceph-bucket-delete StorageClass for the flate-cache bucket
-    - name: rook-ceph-cluster
-      namespace: flux-system
-    # buildkit-client Secret mounted into runners
-    - name: buildkitd
-      namespace: flux-system
-    # gvisor RuntimeClass for runner and job pods
     - name: runtime-classes
+      namespace: flux-system
+    - name: rook-ceph-cluster
       namespace: flux-system
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease
       name: *app
+      namespace: actions-runner-system
+    - apiVersion: cert-manager.io/v1
+      kind: Certificate
+      name: buildkit-client
       namespace: actions-runner-system
   prune: true
   sourceRef:

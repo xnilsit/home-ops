@@ -1,0 +1,36 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: buildkitd-from-runners
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: buildkitd
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            actions.github.com/scale-set-name: home-ops-runner
+      toPorts:
+        - ports:
+            - port: "1234"
+              protocol: TCP
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: runners-to-buildkitd
+spec:
+  endpointSelector:
+    matchLabels:
+      actions.github.com/scale-set-name: home-ops-runner
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: buildkitd
+      toPorts:
+        - ports:
+            - port: "1234"
+              protocol: TCP

@@ -1,0 +1,106 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: buildkitd
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: buildkitd
+  interval: 1h
+  values:
+    controllers:
+      buildkitd:
+        type: statefulset
+        replicas: 2
+        annotations:
+          secret.reloader.stakater.com/reload: buildkitd-server
+        containers:
+          app:
+            image:
+              repository: docker.io/moby/buildkit
+              tag: v0.33.0-rootless
+            args:
+              - "--addr"
+              - "unix:///run/user/1000/buildkit/buildkitd.sock"
+              - "--addr"
+              - "tcp://0.0.0.0:1234"
+              - "--tlscacert"
+              - "/certs/ca.crt"
+              - "--tlscert"
+              - "/certs/tls.crt"
+              - "--tlskey"
+              - "/certs/tls.key"
+              - "--oci-worker-no-process-sandbox"
+              # gVisor has no nested overlayfs.
+              - "--oci-worker-snapshotter=native"
+            # AWS SDK default chain for the s3 cache backend, from the OBC Secret.
+            envFrom:
+              - secretRef:
+                  name: buildkit-cache
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  exec:
+                    command:
+                      - "buildctl"
+                      - "debug"
+                      - "workers"
+                  initialDelaySeconds: 5
+                  periodSeconds: 30
+              readiness: *probes
+            securityContext:
+              # Rootless BuildKit needs unconfined seccomp and AppArmor for its user namespace.
+              seccompProfile:
+                type: Unconfined
+              appArmorProfile:
+                type: Unconfined
+            resources:
+              requests:
+                cpu: 100m
+              limits:
+                memory: 8Gi
+        statefulset:
+          volumeClaimTemplates:
+            - name: state
+              accessMode: ReadWriteOnce
+              size: 30Gi
+              storageClass: ceph-block
+              globalMounts:
+                - path: /home/user/.local/share/buildkit
+    defaultPodOptions:
+      runtimeClassName: gvisor
+      # Resolve external names without the cluster search list.
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "2"
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: buildkitd
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+    service:
+      app:
+        controller: buildkitd
+        ports:
+          buildkit:
+            port: 1234
+    persistence:
+      certs:
+        type: secret
+        name: buildkitd-server
+        globalMounts:
+          - path: /certs
+            readOnly: true
