@@ -14,7 +14,7 @@ permissions: {}
 jobs:
   label-sync:
     name: Label Sync
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'home-ops-runner' }}
     permissions:
       contents: read
       issues: write

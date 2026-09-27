@@ -1,0 +1,73 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: home-ops-runner
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: home-ops-runner
+  interval: 1h
+  values:
+    githubConfigUrl: https://github.com/xnilsit/home-ops
+    githubConfigSecret: home-ops-runner-github-app
+    # The runs-on label.
+    runnerScaleSetName: home-ops-runner
+    minRunners: 0
+    maxRunners: 3
+    # Explicit so rendering skips the chart's cluster lookup.
+    controllerServiceAccount:
+      namespace: actions-runner-system
+      name: actions-runner-controller-gha-rs-controller
+    containerMode:
+      type: kubernetes
+      kubernetesModeWorkVolumeClaim:
+        # Hook schedules job pods onto the runner's node, so RWO is enough.
+        accessModes:
+          - "ReadWriteOnce"
+        storageClassName: ceph-block
+        resources:
+          requests:
+            storage: 5Gi
+    template:
+      spec:
+        runtimeClassName: gvisor
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          runAsGroup: 123
+          fsGroup: 123
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+          - name: runner
+            image: ghcr.io/actions/actions-runner:2.337.0
+            command:
+              - "/home/runner/run.sh"
+            env:
+              # Chart default true would reject every job without a container:.
+              - name: ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER
+                value: "false"
+              - name: ACTIONS_RUNNER_CONTAINER_HOOK_TEMPLATE
+                value: /home/runner/hook-template/job-pod.yaml
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                  - "ALL"
+            resources:
+              requests:
+                cpu: 250m
+              limits:
+                memory: 4Gi
+            volumeMounts:
+              - name: work
+                mountPath: /home/runner/_work
+              - name: hook-template
+                mountPath: /home/runner/hook-template
+                readOnly: true
+        volumes:
+          - name: hook-template
+            configMap:
+              name: home-ops-runner-hook-template
