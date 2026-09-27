@@ -48,6 +48,9 @@ spec:
       enabled: true
       cleanup:
         enabled: true
+        image:
+          repository: alpine/k8s
+          tag: "1.37.1"
     operator:
       # -- By default, operator converts prometheus-operator objects.
       disable_prometheus_converter: false
