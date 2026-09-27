@@ -41,12 +41,29 @@ spec:
             #
             # The 30s sleep bounds how long cilium can masquerade to a dead
             # prefix after a rotation.
+            #
+            # Deletes global dynamic addresses that are deprecated, or whose
+            # valid_lft trails the freshest one on the same device by >900s.
             - |
               while :; do
                 ip -6 addr show | awk '
                   /^[0-9]+: / { dev = $2; sub(/:$/, "", dev) }
-                  /^ *inet6 / && /scope global/ && /deprecated/ && /dynamic/ {
-                    if ($2 ~ /^[23]/) print "ip -6 addr del " $2 " dev " dev " && echo deleted deprecated " $2 " from " dev
+                  /^ *inet6 / {
+                    a = ""
+                    if ($2 ~ /^[23]/ && /scope global/ && /dynamic/) { a = $2; d[a] = dev; if (/deprecated/) dep[a] = 1 }
+                  }
+                  /valid_lft/ && a != "" {
+                    l = $2; sub(/sec$/, "", l); lft[a] = l + 0
+                    if (lft[a] > max[d[a]]) max[d[a]] = lft[a]
+                    a = ""
+                  }
+                  END {
+                    for (x in d) {
+                      if (dep[x]) why = "deprecated"
+                      else if (lft[x] < max[d[x]] - 900) why = "stale"
+                      else continue
+                      print "ip -6 addr del " x " dev " d[x] " && echo deleted " why " " x " from " d[x]
+                    }
                   }' | sh
                 sleep 30
               done
