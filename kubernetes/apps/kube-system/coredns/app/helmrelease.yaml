@@ -42,10 +42,8 @@ spec:
           - name: kubernetes
             parameters: cluster.local in-addr.arpa ip6.arpa
             configBlock: |-
-              pods verified
+              pods insecure
               fallthrough in-addr.arpa ip6.arpa
-          - name: autopath
-            parameters: "@kubernetes"
           # Split-horizon: without these, pods resolve internal hostnames via
           # /etc/resolv.conf and get the public Cloudflare answer, while the LAN
           # resolves them to envoy-internal. Any app calling another by its
