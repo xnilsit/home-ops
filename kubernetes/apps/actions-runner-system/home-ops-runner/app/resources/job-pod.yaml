@@ -1,0 +1,18 @@
+---
+# Merged by the kubernetes-mode hook into every job pod it creates.
+spec:
+  runtimeClassName: gvisor
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 123
+    fsGroup: 123
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: $job
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - "ALL"
