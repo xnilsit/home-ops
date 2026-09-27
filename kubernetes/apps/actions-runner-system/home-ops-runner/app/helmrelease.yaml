@@ -26,7 +26,7 @@ spec:
     template:
       spec:
         runtimeClassName: gvisor
-        # CoreDNS autopath returns inconsistent A/AAAA for search-path names; skip the search list.
+        # Resolve external names without the cluster search list.
         dnsConfig:
           options:
             - name: ndots
