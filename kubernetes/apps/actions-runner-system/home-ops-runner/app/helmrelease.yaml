@@ -14,25 +14,23 @@ spec:
     githubConfigSecret: home-ops-runner-github-app
     # The runs-on label.
     runnerScaleSetName: home-ops-runner
-    minRunners: 0
-    maxRunners: 3
+    minRunners: 2
+    maxRunners: 6
     # Explicit so rendering skips the chart's cluster lookup.
     controllerServiceAccount:
       namespace: actions-runner-system
       name: actions-runner-controller-gha-rs-controller
     containerMode:
-      type: kubernetes
-      kubernetesModeWorkVolumeClaim:
-        # Hook schedules job pods onto the runner's node, so RWO is enough.
-        accessModes:
-          - "ReadWriteOnce"
-        storageClassName: ceph-block
-        resources:
-          requests:
-            storage: 5Gi
+      # Hook copies the workspace into job pods, so work can be an emptyDir.
+      type: kubernetes-novolume
     template:
       spec:
         runtimeClassName: gvisor
+        # CoreDNS autopath returns inconsistent A/AAAA for search-path names; skip the search list.
+        dnsConfig:
+          options:
+            - name: ndots
+              value: "2"
         securityContext:
           runAsNonRoot: true
           runAsUser: 1001
@@ -68,6 +66,9 @@ spec:
                 mountPath: /home/runner/hook-template
                 readOnly: true
         volumes:
+          - name: work
+            emptyDir:
+              sizeLimit: 10Gi
           - name: hook-template
             configMap:
               name: home-ops-runner-hook-template

@@ -2,6 +2,10 @@
 # Merged by the kubernetes-mode hook into every job pod it creates.
 spec:
   runtimeClassName: gvisor
+  dnsConfig:
+    options:
+      - name: ndots
+        value: "2"
   securityContext:
     runAsNonRoot: true
     runAsUser: 1001
