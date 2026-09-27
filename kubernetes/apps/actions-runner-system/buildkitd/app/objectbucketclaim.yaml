@@ -8,3 +8,22 @@ spec:
   bucketName: buildkit-cache
   # Disposable layer cache.
   storageClassName: ceph-bucket-delete
+  additionalConfig:
+    # Rules sorted by ID.
+    bucketLifecycle: |-
+      {
+        "Rules": [
+          {
+            "ID": "AbortIncompleteMultipartUploads",
+            "Status": "Enabled",
+            "Prefix": "",
+            "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1}
+          },
+          {
+            "ID": "ExpireAfter180Days",
+            "Status": "Enabled",
+            "Prefix": "",
+            "Expiration": {"Days": 180}
+          }
+        ]
+      }
