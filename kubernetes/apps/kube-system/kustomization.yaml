@@ -10,6 +10,7 @@ resources:
   - ./multus/ks.yaml
   - ./priority-classes/ks.yaml
   - ./reloader/ks.yaml
+  - ./runtime-classes/ks.yaml
   - ./slaac-janitor/ks.yaml
   - ./spegel/ks.yaml
 components:

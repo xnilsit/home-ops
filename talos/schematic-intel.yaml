@@ -2,6 +2,7 @@
 customization:
   systemExtensions:
     officialExtensions:
+      - siderolabs/gvisor
       - siderolabs/i915
       - siderolabs/intel-ice-firmware
       - siderolabs/intel-ucode

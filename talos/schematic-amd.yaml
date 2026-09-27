@@ -4,4 +4,5 @@ customization:
     officialExtensions:
       - siderolabs/amd-ucode
       - siderolabs/amdgpu
+      - siderolabs/gvisor
       - siderolabs/nvme-cli
