@@ -49,6 +49,24 @@ spec:
                 value: "false"
               - name: ACTIONS_RUNNER_CONTAINER_HOOK_TEMPLATE
                 value: /home/runner/hook-template/job-pod.yaml
+              # runs-on/cache backend: the flate-cache bucket on RGW.
+              - name: RUNS_ON_S3_BUCKET_CACHE
+                value: flate-cache
+              - name: RUNS_ON_S3_BUCKET_ENDPOINT
+                value: http://rook-ceph-rgw-ceph-objectstore.rook-ceph.svc
+              - name: RUNS_ON_S3_FORCE_PATH_STYLE
+                value: "true"
+              # Keeps the AWS credentials below instead of discarding them.
+              - name: RUNS_ON_RUNNER_NAME
+                value: ""
+              - name: AWS_REGION
+                value: us-east-1
+              - name: AWS_ACCESS_KEY_ID
+                valueFrom:
+                  secretKeyRef: {name: flate-cache, key: AWS_ACCESS_KEY_ID}
+              - name: AWS_SECRET_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef: {name: flate-cache, key: AWS_SECRET_ACCESS_KEY}
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:

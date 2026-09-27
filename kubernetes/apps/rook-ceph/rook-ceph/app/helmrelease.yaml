@@ -38,6 +38,8 @@ spec:
     # live here now configure the ceph-csi-operator, and are rendered into
     # ../csi-drivers. Only image overrides remain valid under `csi:` here.
     cephCommandsTimeoutSeconds: "20"
+    # Defaults plus bucketLifecycle, for OBC-managed expiry rules.
+    obcAllowAdditionalConfigFields: "maxObjects,maxSize,bucketLifecycle"
     # The operator is the only thing that can heal the cluster - restart a
     # failed mon, replace an OSD, resize a pool. The mons, OSDs and CSI plugins
     # it creates already carry system-node/cluster-critical from Rook itself.

@@ -47,13 +47,22 @@ jobs:
         with:
           persist-credentials: false
 
+      # S3 on RGW on home-ops-runner; GitHub cache on hosted runners.
+      - name: Restore flate cache
+        uses: runs-on/cache@88d90644011a3a9957fd141a106f5a94f9794203 # v5.0.7
+        with:
+          path: ${{ runner.temp }}/flate
+          key: flate-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            flate-${{ runner.os }}-${{ runner.arch }}-
+
       # base: "" keeps the test full-tree; the action's default would narrow it
       # to the change filter, which can miss a shared component or root patch
       - name: Setup flate
         uses: home-operations/flate/action@631b76b69c4e58c6f4d1cb01e23616fa61aebafa # v0.6.5
         with:
           base: ""
-          cache: true
+          cache: false
 
       - name: Run flate test
         run: |
@@ -85,13 +94,22 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # S3 on RGW on home-ops-runner; GitHub cache on hosted runners.
+      - name: Restore flate cache
+        uses: runs-on/cache@88d90644011a3a9957fd141a106f5a94f9794203 # v5.0.7
+        with:
+          path: ${{ runner.temp }}/flate
+          key: flate-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            flate-${{ runner.os }}-${{ runner.arch }}-
+
       # base exports FLATE_BASE, which flate diff picks up as --base
       - name: Setup flate
         id: flate
         uses: home-operations/flate/action@631b76b69c4e58c6f4d1cb01e23616fa61aebafa # v0.6.5
         with:
           base: origin/${{ github.event.pull_request.base.ref }}
-          cache: true
+          cache: false
 
       # The default --strip-attr set already covers the chart-bump noise
       # flux-local needed spelled out
