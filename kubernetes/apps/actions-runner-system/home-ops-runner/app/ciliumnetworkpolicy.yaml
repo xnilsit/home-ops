@@ -25,6 +25,14 @@ spec:
         - ports:
             - port: "6443"
               protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: rook-ceph
+            app: rook-ceph-rgw
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
     # "world" alone would include the LAN, so carve private ranges out.
     - toCIDRSet:
         - cidr: 0.0.0.0/0

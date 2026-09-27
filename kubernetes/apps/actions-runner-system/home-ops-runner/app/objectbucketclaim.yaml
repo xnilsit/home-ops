@@ -1,0 +1,28 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/objectbucket.io/objectbucketclaim_v1alpha1.json
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: flate-cache
+spec:
+  bucketName: flate-cache
+  storageClassName: ceph-bucket-delete
+  additionalConfig:
+    # Rules sorted by ID.
+    bucketLifecycle: |-
+      {
+        "Rules": [
+          {
+            "ID": "AbortIncompleteMultipartUploads",
+            "Status": "Enabled",
+            "Prefix": "",
+            "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1}
+          },
+          {
+            "ID": "ExpireAfter30Days",
+            "Status": "Enabled",
+            "Prefix": "",
+            "Expiration": {"Days": 30}
+          }
+        ]
+      }
