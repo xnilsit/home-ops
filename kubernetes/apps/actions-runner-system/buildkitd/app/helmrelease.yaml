@@ -73,6 +73,11 @@ spec:
                 - path: /home/user/.local/share/buildkit
     defaultPodOptions:
       runtimeClassName: gvisor
+      # CoreDNS autopath returns inconsistent A/AAAA for search-path names; skip the search list.
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "2"
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname
