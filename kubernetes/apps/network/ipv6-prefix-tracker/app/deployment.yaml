@@ -30,7 +30,7 @@ spec:
       containers:
         - name: app
           # Alpine like slaac-janitor, with kubectl already in it: no apk at startup.
-          image: mirror.gcr.io/alpine/k8s:1.37.0
+          image: mirror.gcr.io/alpine/k8s:1.37.1
           env:
             # kubectl wants a writable cache dir under a read-only root.
             - name: HOME
