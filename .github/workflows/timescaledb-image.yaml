@@ -27,7 +27,7 @@ env:
 jobs:
   build:
     name: Build TimescaleDB Extension Image
-    runs-on: ubuntu-latest
+    runs-on: home-ops-runner
     permissions:
       contents: read
       packages: write
@@ -54,8 +54,16 @@ jobs:
           echo "toolkit_tag=${ts}-tk${toolkit}-${pg}-${distro}" >> "$GITHUB_OUTPUT"
           echo "Building ${ts} (toolkit ${toolkit}) for PG ${pg} on ${distro}" >> "$GITHUB_STEP_SUMMARY"
 
+      # In-cluster rootless buildkitd over mTLS; the runner has no Docker daemon.
       - name: Set Up Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          driver: remote
+          endpoint: tcp://buildkitd.actions-runner-system.svc:1234
+          driver-opts: |
+            cacert=/home/runner/buildkit-certs/ca.crt
+            cert=/home/runner/buildkit-certs/tls.crt
+            key=/home/runner/buildkit-certs/tls.key
 
       - name: Log In To GHCR
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.push }}
@@ -79,8 +87,6 @@ jobs:
             ${{ env.IMAGE }}:${{ steps.meta.outputs.toolkit_tag }}
           provenance: true
           sbom: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       # Fails loudly if the TSL library is missing - an Apache-only build would
       # otherwise deploy fine and only fail when blocky calls
@@ -90,8 +96,7 @@ jobs:
           set -euo pipefail
           # Cached from the build above, so this is nearly free. A scratch image
           # has no shell, so inspect the layer tarballs rather than running it.
-          docker buildx build --load -t verify:local containers/timescaledb-cnpg
-          docker save verify:local -o /tmp/verify.tar
+          docker buildx build --output type=oci,dest=/tmp/verify.tar containers/timescaledb-cnpg
           mkdir -p /tmp/verify && tar -xf /tmp/verify.tar -C /tmp/verify
           for b in /tmp/verify/blobs/sha256/*; do tar -tf "$b" 2>/dev/null; done > /tmp/entries || true
           found=$(grep -c 'lib/timescaledb-tsl-' /tmp/entries || true)

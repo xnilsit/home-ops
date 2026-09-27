@@ -83,6 +83,9 @@ spec:
               - name: hook-template
                 mountPath: /home/runner/hook-template
                 readOnly: true
+              - name: buildkit-client
+                mountPath: /home/runner/buildkit-certs
+                readOnly: true
         volumes:
           - name: work
             emptyDir:
@@ -90,3 +93,6 @@ spec:
           - name: hook-template
             configMap:
               name: home-ops-runner-hook-template
+          - name: buildkit-client
+            secret:
+              secretName: buildkit-client
