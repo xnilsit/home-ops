@@ -72,6 +72,8 @@ spec:
         KubeHpaMaxedOut:
           enabled: false
         # Losing a node's headroom during upgrades is expected, not an incident.
+        KubeCPUOvercommit:
+          enabled: false
         KubeMemoryOvercommit:
           enabled: false
         # Fires on netbird's wt0, and CephNodeNetworkPacketErrors already covers
