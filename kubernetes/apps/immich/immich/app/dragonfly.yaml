@@ -11,7 +11,6 @@ spec:
   # renovate: datasource=docker depName=ghcr.io/dragonflydb/dragonfly
   image: ghcr.io/dragonflydb/dragonfly:v2.0.0
   replicas: ${DRAGONFLY_REPLICAS}
-  networkPolicyEnabled: false
   authentication:
     passwordFromSecret:
       name: ${APP}-dragonfly-auth

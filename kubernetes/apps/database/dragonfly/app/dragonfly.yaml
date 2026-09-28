@@ -9,7 +9,6 @@ spec:
   replicas: 3
   # Shared datastore backing blocky's DNS cache.
   priorityClassName: cluster-platform
-  networkPolicyEnabled: false
   authentication:
     passwordFromSecret:
       name: dragonfly-auth
