@@ -49,12 +49,15 @@ jobs:
           arg() { grep -oP "^ARG $1=\K.*" "$df" | tail -1; }
           ts=$(arg TS_VERSION); pg=$(arg PG_MAJOR); distro=$(arg DISTRO)
           toolkit=$(arg TOOLKIT_VERSION)
-          for v in "$ts" "$pg" "$distro" "$toolkit"; do
+          # The version the cluster runs now, bundled so it keeps working until the update Job runs
+          prev=$(grep -oP '^\s*TIMESCALEDB_IMAGE_TAG: \K[0-9.]+(?=-)' kubernetes/apps/database/timescale/ks.yaml | head -1)
+          for v in "$ts" "$pg" "$distro" "$toolkit" "$prev"; do
             [ -n "$v" ] || { echo "::error::failed to parse versions from $df"; exit 1; }
           done
+          echo "prev=${prev}" >> "$GITHUB_OUTPUT"
           echo "tag=${ts}-${pg}-${distro}" >> "$GITHUB_OUTPUT"
           echo "toolkit_tag=${ts}-tk${toolkit}-${pg}-${distro}" >> "$GITHUB_OUTPUT"
-          echo "Building ${ts} (toolkit ${toolkit}) for PG ${pg} on ${distro}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Building ${ts} (toolkit ${toolkit}, bundling ${prev}) for PG ${pg} on ${distro}" >> "$GITHUB_STEP_SUMMARY"
 
       # In-cluster rootless buildkitd over mTLS; the runner has no Docker daemon.
       - name: Set Up Buildx
@@ -88,6 +91,8 @@ jobs:
           # must match the operand image's arch, so there is nothing to gain
           # from a QEMU-emulated arm64 build.
           platforms: linux/amd64
+          build-args: |
+            TS_PREV_VERSION=${{ steps.meta.outputs.prev }}
           push: ${{ github.event_name != 'workflow_dispatch' || inputs.push }}
           tags: |
             ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
@@ -100,16 +105,17 @@ jobs:
       # Fails loudly if the TSL library is missing - an Apache-only build would
       # otherwise deploy fine and only fail when blocky calls
       # add_retention_policy() at startup.
-      - name: Verify TSL Library Is Present
+      - name: Verify TSL And Previous Libraries Are Present
         env:
           AWS_ACCESS_KEY_ID: ""
           AWS_SECRET_ACCESS_KEY: ""
           AWS_EC2_METADATA_DISABLED: "true"
+          TS_PREV_VERSION: ${{ steps.meta.outputs.prev }}
         run: |-
           set -euo pipefail
           # Cached from the build above, so this is nearly free. A scratch image
           # has no shell, so inspect the layer tarballs rather than running it.
-          docker buildx build --cache-from "${BUILDKIT_CACHE}" --output type=oci,dest=/tmp/verify.tar containers/timescaledb-cnpg
+          docker buildx build --cache-from "${BUILDKIT_CACHE}" --build-arg "TS_PREV_VERSION=${TS_PREV_VERSION}" --output type=oci,dest=/tmp/verify.tar containers/timescaledb-cnpg
           mkdir -p /tmp/verify && tar -xf /tmp/verify.tar -C /tmp/verify
           for b in /tmp/verify/blobs/sha256/*; do tar -tf "$b" 2>/dev/null; done > /tmp/entries || true
           found=$(grep -c 'lib/timescaledb-tsl-' /tmp/entries || true)
@@ -118,3 +124,7 @@ jobs:
             exit 1
           fi
           echo "Found the TSL library ($found match)" >> "$GITHUB_STEP_SUMMARY"
+          if ! grep -q "lib/timescaledb-${TS_PREV_VERSION}.so" /tmp/entries; then
+            echo "::error::timescaledb-${TS_PREV_VERSION}.so not found - the running cluster would break on rollout"
+            exit 1
+          fi

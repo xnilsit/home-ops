@@ -19,6 +19,8 @@ ARG PG_MAJOR=18
 ARG DISTRO=trixie
 # renovate: datasource=github-releases depName=timescale/timescaledb
 ARG TS_VERSION=2.30.2
+# Deployed version, passed by CI; its .so keeps sessions working until ALTER EXTENSION runs
+ARG TS_PREV_VERSION=
 # renovate: datasource=github-releases depName=timescale/timescaledb-toolkit
 ARG TOOLKIT_VERSION=1.26.0
 
@@ -39,6 +41,9 @@ RUN set -eux; \
       "timescaledb-2-loader-postgresql-${PG_MAJOR}" \
       "timescaledb-2-${TS_VERSION}-postgresql-${PG_MAJOR}" \
       "timescaledb-toolkit-postgresql-${PG_MAJOR}"; \
+    if [ -n "${TS_PREV_VERSION}" ] && [ "${TS_PREV_VERSION}" != "${TS_VERSION}" ]; then \
+      apt-get install -y --no-install-recommends "timescaledb-2-${TS_PREV_VERSION}-postgresql-${PG_MAJOR}"; \
+    fi; \
     rm -rf /var/lib/apt/lists/*
 
 # CNPG mounts this image at /extensions/<name> and defaults

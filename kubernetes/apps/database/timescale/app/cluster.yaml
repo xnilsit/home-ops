@@ -15,6 +15,8 @@ spec:
   # IfNotPresent would keep serving whatever was first pulled.
   imageName: ghcr.io/cloudnative-pg/postgresql:${PG_IMAGE_TAG}
   primaryUpdateMethod: switchover
+  # timescale-superuser secret for the extension update Job; the extensions are owned by postgres
+  enableSuperuserAccess: true
 
   # Shared datastore, not an app: blocky's query log writes here. The PVCs are
   # node-local and cannot move, so an instance evicted under node pressure has
@@ -46,7 +48,7 @@ spec:
       # both. No path overrides needed.
       - name: timescale
         image:
-          reference: ghcr.io/xnilsit/timescaledb-cnpg:2.29.2-18-trixie
+          reference: ghcr.io/xnilsit/timescaledb-cnpg:${TIMESCALEDB_IMAGE_TAG}
     parameters:
       timescaledb.telemetry_level: "off"
       # Must cover every policy job: retention + columnstore + one per
