@@ -5,7 +5,8 @@ kind: Job
 metadata:
   name: timescale-bootstrap
 spec:
-  backoffLimit: 6
+  # Retries until the primary runs the new extension image
+  backoffLimit: 8
   # No ttlSecondsAfterFinished: if the Job were garbage-collected, Flux would
   # recreate it on the next reconcile and it would re-run every hour.
   template:
@@ -18,11 +19,11 @@ spec:
         runAsGroup: 26
         seccompProfile:
           type: RuntimeDefault
-      containers:
+      initContainers:
         - name: psql
           # Same operand image as the cluster, so the client major always
           # matches the server. Ships psql 18.
-          image: ghcr.io/cloudnative-pg/postgresql:18-minimal-trixie
+          image: &image ghcr.io/cloudnative-pg/postgresql:18-minimal-trixie
           command:
             - psql
           args:
@@ -46,18 +47,55 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
-          securityContext:
+          securityContext: &securityContext
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - "ALL"
-          resources:
+          resources: &resources
             limits:
               memory: 256Mi
             requests:
               cpu: 25m
               memory: 64Mi
+      containers:
+        # Updates the extensions to the image's version. Must be the first
+        # command of a fresh session (-X), and needs postgres, which owns them.
+        - name: extension-update
+          image: *image
+          command:
+            - psql
+          args:
+            - -X
+            - -v
+            - ON_ERROR_STOP=1
+            - -c
+            - ALTER EXTENSION timescaledb UPDATE TO '$(TS_VERSION)'
+            - -c
+            - ALTER EXTENSION timescaledb_toolkit UPDATE
+          env:
+            - name: TS_VERSION
+              value: "${TIMESCALEDB_IMAGE_TAG%%-*}"
+            - name: PGHOST
+              value: timescale-rw
+            - name: PGDATABASE
+              value: blocky
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: timescale-superuser
+                  key: username
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: timescale-superuser
+                  key: password
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          securityContext: *securityContext
+          resources: *resources
       volumes:
         - name: sql
           configMap:

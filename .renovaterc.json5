@@ -25,6 +25,16 @@
       ],
       datasourceTemplate: "github-releases",
     },
+    {
+      description: "Annotated dependencies with a trailing versioning=, which the preset's annotation regex does not match",
+      customType: "regex",
+      managerFilePatterns: ["/\\.ya?ml$/"],
+      matchStrings: [
+        "datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) versioning=(?<versioning>\\S+)\\n.+(:\\s|=)(&\\S+\\s)?[\"']?(?<currentValue>[^\"'\\s]+)[\"']?",
+      ],
+      datasourceTemplate: "{{{datasource}}}",
+      versioningTemplate: "{{{versioning}}}",
+    },
   ],
   packageRules: [
     // ---------------------------------------------------------------------
@@ -142,6 +152,11 @@
     {
       description: "Never auto-merge Multus, every pod's sandbox creation delegates through its shim",
       matchPackageNames: ["ghcr.io/k8snetworkplumbingwg/multus-cni"],
+      automerge: false,
+    },
+    {
+      description: "Never auto-merge the TimescaleDB extension image, the timescale-bootstrap Job runs the ALTER EXTENSION on rollout",
+      matchPackageNames: ["ghcr.io/xnilsit/timescaledb-cnpg"],
       automerge: false,
     },
     {
