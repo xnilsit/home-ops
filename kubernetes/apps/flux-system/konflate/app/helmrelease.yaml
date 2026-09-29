@@ -20,6 +20,8 @@ spec:
       mcp: true
       # HEAD every newly referenced image tag, flagging one that does not exist
       verifyImages: true
+      closedPrMax: 250
+      closedPrTtl: 2160h
     secret:
       existingSecret: konflate-secret
     httpRoute:
