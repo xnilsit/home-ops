@@ -155,8 +155,9 @@
       automerge: false,
     },
     {
-      description: "Never auto-merge the TimescaleDB extension image, the timescale-bootstrap Job runs the ALTER EXTENSION on rollout",
+      description: "Auto-merge only patch updates of the TimescaleDB extension image, the timescale-bootstrap Job runs the ALTER EXTENSION on rollout",
       matchPackageNames: ["ghcr.io/xnilsit/timescaledb-cnpg"],
+      matchUpdateTypes: ["minor", "major"],
       automerge: false,
     },
     {
