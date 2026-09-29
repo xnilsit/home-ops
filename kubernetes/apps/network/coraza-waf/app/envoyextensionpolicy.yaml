@@ -76,6 +76,22 @@ spec:
               SecRule REQUEST_HEADERS:Host "@rx ^(?:konflate|flux-webhook)\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
               "t:none,ctl:ruleEngine=Off"
 
+            # Drops the RFI rule on konflate's MCP endpoint and avatar proxy.
+            - >-
+              SecRule REQUEST_HEADERS:Host "@rx ^konflate\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+              "id:10004,phase:1,pass,nolog,t:none,chain"
+            - >-
+              SecRule REQUEST_FILENAME "@rx ^/(?:mcp|api/avatar)$"
+              "t:none,ctl:ruleRemoveById=931130"
+
+            # Drops the missing-Accept rule for in-cluster Gatus probes.
+            - >-
+              SecRule REMOTE_ADDR "@ipMatch 10.42.0.0/16"
+              "id:10002,phase:1,pass,nolog,t:none,chain"
+            - >-
+              SecRule REQUEST_HEADERS:User-Agent "@beginsWith Gatus/"
+              "t:none,ctl:ruleRemoveById=920300"
+
             # The Home Assistant app's client_id=https://home-assistant.io/...
             # reads as an off-domain RFI reference to 931130. 931130 declares
             # ARGS, so the exclusion names ARGS:client_id, not ARGS_POST.
@@ -86,15 +102,19 @@ spec:
               SecRule REQUEST_URI "@rx ^/auth/(?:token|authorize)(?:\?|$)"
               "t:none,ctl:ruleRemoveTargetById=931130;ARGS:client_id"
 
-            # The app posts the device's IPv6 addresses, whose colons 942431 reads
-            # as SQL special characters, and update_registration carries the
-            # push relay URL.
+            # Allows DELETE on ha.
+            - >-
+              SecRule REQUEST_HEADERS:Host "@rx ^ha\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+              "id:10010,phase:1,pass,nolog,t:none,
+              setvar:'tx.allowed_methods=GET HEAD POST OPTIONS DELETE'"
+
+            # Skips body inspection on the app's webhook. Headers and URI are still inspected.
             - >-
               SecRule REQUEST_HEADERS:Host "@rx ^ha\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
               "id:10012,phase:1,pass,nolog,t:none,chain"
             - >-
-              SecRule REQUEST_URI "@beginsWith /api/webhook/"
-              "t:none,ctl:ruleRemoveById=942431,ctl:ruleRemoveTargetById=931130;ARGS:json.data.app_data.push_url"
+              SecRule REQUEST_FILENAME "@beginsWith /api/webhook/"
+              "t:none,ctl:requestBodyAccess=Off"
 
             # The app's registration carries the push relay URL, an off-domain
             # reference to 931130.
