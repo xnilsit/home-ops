@@ -24,8 +24,7 @@ spec:
           # Coraza's baseline. Everything below overrides it.
           - Include @coraza.conf
 
-          # Logs matches without blocking.
-          - SecRuleEngine DetectionOnly
+          - SecRuleEngine On
           - SecRequestBodyAccess On
           # Bytes of request body inspected, buffered in envoy.
           - SecRequestBodyLimit 32768
