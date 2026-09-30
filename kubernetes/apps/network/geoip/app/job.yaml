@@ -1,0 +1,64 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/job-batch-v1.json
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: geoipupdate-bootstrap
+  annotations:
+    # Recreated on spec change instead of failing on the immutable template.
+    kustomize.toolkit.fluxcd.io/force: enabled
+spec:
+  # Fills the volume before coraza-waf enables the geoip filter, which fails
+  # to load without the databases.
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        # Same gid as the envoy container, which reads the databases.
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: geoipupdate
+          image: ghcr.io/maxmind/geoipupdate:v8.0.0
+          env:
+            - name: GEOIPUPDATE_ACCOUNT_ID_FILE
+              value: /etc/maxmind/account-id
+            - name: GEOIPUPDATE_LICENSE_KEY_FILE
+              value: /etc/maxmind/license-key
+            - name: GEOIPUPDATE_EDITION_IDS
+              value: GeoLite2-City GeoLite2-ASN
+            - name: GEOIPUPDATE_DB_DIR
+              value: /geoip
+            # Runs once and exits instead of looping.
+            - name: GEOIPUPDATE_FREQUENCY
+              value: "0"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - "ALL"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: geoip
+              mountPath: /geoip
+            - name: maxmind
+              mountPath: /etc/maxmind
+              readOnly: true
+      volumes:
+        - name: geoip
+          persistentVolumeClaim:
+            claimName: geoip
+        - name: maxmind
+          secret:
+            secretName: maxmind-geoipupdate

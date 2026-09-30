@@ -1,0 +1,122 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/gateway.envoyproxy.io/envoypatchpolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyPatchPolicy
+metadata:
+  name: geoip-envoy-external
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: envoy-external
+  type: JSONPatch
+  # Looks up the client IP ahead of every other filter, so coraza sees the
+  # x-geo-* headers. Databases come from the geoip PVC.
+  jsonPatches:
+    - type: type.googleapis.com/envoy.config.listener.v3.Listener
+      name: network/envoy-external/https
+      operation:
+        op: add
+        jsonPath: "$.filter_chains[*].filters[?@.name=='envoy.filters.network.http_connection_manager'].typed_config.http_filters"
+        path: /0
+        value:
+          name: envoy.filters.http.geoip
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.geoip.v3.Geoip
+            provider:
+              name: envoy.geoip_providers.maxmind
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.geoip_providers.maxmind.v3.MaxMindConfig
+                city_db_path: /etc/envoy/geoip/GeoLite2-City.mmdb
+                asn_db_path: /etc/envoy/geoip/GeoLite2-ASN.mmdb
+                common_provider_config:
+                  geo_field_keys:
+                    country: x-geo-country
+                    region: x-geo-region
+                    city: x-geo-city
+                    asn: x-geo-asn
+                    asn_org: x-geo-asn-org
+    - type: type.googleapis.com/envoy.config.listener.v3.Listener
+      name: network/envoy-external/https-quic
+      operation:
+        op: add
+        jsonPath: "$.filter_chains[*].filters[?@.name=='envoy.filters.network.http_connection_manager'].typed_config.http_filters"
+        path: /0
+        value:
+          name: envoy.filters.http.geoip
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.geoip.v3.Geoip
+            provider:
+              name: envoy.geoip_providers.maxmind
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.geoip_providers.maxmind.v3.MaxMindConfig
+                city_db_path: /etc/envoy/geoip/GeoLite2-City.mmdb
+                asn_db_path: /etc/envoy/geoip/GeoLite2-ASN.mmdb
+                common_provider_config:
+                  geo_field_keys:
+                    country: x-geo-country
+                    region: x-geo-region
+                    city: x-geo-city
+                    asn: x-geo-asn
+                    asn_org: x-geo-asn-org
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/gateway.envoyproxy.io/envoypatchpolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyPatchPolicy
+metadata:
+  name: geoip-envoy-external-direct
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: envoy-external-direct
+  type: JSONPatch
+  # Looks up the client IP ahead of every other filter, so coraza sees the
+  # x-geo-* headers. Databases come from the geoip PVC.
+  jsonPatches:
+    - type: type.googleapis.com/envoy.config.listener.v3.Listener
+      name: network/envoy-external-direct/https
+      operation:
+        op: add
+        jsonPath: "$.filter_chains[*].filters[?@.name=='envoy.filters.network.http_connection_manager'].typed_config.http_filters"
+        path: /0
+        value:
+          name: envoy.filters.http.geoip
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.geoip.v3.Geoip
+            provider:
+              name: envoy.geoip_providers.maxmind
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.geoip_providers.maxmind.v3.MaxMindConfig
+                city_db_path: /etc/envoy/geoip/GeoLite2-City.mmdb
+                asn_db_path: /etc/envoy/geoip/GeoLite2-ASN.mmdb
+                common_provider_config:
+                  geo_field_keys:
+                    country: x-geo-country
+                    region: x-geo-region
+                    city: x-geo-city
+                    asn: x-geo-asn
+                    asn_org: x-geo-asn-org
+    - type: type.googleapis.com/envoy.config.listener.v3.Listener
+      name: network/envoy-external-direct/https-quic
+      operation:
+        op: add
+        jsonPath: "$.filter_chains[*].filters[?@.name=='envoy.filters.network.http_connection_manager'].typed_config.http_filters"
+        path: /0
+        value:
+          name: envoy.filters.http.geoip
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.geoip.v3.Geoip
+            provider:
+              name: envoy.geoip_providers.maxmind
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.geoip_providers.maxmind.v3.MaxMindConfig
+                city_db_path: /etc/envoy/geoip/GeoLite2-City.mmdb
+                asn_db_path: /etc/envoy/geoip/GeoLite2-ASN.mmdb
+                common_provider_config:
+                  geo_field_keys:
+                    country: x-geo-country
+                    region: x-geo-region
+                    city: x-geo-city
+                    asn: x-geo-asn
+                    asn_org: x-geo-asn-org
