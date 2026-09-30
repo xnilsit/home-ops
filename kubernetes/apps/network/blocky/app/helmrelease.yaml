@@ -103,8 +103,6 @@ spec:
           - "IPv6"
         annotations:
           lbipam.cilium.io/ips: "192.168.1.53,fd2e:9a41:6b8c:1::53"
-          # SNAT so replies return via the NetBird routing peer.
-          service.cilium.io/forwarding-mode: snat
         ports:
           dns-tcp:
             port: 53
