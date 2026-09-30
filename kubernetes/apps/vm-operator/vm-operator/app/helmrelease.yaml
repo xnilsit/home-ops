@@ -25,6 +25,14 @@ spec:
     kind: OCIRepository
     name: vm-operator-chart
   maxHistory: 2
+  # CRDs are owned by the vm-operator-crds release.
+  driftDetection:
+    ignore:
+      - paths:
+          - "/metadata"
+          - "/spec"
+        target:
+          kind: CustomResourceDefinition
   install:
     crds: CreateReplace
     remediation:

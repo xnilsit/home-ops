@@ -9,6 +9,14 @@ spec:
     kind: OCIRepository
     name: immich
   interval: 1h
+  # machine-learning replicas are set by ./hpa.yaml.
+  driftDetection:
+    ignore:
+      - paths:
+          - "/spec/replicas"
+        target:
+          kind: Deployment
+          name: immich-machine-learning
   values:
     controllers:
       # Three controllers off one image, split by IMMICH_WORKERS_*: the `api`
