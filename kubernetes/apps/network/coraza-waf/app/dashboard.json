@@ -613,7 +613,7 @@
         "type": "victoriametrics-logs-datasource",
         "uid": "${DS_VICTORIALOGS}"
       },
-      "description": "Flagged requests per client city, from the x-geo-* fields rules 10020/949110 log. Places resolve through /public/geo/cities.json (GeoNames cities5000); hits without a city land on the country's capital. LAN clients carry no location.",
+      "description": "Flagged requests per client city, from the x-geo-* fields rules 10020/949110 log. Size is the request count, colour the summed CRS anomaly score (amount x severity); max_score is the worst single request. Places resolve through /public/geo/cities.json (GeoNames cities5000); hits without a city land on the country's capital. LAN clients carry no location.",
       "gridPos": {
         "h": 12,
         "w": 12,
@@ -625,46 +625,71 @@
           "refId": "A",
           "queryType": "stats",
           "format": "table",
-          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | replace_regexp (\"=REQUEST_HEADERS[.][a-z-]+;\", \"=;\") at _msg | extract '[data \"host=<host>;country=<country>;region=<region>;city=<city>;asn=<asn>;org=<org>;' | extract '[client \"<client>\"]' | filter NOT host:=\"\" | filter NOT country:=\"\" | format if (city:=\"\") \"<country>\" as place | format if (NOT city:=\"\") \"<country>/<city>\" as place | stats by (place, city, country) count() hits"
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | replace_regexp (\"=REQUEST_HEADERS[.][a-z-]+;\", \"=;\") at _msg | extract '[data \"host=<host>;country=<country>;region=<region>;city=<city>;asn=<asn>;org=<org>;' | extract '[client \"<client>\"]' | filter NOT host:=\"\" | filter NOT country:=\"\" | format if (city:=\"\") \"<country>\" as place | format if (NOT city:=\"\") \"<country>/<city>\" as place | extract 'score=<score>\"]' | extract '(Total Score: <total>)' | format if (score:=\"\") \"<total>\" as score | stats by (place, city, country) count() hits, sum(score) threat, max(score) max_score"
         }
       ],
       "transformations": [
         {
           "id": "labelsToFields",
           "options": {
-            "mode": "columns"
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true,
-              "__name__": true
-            },
-            "renameByName": {
-              "Value": "hits"
-            },
-            "indexByName": {
-              "place": 0,
-              "city": 1,
-              "country": 2,
-              "hits": 3
-            }
+            "mode": "columns",
+            "valueLabel": "__name__"
           }
         },
         {
           "id": "merge",
           "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "place": 0,
+              "city": 1,
+              "country": 2,
+              "hits": 3,
+              "threat": 4,
+              "max_score": 5
+            }
+          }
         }
       ],
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-YlRd"
-          }
+            "mode": "continuous-GrYlRd"
+          },
+          "min": 0
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "threat"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "anomaly score (sum)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "max_score"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "worst request score"
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "view": {
@@ -697,14 +722,15 @@
               "style": {
                 "size": {
                   "field": "hits",
-                  "min": 4,
+                  "min": 6,
                   "max": 30,
                   "fixed": 5
                 },
                 "color": {
-                  "field": "hits"
+                  "field": "threat",
+                  "fixed": "dark-green"
                 },
-                "opacity": 0.7
+                "opacity": 0.8
               }
             }
           }
