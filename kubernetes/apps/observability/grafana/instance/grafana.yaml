@@ -93,6 +93,10 @@ spec:
                 # readOnlyRootFilesystem otherwise refuses.
                 - name: tmp
                   mountPath: /tmp
+                # Served as /public/geo/cities.json, the geomap city lookup.
+                - name: geo
+                  mountPath: /usr/share/grafana/public/geo
+                  readOnly: true
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
@@ -109,8 +113,57 @@ spec:
             runAsGroup: 1000
             fsGroup: 1000
             fsGroupChangePolicy: OnRootMismatch
+          initContainers:
+            # Builds a geomap gazetteer keyed COUNTRY/City from GeoNames
+            # cities5000, the names GeoLite2 uses. Writes an empty lookup if the
+            # download fails, so grafana still starts.
+            - name: geonames-gazetteer
+              image: mirror.gcr.io/curlimages/curl:8.22.0
+              command:
+                - "/bin/sh"
+                - "-c"
+              args:
+                - |
+                  set -eu
+                  out=/geo/cities.json
+                  echo '[]' > "$out"
+                  cd /tmp
+                  if curl -fsSL --max-time 120 -o cities.zip https://download.geonames.org/export/dump/cities5000.zip && unzip -o -q cities.zip; then
+                    awk -F '\t' '
+                      { k = $9 "/" $2; p = $15 + 0
+                        if (!(k in pop) || p > pop[k]) { pop[k] = p; lat[k] = $5; lon[k] = $6 } }
+                      END {
+                        printf "{\"fields\":[{\"name\":\"key\",\"values\":["
+                        n = 0; for (k in pop) { e = k; gsub(/\\/, "\\\\", e); gsub(/"/, "\\\"", e); ks[n++] = k; printf "%s\"%s\"", (n > 1 ? "," : ""), e }
+                        printf "]},{\"name\":\"lat\",\"values\":["
+                        for (i = 0; i < n; i++) printf "%s%.2f", (i ? "," : ""), lat[ks[i]]
+                        printf "]},{\"name\":\"lon\",\"values\":["
+                        for (i = 0; i < n; i++) printf "%s%.2f", (i ? "," : ""), lon[ks[i]]
+                        printf "]}]}\n"
+                      }' cities5000.txt > "$out.tmp" && mv "$out.tmp" "$out"
+                  fi
+                  rm -f cities.zip cities5000.txt
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: ["ALL"]}
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+              volumeMounts:
+                - name: geo
+                  mountPath: /geo
+                - name: geo-tmp
+                  mountPath: /tmp
           volumes:
             - name: tmp
+              emptyDir: {}
+            - name: geo
+              emptyDir: {}
+            - name: geo-tmp
               emptyDir: {}
             - name: grafana-data
               # Owned by the kopiur backup component, which populates it from

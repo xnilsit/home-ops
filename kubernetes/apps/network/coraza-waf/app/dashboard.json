@@ -613,7 +613,7 @@
         "type": "victoriametrics-logs-datasource",
         "uid": "${DS_VICTORIALOGS}"
       },
-      "description": "Flagged requests per client country, from the x-geo-* fields rules 10020/949110 log. LAN clients carry no location.",
+      "description": "Flagged requests per client city, from the x-geo-* fields rules 10020/949110 log. Cities resolve through /public/geo/cities.json (GeoNames cities5000); hits without a city fall back to the country. LAN clients carry no location.",
       "gridPos": {
         "h": 12,
         "w": 12,
@@ -625,7 +625,13 @@
           "refId": "A",
           "queryType": "stats",
           "format": "table",
-          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | replace_regexp (\"=REQUEST_HEADERS[.][a-z-]+;\", \"=;\") at _msg | extract '[data \"host=<host>;country=<country>;region=<region>;city=<city>;asn=<asn>;org=<org>;' | extract '[client \"<client>\"]' | filter NOT host:=\"\" | filter NOT country:=\"\" | stats by (country) count() hits"
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | replace_regexp (\"=REQUEST_HEADERS[.][a-z-]+;\", \"=;\") at _msg | extract '[data \"host=<host>;country=<country>;region=<region>;city=<city>;asn=<asn>;org=<org>;' | extract '[client \"<client>\"]' | filter NOT host:=\"\" | filter NOT city:=\"\" | format \"<country>/<city>\" as place | stats by (place, city, country) count() hits"
+        },
+        {
+          "refId": "B",
+          "queryType": "stats",
+          "format": "table",
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | replace_regexp (\"=REQUEST_HEADERS[.][a-z-]+;\", \"=;\") at _msg | extract '[data \"host=<host>;country=<country>;region=<region>;city=<city>;asn=<asn>;org=<org>;' | extract '[client \"<client>\"]' | filter NOT host:=\"\" | filter NOT country:=\"\" city:=\"\" | stats by (country) count() hits"
         }
       ],
       "transformations": [
@@ -644,16 +650,8 @@
             },
             "renameByName": {
               "Value": "hits"
-            },
-            "indexByName": {
-              "country": 0,
-              "hits": 1
             }
           }
-        },
-        {
-          "id": "merge",
-          "options": {}
         }
       ],
       "fieldConfig": {
@@ -683,15 +681,48 @@
         "layers": [
           {
             "type": "markers",
-            "name": "Flagged requests",
+            "name": "Cities",
             "tooltip": true,
+            "filterData": {
+              "id": "byRefId",
+              "options": "A"
+            },
+            "location": {
+              "mode": "lookup",
+              "lookup": "place",
+              "gazetteer": "/public/geo/cities.json"
+            },
+            "config": {
+              "showLegend": true,
+              "style": {
+                "size": {
+                  "field": "hits",
+                  "min": 4,
+                  "max": 30,
+                  "fixed": 5
+                },
+                "color": {
+                  "field": "hits"
+                },
+                "opacity": 0.7
+              }
+            }
+          },
+          {
+            "type": "markers",
+            "name": "Countries without city",
+            "tooltip": true,
+            "filterData": {
+              "id": "byRefId",
+              "options": "B"
+            },
             "location": {
               "mode": "lookup",
               "lookup": "country",
               "gazetteer": "public/gazetteer/countries.json"
             },
             "config": {
-              "showLegend": true,
+              "showLegend": false,
               "style": {
                 "size": {
                   "field": "hits",
