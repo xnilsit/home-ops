@@ -145,8 +145,14 @@
       automerge: false,
     },
     {
-      description: "Never auto-merge Coraza, the wasm module inspects every public request",
-      matchPackageNames: ["ghcr.io/corazawaf/coraza-proxy-wasm"],
+      description: "Never auto-merge Coraza, the composer module inspects every public request",
+      matchPackageNames: ["ghcr.io/tetratelabs/built-on-envoy/composer"],
+      automerge: false,
+    },
+    {
+      description: "Never auto-merge Envoy Gateway minors, each bundles an Envoy minor the composer module must support",
+      matchPackageNames: ["/envoyproxy/gateway-helm/"],
+      matchUpdateTypes: ["minor", "major"],
       automerge: false,
     },
     {

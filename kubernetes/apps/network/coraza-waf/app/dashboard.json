@@ -42,7 +42,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "**Coraza's own `[hostname \"...\"]` is the envoy pod IP**, not the site that was attacked - it is the server address of the connection. The requested host comes from local rule `10020`, which emits one extra line per flagged request carrying `host=` and the anomaly score. It shares the transaction's `unique_id` with the rule alerts, which is how the panels below join the two.\n\n**`[client \"...\"]` is the TCP peer** - a cloudflared pod IP on `envoy-external`. The real client is the first element of `x-forwarded-for` on the matching access-log line.\n\n**In `SecRuleEngine DetectionOnly` the Prometheus panels stay flat at zero** - `waf_filter.tx.interruptions` only counts an actual interrupt. The log panels are the truth during the detection soak.\n\nRule `949110`/`949111` is the CRS anomaly evaluation: a hit there is a request that *would* be blocked once the engine is flipped to `On`. LAN sources are exempted by local rules 10001/10002 and never appear here."
+        "content": "**Coraza's own `[hostname \"...\"]` is a fixed `127.0.0.1`**, not the site that was attacked - the module passes a placeholder server address. The requested host comes from local rule `10020`, which emits one extra line per flagged request carrying `host=` and the anomaly score. It shares the transaction's `unique_id` with the rule alerts, which is how the panels below join the two.\n\n**`[client \"...\"]` is the real client**, as envoy resolved it from `x-forwarded-for`.\n\n**In `SecRuleEngine DetectionOnly` the Prometheus panels stay flat at zero** - `waf_tx_blocked` only counts an actual interrupt. The log panels are the truth during the detection soak.\n\nRule `949110`/`949111` is the CRS anomaly evaluation: a hit there is a request that *would* be blocked once the engine is flipped to `On`. LAN sources are exempted by local rules 10001/10002 and never appear here."
       }
     },
     {
@@ -171,7 +171,7 @@
     {
       "type": "stat",
       "title": "Requests inspected /s",
-      "description": "Every transaction the wasm VM saw, including allowlisted ones. Envoy Gateway emits coraza's proxy-wasm counters unprefixed, not under envoy_wasmcustom_.",
+      "description": "Every transaction the coraza module saw, including allowlisted ones.",
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
@@ -201,7 +201,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(waf_filter_tx_total{gateway=~\"$gateway\"}[$__rate_interval]))"
+          "expr": "sum(rate(envoy_dynamicmodulescustom_waf_tx_total{gateway=~\"$gateway\"}[$__rate_interval]))"
         }
       ]
     },
@@ -563,7 +563,7 @@
     {
       "type": "timeseries",
       "title": "Interruptions by rule - blocking mode only",
-      "description": "Flat at zero while SecRuleEngine is DetectionOnly. Labels come from the stats_config.stats_tags patch on EnvoyProxy/envoy-waf.",
+      "description": "Flat at zero while SecRuleEngine is DetectionOnly. phase is the SecLang phase number.",
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
@@ -602,7 +602,7 @@
         {
           "refId": "A",
           "legendFormat": "{{rule_id}} / {{phase}}",
-          "expr": "sum by (rule_id, phase) (rate(waf_filter_tx_interruptions{gateway=~\"$gateway\"}[$__rate_interval]))"
+          "expr": "sum by (rule_id, phase) (rate(envoy_dynamicmodulescustom_waf_tx_blocked{gateway=~\"$gateway\"}[$__rate_interval]))"
         }
       ]
     },
