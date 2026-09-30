@@ -10,6 +10,9 @@ spec:
   dependsOn:
     - name: priority-classes
       namespace: flux-system
+    # The envoy-waf proxies mount the geoip PVC.
+    - name: geoip
+      namespace: flux-system
   prune: true
   sourceRef:
     kind: GitRepository
