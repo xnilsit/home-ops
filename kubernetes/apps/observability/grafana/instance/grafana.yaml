@@ -7,9 +7,6 @@ metadata:
   labels:
     dashboards: grafana
 spec:
-  # Overrides grafana-operator's default image tag.
-  # renovate: datasource=docker depName=docker.io/grafana/grafana
-  version: docker.io/grafana/grafana:13.2.3
   config:
     analytics:
       check_for_updates: "false"
