@@ -178,8 +178,9 @@ spec:
           # Landing point for the skipAfter above. Markers run in every phase.
           - SecMarker END-LAN-EXEMPT
 
-          # One extra line per flagged request carrying the requested host,
-          # which CRS alerts lack: coraza's [hostname] is a fixed placeholder.
+          # One extra line per flagged request carrying the requested host and
+          # the client's x-geo-* location, which CRS alerts lack: coraza's
+          # [hostname] is a fixed placeholder.
           # phase 2, after 949160 has summed the detection score. A request
           # denied by 949110 never reaches it.
           # Shares unique_id with the rule alerts, which joins them in the
@@ -187,10 +188,10 @@ spec:
           - >-
             SecRule TX:DETECTION_INBOUND_ANOMALY_SCORE "@gt 0"
             "id:10020,phase:2,pass,log,msg:'WAF request context',
-            logdata:'host=%{SERVER_NAME} score=%{tx.detection_inbound_anomaly_score}'"
+            logdata:'host=%{SERVER_NAME};country=%{REQUEST_HEADERS.x-geo-country};region=%{REQUEST_HEADERS.x-geo-region};city=%{REQUEST_HEADERS.x-geo-city};asn=%{REQUEST_HEADERS.x-geo-asn};org=%{REQUEST_HEADERS.x-geo-asn-org};score=%{tx.detection_inbound_anomaly_score}'"
 
-          # Carries the same host onto the blocking rules, which interrupt
+          # Carries the same fields onto the blocking rules, which interrupt
           # before 10020. A space in the value makes coraza reject the
           # directive.
-          - SecRuleUpdateActionById 949110 "logdata:'host=%{SERVER_NAME}'"
-          - SecRuleUpdateActionById 949111 "logdata:'host=%{SERVER_NAME}'"
+          - SecRuleUpdateActionById 949110 "logdata:'host=%{SERVER_NAME};country=%{REQUEST_HEADERS.x-geo-country};region=%{REQUEST_HEADERS.x-geo-region};city=%{REQUEST_HEADERS.x-geo-city};asn=%{REQUEST_HEADERS.x-geo-asn};org=%{REQUEST_HEADERS.x-geo-asn-org};'"
+          - SecRuleUpdateActionById 949111 "logdata:'host=%{SERVER_NAME};country=%{REQUEST_HEADERS.x-geo-country};region=%{REQUEST_HEADERS.x-geo-region};city=%{REQUEST_HEADERS.x-geo-city};asn=%{REQUEST_HEADERS.x-geo-asn};org=%{REQUEST_HEADERS.x-geo-asn-org};'"

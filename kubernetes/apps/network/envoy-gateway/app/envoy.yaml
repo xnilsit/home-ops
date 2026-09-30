@@ -101,6 +101,11 @@ spec:
                 # renovate: datasource=docker depName=ghcr.io/tetratelabs/built-on-envoy/composer
                 reference: ghcr.io/tetratelabs/built-on-envoy/composer:0.12.0
                 pullPolicy: IfNotPresent
+            # GeoLite2 databases, refreshed by the geoip CronJob.
+            - name: geoip
+              persistentVolumeClaim:
+                claimName: geoip
+                readOnly: true
         container:
           env:
             # Envoy holds pointers into Go memory.
@@ -109,6 +114,9 @@ spec:
           volumeMounts:
             - name: dynamic-modules
               mountPath: /etc/envoy/dynamic-modules
+              readOnly: true
+            - name: geoip
+              mountPath: /etc/envoy/geoip
               readOnly: true
           resources:
             requests:
@@ -311,6 +319,15 @@ spec:
       trustedCIDRs:
         - "10.42.0.0/16"
         - "fd2e:9a41:6b8c:4200::/56"
+  # Drops client-supplied geo headers before the geoip filter sets its own.
+  headers:
+    earlyRequestHeaders:
+      remove:
+        - x-geo-country
+        - x-geo-region
+        - x-geo-city
+        - x-geo-asn
+        - x-geo-asn-org
   http2:
     onInvalidMessage: TerminateStream
   http3: {}

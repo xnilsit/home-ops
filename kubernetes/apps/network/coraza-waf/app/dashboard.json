@@ -164,7 +164,7 @@
         {
           "refId": "A",
           "queryType": "stats",
-          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[data \"host=<host>\"]' | filter NOT host:=\"\" | stats count_uniq(host) hosts"
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | replace_regexp (\"=REQUEST_HEADERS[.][a-z-]+;\", \"=;\") at _msg | extract '[data \"host=<host>;country=<country>;region=<region>;city=<city>;asn=<asn>;org=<org>;' | filter NOT host:=\"\" | stats count_uniq(host) hosts"
         }
       ]
     },
@@ -333,7 +333,7 @@
           "refId": "A",
           "queryType": "stats",
           "format": "table",
-          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[data \"host=<host>\"]' | extract '[unique_id \"<uid>\"]' | filter NOT host:=\"\" | fields uid, host) | stats by (host, rule_id, msg) count() hits | sort by (hits desc) | limit 25"
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | replace_regexp (\"=REQUEST_HEADERS[.][a-z-]+;\", \"=;\") at _msg | extract '[data \"host=<host>;country=<country>;region=<region>;city=<city>;asn=<asn>;org=<org>;' | extract '[unique_id \"<uid>\"]' | filter NOT host:=\"\" | fields uid, host) | stats by (host, rule_id, msg) count() hits | sort by (hits desc) | limit 25"
         }
       ],
       "transformations": [
@@ -436,7 +436,7 @@
           "refId": "A",
           "queryType": "stats",
           "format": "table",
-          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[uri \"<uri>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[data \"host=<host>\"]' | extract '[unique_id \"<uid>\"]' | filter NOT host:=\"\" | fields uid, host) | stats by (host, uri) count() hits | sort by (hits desc) | limit 25"
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[uri \"<uri>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | replace_regexp (\"=REQUEST_HEADERS[.][a-z-]+;\", \"=;\") at _msg | extract '[data \"host=<host>;country=<country>;region=<region>;city=<city>;asn=<asn>;org=<org>;' | extract '[unique_id \"<uid>\"]' | filter NOT host:=\"\" | fields uid, host) | stats by (host, uri) count() hits | sort by (hits desc) | limit 25"
         }
       ],
       "description": "Joined to rule 10020's context line on unique_id, so the host is the one the client asked for.",
@@ -607,6 +607,243 @@
       ]
     },
     {
+      "type": "geomap",
+      "title": "Attack origins",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "${DS_VICTORIALOGS}"
+      },
+      "description": "Flagged requests per client country, from the x-geo-* fields rules 10020/949110 log. LAN clients carry no location.",
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 41
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "stats",
+          "format": "table",
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | replace_regexp (\"=REQUEST_HEADERS[.][a-z-]+;\", \"=;\") at _msg | extract '[data \"host=<host>;country=<country>;region=<region>;city=<city>;asn=<asn>;org=<org>;' | extract '[client \"<client>\"]' | filter NOT host:=\"\" | filter NOT country:=\"\" | stats by (country) count() hits"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true
+            },
+            "renameByName": {
+              "Value": "hits"
+            },
+            "indexByName": {
+              "country": 0,
+              "hits": 1
+            }
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-YlRd"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "view": {
+          "id": "zero",
+          "lat": 25,
+          "lon": 10,
+          "zoom": 1.3
+        },
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": true,
+          "showAttribution": true
+        },
+        "basemap": {
+          "type": "default",
+          "name": "Basemap"
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Flagged requests",
+            "tooltip": true,
+            "location": {
+              "mode": "lookup",
+              "lookup": "country",
+              "gazetteer": "public/gazetteer/countries.json"
+            },
+            "config": {
+              "showLegend": true,
+              "style": {
+                "size": {
+                  "field": "hits",
+                  "min": 4,
+                  "max": 30,
+                  "fixed": 5
+                },
+                "color": {
+                  "field": "hits"
+                },
+                "opacity": 0.7
+              }
+            }
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        }
+      }
+    },
+    {
+      "type": "table",
+      "title": "Top attacking sources",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "${DS_VICTORIALOGS}"
+      },
+      "description": "Client, location and network of flagged requests. region is the ISO subdivision code, org the ASN owner.",
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 41
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "stats",
+          "format": "table",
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | replace_regexp (\"=REQUEST_HEADERS[.][a-z-]+;\", \"=;\") at _msg | extract '[data \"host=<host>;country=<country>;region=<region>;city=<city>;asn=<asn>;org=<org>;' | extract '[client \"<client>\"]' | filter NOT host:=\"\" | stats by (client, country, region, city, asn, org) count() hits | sort by (hits desc) | limit 25"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true
+            },
+            "renameByName": {
+              "Value": "hits"
+            },
+            "indexByName": {
+              "client": 0,
+              "country": 1,
+              "region": 2,
+              "city": 3,
+              "asn": 4,
+              "org": 5,
+              "hits": 6
+            }
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "country"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "region"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "asn"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "hits"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "hits",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false
+        }
+      }
+    },
+    {
       "type": "table",
       "title": "Recent decisions",
       "datasource": {
@@ -617,7 +854,7 @@
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 41
+        "y": 53
       },
       "options": {
         "showHeader": true,
@@ -641,7 +878,7 @@
           "refId": "A",
           "queryType": "instant",
           "maxLines": 200,
-          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[severity \"<severity>\"]' | extract '[uri \"<uri>\"]' | extract '[client \"<client>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | extract '[data \"host=<host>\"]' | extract '[unique_id \"<uid>\"]' | filter NOT host:=\"\" | fields uid, host) | fields _time, host, uri, rule_id, msg, severity, client"
+          "expr": "kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza -\"WAF request context\" | extract '[id \"<rule_id>\"]' | extract '[msg \"<msg>\"]' | extract '[severity \"<severity>\"]' | extract '[uri \"<uri>\"]' | extract '[client \"<client>\"]' | extract '[unique_id \"<uid>\"]' | join by (uid) (kubernetes.pod_namespace:network kubernetes.pod_labels.gateway.envoyproxy.io/owning-gateway-name:~\"^$gateway$\" _msg:Coraza | replace_regexp (\"=REQUEST_HEADERS[.][a-z-]+;\", \"=;\") at _msg | extract '[data \"host=<host>;country=<country>;region=<region>;city=<city>;asn=<asn>;org=<org>;' | extract '[unique_id \"<uid>\"]' | filter NOT host:=\"\" | fields uid, host, country, region, city, asn, org) | fields _time, host, uri, rule_id, msg, severity, client, country, city, org"
         }
       ],
       "description": "host comes from rule 10020's context line, joined on unique_id. The datasource returns a logs frame, so the fields arrive inside a JSON labels column and are split out by the extractFields transformation.",
@@ -738,7 +975,10 @@
               "severity": 3,
               "client": 4,
               "msg": 5,
-              "rule_id": 6
+              "rule_id": 6,
+              "country": 7,
+              "city": 8,
+              "org": 9
             }
           }
         }

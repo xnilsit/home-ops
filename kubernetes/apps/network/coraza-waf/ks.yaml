@@ -15,6 +15,9 @@ spec:
     # Owns the EnvoyExtensionPolicy CRD and the two Gateways this attaches to.
     - name: envoy-gateway
       namespace: flux-system
+    # Fills the volume the geoip filter reads its databases from.
+    - name: geoip
+      namespace: flux-system
   healthChecks:
     - apiVersion: gateway.envoyproxy.io/v1alpha1
       kind: EnvoyExtensionPolicy
