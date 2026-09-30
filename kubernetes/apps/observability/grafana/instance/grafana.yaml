@@ -115,8 +115,9 @@ spec:
             fsGroupChangePolicy: OnRootMismatch
           initContainers:
             # Builds a geomap gazetteer keyed COUNTRY/City from GeoNames
-            # cities5000, the names GeoLite2 uses. Writes an empty lookup if the
-            # download fails, so grafana still starts.
+            # cities5000, the names GeoLite2 uses, plus COUNTRY at its capital.
+            # Writes an empty lookup if the download fails, so grafana still
+            # starts.
             - name: geonames-gazetteer
               image: mirror.gcr.io/curlimages/curl:8.22.0
               command:
@@ -131,7 +132,8 @@ spec:
                   if curl -fsSL --max-time 120 -o cities.zip https://download.geonames.org/export/dump/cities5000.zip && unzip -o -q cities.zip; then
                     awk -F '\t' '
                       { k = $9 "/" $2; p = $15 + 0
-                        if (!(k in pop) || p > pop[k]) { pop[k] = p; lat[k] = $5; lon[k] = $6 } }
+                        if (!(k in pop) || p > pop[k]) { pop[k] = p; lat[k] = $5; lon[k] = $6 }
+                        if ($8 == "PPLC" && (!($9 in pop) || p > pop[$9])) { pop[$9] = p; lat[$9] = $5; lon[$9] = $6 } }
                       END {
                         printf "{\"fields\":[{\"name\":\"key\",\"values\":["
                         n = 0; for (k in pop) { e = k; gsub(/\\/, "\\\\", e); gsub(/"/, "\\\"", e); ks[n++] = k; printf "%s\"%s\"", (n > 1 ? "," : ""), e }
