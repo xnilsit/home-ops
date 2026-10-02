@@ -54,16 +54,23 @@ podman 3.0.1 fails every start on the missing `/proc/self/uid_map`.
 ```sh
 ssh root@192.168.0.1 'mkdir -p /data/on_boot.d /data/chrony'
 scp chrony/chrony.conf root@192.168.0.1:/data/chrony/
-scp on_boot.d/10-chrony.sh root@192.168.0.1:/data/on_boot.d/
+scp on_boot.d/*.sh root@192.168.0.1:/data/on_boot.d/
 scp udm-boot.service root@192.168.0.1:/etc/systemd/system/
-ssh root@192.168.0.1 'chmod 755 /data/on_boot.d/10-chrony.sh && systemctl daemon-reload && systemctl enable --now udm-boot'
+ssh root@192.168.0.1 'chmod 755 /data/on_boot.d/*.sh && systemctl daemon-reload && systemctl enable --now udm-boot'
 ```
 
 After a firmware update, repeat the `udm-boot.service` copy and the `systemctl` line; the
-script reinstalls chrony by itself.
+scripts restore everything else by themselves.
 
 Check with `chronyc -N sources` and `chronyc -N authdata` on the UDM, or
 `talosctl -n <node> time --check 192.168.0.1` from the cluster.
+
+## PPPoE reconnect
+
+Telekom drops the PPPoE session 24h after it came up. `on_boot.d/20-pppoe-reconnect.sh` writes
+`/etc/cron.d/pppoe-reconnect`, which sends `SIGHUP` to `pppd` at 04:00 local time. The peer
+file has `persist` and `holdoff 5`, so pppd redials about 5s later and the 24h timer restarts
+there. The WAN IPv4 address and the delegated IPv6 prefix change with each reconnect.
 
 ## Port forwards
 
