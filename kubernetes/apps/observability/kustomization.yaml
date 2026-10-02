@@ -14,6 +14,7 @@ resources:
   - ./prometheus-adapter/ks.yaml
   - ./ntfy/ks.yaml
   - ./gatus/ks.yaml
+  - ./kromgo/ks.yaml
 components:
   - ../../flux/components/namespace
 patches:
