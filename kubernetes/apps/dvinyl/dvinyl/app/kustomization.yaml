@@ -1,0 +1,40 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Uploads PVC (named ${APP}), snapshotted to the NAS.
+  - ../../../../components/kopiur/backup
+  # FerretDB backend, archived to Garage.
+  - ../../../../components/postgres
+resources:
+  - ./externalsecret-oidc.yaml
+  - ./externalsecret-secret.yaml
+  - ./secret.sops.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml
+patches:
+  # DocumentDB extension for FerretDB.
+  - patch: |-
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      metadata:
+        name: ${APP}-postgres
+      spec:
+        imageName: ghcr.io/ferretdb/postgres-documentdb:${PG_IMAGE_TAG}
+        # UID/GID the image's data directory expects.
+        postgresUID: 999
+        postgresGID: 999
+        # FerretDB connects as superuser (FerretDB#4997).
+        enableSuperuserAccess: true
+        bootstrap:
+          initdb:
+            postInitSQL:
+              - CREATE EXTENSION IF NOT EXISTS documentdb CASCADE;
+        postgresql:
+          shared_preload_libraries:
+            - pg_cron
+            - pg_documentdb_core
+            - pg_documentdb
+          parameters:
+            cron.database_name: postgres

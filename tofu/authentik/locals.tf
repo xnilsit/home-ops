@@ -50,6 +50,22 @@ locals {
       ]
     }
 
+    dvinyl = {
+      display_name = "DVinyl"
+      description  = "Record collection."
+      hostnames    = ["vinyl.${var.domain}"]
+      icon         = "https://raw.githubusercontent.com/Kyonew/DVinyl/main/public/ressources/logo.png"
+      # DVinyl gates login on dvinyl-user itself; admins need both groups.
+      groups = ["dvinyl-user", "dvinyl-admin"]
+      # DVinyl provisions a user per login and reads the id token itself.
+      sub_mode                   = "user_username"
+      include_claims_in_id_token = true
+      gateway_callback           = false
+      extra_redirect_uris = [
+        "https://vinyl.${var.domain}/login/oidc/callback",
+      ]
+    }
+
     # Quoted: an HCL object key cannot carry a hyphen unquoted. The key is also
     # the client_id the app is configured with, home-ops-garage-ui.
     "garage-ui" = {

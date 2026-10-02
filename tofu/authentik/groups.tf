@@ -14,6 +14,9 @@ locals {
     # Home Assistant login; the -admin one maps to HA's admin role.
     "home-assistant"       = {}
     "home-assistant-admin" = {}
+    # DVinyl login; the -admin one maps to its instance admin.
+    "dvinyl-user"  = {}
+    "dvinyl-admin" = {}
   }
 }
 
