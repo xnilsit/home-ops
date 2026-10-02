@@ -19,3 +19,17 @@ resource "authentik_property_mapping_provider_scope" "immich_quota" {
     return {"immich_quota": quota}
   EOT
 }
+
+resource "authentik_property_mapping_provider_scope" "email_verified_email" {
+  name        = "${var.name_prefix}-email-verified"
+  scope_name  = "email"
+  description = "Email, asserted as verified."
+
+  # Replaces the managed email mapping for apps with email_verified = true in locals.tf.
+  expression = <<-EOT
+    return {
+        "email": request.user.email,
+        "email_verified": True,
+    }
+  EOT
+}

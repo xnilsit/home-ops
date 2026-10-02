@@ -23,6 +23,15 @@ data "authentik_property_mapping_provider_scope" "oidc" {
   ]
 }
 
+# The shared set minus email, for apps that take email_verified_email instead.
+data "authentik_property_mapping_provider_scope" "oidc_without_email" {
+  managed_list = [
+    "goauthentik.io/providers/oauth2/scope-openid",
+    "goauthentik.io/providers/oauth2/scope-profile",
+    "goauthentik.io/providers/oauth2/scope-offline_access",
+  ]
+}
+
 # Without a signing key authentik signs id_tokens HS256 with the client secret,
 # leaving them unverifiable by anything holding only the JWKS.
 data "authentik_certificate_key_pair" "signing" {
