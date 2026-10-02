@@ -1,0 +1,64 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app dvinyl
+  namespace: flux-system
+spec:
+  targetNamespace: dvinyl
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/dvinyl/dvinyl/app
+  dependsOn:
+    # Writes the dvinyl-oidc Secret the ExternalSecret reads
+    - name: authentik-oidc
+      namespace: flux-system
+    # The OIDC credential comes through the tofu-controller store
+    - name: external-secrets-stores
+      namespace: flux-system
+    # The Cluster references the barman plugin
+    - name: barman-cloud-plugin
+      namespace: flux-system
+    # Backup bucket and key for the Cluster
+    - name: garage
+      namespace: flux-system
+    # Uploads PVC is provisioned through kopiur's Restore populator
+    - name: kopiur-repository
+      namespace: flux-system
+    # ceph-block for the uploads PVC
+    - name: rook-ceph-cluster
+      namespace: flux-system
+    - name: envoy-gateway
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: *app
+      KOPIUR_CAPACITY: 5Gi
+      KOPIUR_CRON: "H */6 * * *"
+      # Versioned by its FerretDB suffix; grouped with ghcr.io/ferretdb/ferretdb.
+      #
+      # renovate: datasource=docker depName=ghcr.io/ferretdb/postgres-documentdb versioning=regex:^17-\d+\.\d+\.\d+-ferretdb-(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$
+      PG_IMAGE_TAG: 17-0.107.0-ferretdb-2.7.0
+  healthChecks:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      name: dvinyl-postgres
+      namespace: dvinyl
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: dvinyl
+  healthCheckExprs:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      failed: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'False')
+      current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: false
+  interval: 1h
+  timeout: 30m

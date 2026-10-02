@@ -77,6 +77,16 @@
       },
     },
     {
+      description: "FerretDB Group: FerretDB and its DocumentDB Postgres image",
+      groupName: "ferretdb",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["ghcr.io/ferretdb/ferretdb", "ghcr.io/ferretdb/postgres-documentdb"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+      minimumGroupSize: 2,
+    },
+    {
       description: "Kubernetes Group: kubectl is pinned to the cluster version",
       groupName: "kubernetes",
       matchManagers: ["mise"],

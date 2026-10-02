@@ -1,0 +1,198 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: dvinyl
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: dvinyl
+  interval: 1h
+  values:
+    controllers:
+      dvinyl:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # In-memory sessions and an RWO uploads volume: one pod.
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/kyonew/dvinyl
+              tag: 3.1.4
+            env:
+              VINYL_PORT: &port 3099
+              PROD: "true"
+              TZ: Europe/Berlin
+              # npx and tsx caches.
+              HOME: /tmp
+              PG_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: &superuser dvinyl-postgres-superuser
+                    key: password
+              MONGODB_URL:
+                value: mongodb://postgres:$(PG_PASSWORD)@dvinyl-ferretdb:27017/dvinyl?authSource=admin
+                dependsOn: PG_PASSWORD
+              PASSJWT:
+                valueFrom:
+                  secretKeyRef:
+                    name: &secret dvinyl-secret
+                    key: PASSJWT
+              SESSION_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: *secret
+                    key: SESSION_SECRET
+              DISCOGS_TOKEN:
+                valueFrom:
+                  secretKeyRef:
+                    name: dvinyl-discogs
+                    key: DISCOGS_TOKEN
+              OIDC_ISSUER_URL: ${AUTHENTIK_URL}/application/o/home-ops-dvinyl/
+              OIDC_CLIENT_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: &oidcSecret dvinyl-oidc
+                    key: client-id
+              OIDC_CLIENT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: *oidcSecret
+                    key: client-secret
+              OIDC_REDIRECT_URI: https://vinyl.${SECRET_DOMAIN}/login/oidc/callback
+              OIDC_BUTTON_LABEL: Sign in with authentik
+              # Accounts created on first SSO login.
+              OIDC_ALLOW_SIGNUP: "true"
+              # Login requires dvinyl-user; admin rights are set at account creation.
+              OIDC_ALLOWED_GROUP: dvinyl-user
+              OIDC_ADMIN_GROUP: dvinyl-admin
+              OIDC_DISABLE_LOCAL_LOGIN: "true"
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /manifest.json
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /manifest.json
+                    port: *port
+                  periodSeconds: 10
+                  failureThreshold: 30
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 50m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+      ferretdb:
+        containers:
+          app:
+            image:
+              repository: ghcr.io/ferretdb/ferretdb
+              tag: 2.7.0
+            env:
+              FERRETDB_LISTEN_ADDR: :27017
+              FERRETDB_DEBUG_ADDR: :8088
+              FERRETDB_TELEMETRY: disable
+              PG_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: *superuser
+                    key: password
+              FERRETDB_POSTGRESQL_URL:
+                value: postgres://postgres:$(PG_PASSWORD)@dvinyl-postgres-rw:5432/postgres
+                dependsOn: PG_PASSWORD
+            probes:
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /debug/livez
+                    port: 8088
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /debug/readyz
+                    port: 8088
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 20m
+                memory: 64Mi
+              limits:
+                memory: 512Mi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    persistence:
+      uploads:
+        # Provisioned by components/kopiur/backup.
+        existingClaim: dvinyl
+        advancedMounts:
+          dvinyl:
+            app:
+              - path: /app/public/uploads
+                subPath: uploads
+      tmp:
+        type: emptyDir
+        advancedMounts:
+          dvinyl:
+            app:
+              - path: /tmp
+    service:
+      app:
+        controller: dvinyl
+        ports:
+          http:
+            port: *port
+      ferretdb:
+        controller: ferretdb
+        ports:
+          mongodb:
+            port: 27017
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /manifest.json
+        hostnames:
+          - "vinyl.${SECRET_DOMAIN}"
+        parentRefs:
+          - name: envoy-external
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
