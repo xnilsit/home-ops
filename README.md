@@ -1,29 +1,33 @@
 # home-ops
 
-GitOps repository for my home Kubernetes cluster, reconciled by Flux.
-
-## Cluster
-
-Three-node [Talos](https://www.talos.dev) cluster; every node is a control-plane node that also runs workloads, with the API served behind a shared VIP. Networking is Cilium, ingress is Envoy Gateway, exposure to the internet goes through a Cloudflare tunnel.
-
 ![Talos](https://kromgo.nilsit.de/badges/talos_version)
 ![Kubernetes](https://kromgo.nilsit.de/badges/kubernetes_version)
 ![Nodes](https://kromgo.nilsit.de/badges/nodes)
 ![Uptime](https://kromgo.nilsit.de/badges/uptime)
 ![Pods](https://kromgo.nilsit.de/badges/pods)
 
+GitOps repository for my home Kubernetes cluster, reconciled by Flux.
+
+## Cluster
+
+Three-node [Talos](https://www.talos.dev) cluster; every node is a control-plane node that also runs workloads, with the API served behind a shared VIP. Networking is Cilium, ingress is Envoy Gateway, exposure to the internet goes through a Cloudflare tunnel.
+
+**Cluster resources**
+
 ![CPU](https://kromgo.nilsit.de/badges/cpu_cores)
 ![CPU usage](https://kromgo.nilsit.de/badges/cpu_usage)
+
 ![Memory](https://kromgo.nilsit.de/badges/memory_capacity)
 ![Memory usage](https://kromgo.nilsit.de/badges/memory_usage)
 
+### Storage
+
 ![Node storage](https://kromgo.nilsit.de/badges/node_storage_capacity)
 ![Node storage usage](https://kromgo.nilsit.de/badges/node_storage_usage)
+
 ![Ceph](https://kromgo.nilsit.de/badges/ceph_capacity)
 ![Ceph usage](https://kromgo.nilsit.de/badges/ceph_usage)
 ![Ceph health](https://kromgo.nilsit.de/badges/ceph_health)
-
-### Storage
 
 Each node has the same storage layout:
 
