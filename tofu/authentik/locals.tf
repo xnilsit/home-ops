@@ -57,6 +57,8 @@ locals {
       icon         = "https://raw.githubusercontent.com/Kyonew/DVinyl/main/public/ressources/logo.png"
       # DVinyl gates login on dvinyl-user itself; admins need both groups.
       groups = ["dvinyl-user", "dvinyl-admin"]
+      # DVinyl links SSO to an existing account only when email_verified is true.
+      email_verified = true
       # DVinyl provisions a user per login and reads the id token itself.
       sub_mode                   = "user_username"
       include_claims_in_id_token = true

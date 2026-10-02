@@ -19,7 +19,7 @@ module "app" {
   secret_namespace   = var.secret_namespace
   authorization_flow = data.authentik_flow.authorization.id
   invalidation_flow  = data.authentik_flow.invalidation.id
-  property_mappings  = data.authentik_property_mapping_provider_scope.oidc.ids
+  property_mappings  = try(each.value.email_verified, false) ? data.authentik_property_mapping_provider_scope.oidc_without_email.ids : data.authentik_property_mapping_provider_scope.oidc.ids
   signing_key        = data.authentik_certificate_key_pair.signing.id
 
   include_claims_in_id_token = try(each.value.include_claims_in_id_token, false)
@@ -29,5 +29,8 @@ module "app" {
 
   # Resolved here rather than in locals.tf: a resource id is unknown at plan
   # time, and local.apps is the for_each map, whose values must stay knowable.
-  extra_property_mappings = each.key == "immich" ? [authentik_property_mapping_provider_scope.immich_quota.id] : []
+  extra_property_mappings = concat(
+    each.key == "immich" ? [authentik_property_mapping_provider_scope.immich_quota.id] : [],
+    try(each.value.email_verified, false) ? [authentik_property_mapping_provider_scope.email_verified_email.id] : [],
+  )
 }
