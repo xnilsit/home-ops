@@ -38,3 +38,7 @@ patches:
             - pg_documentdb
           parameters:
             cron.database_name: postgres
+          # Loopback connections DocumentDB cursors and pg_cron open without a password.
+          pg_hba:
+            - host postgres postgres 127.0.0.1/32 trust
+            - host postgres postgres ::1/128 trust
