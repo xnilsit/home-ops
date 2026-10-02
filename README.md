@@ -27,12 +27,14 @@ Three-node [Talos](https://www.talos.dev) cluster; every node is a control-plane
 
 Each node has the same storage layout:
 
-- **USB stick**: Talos system disk
+- **SD card/USB stick**: Talos system disk
 - **960 GB NVMe** (Samsung PM983): `/var`, for container images, logs and ephemeral volumes
 - **1 TB NVMe** (WD Black SN770): `local-path` volumes for workloads that replicate themselves, such as CloudNativePG Postgres clusters
-- **1.92 TB SSD**: one Ceph OSD, managed by Rook. Block, filesystem and object pools are all 3× replicated, so usable capacity is about a third of the raw figure above.
+- **1.92 TB SSD**: Ceph OSD, managed by Rook. Block, filesystem and object pools are all 3× replicated, so usable capacity is about a third of the raw figure above.
 
-`ceph-block` is the default StorageClass. CephFS and S3 buckets come from the same Ceph cluster, and Garage provides additional S3 storage.
+### Networking
+
+Every node has a single 10 GbE link, which carries pod traffic and Ceph replication alike. The network is dual-stack (IPv4 and IPv6). Cilium replaces kube-proxy, routes pod traffic natively without an overlay, and announces LoadBalancer IPs over L2.
 
 ### Nodes
 
