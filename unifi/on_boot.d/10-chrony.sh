@@ -10,7 +10,11 @@ fi
 
 # Hooks run `chronyc onoffline`, which finds no main-table default route and leaves sources offline.
 rm -f /etc/ppp/ip-up.d/chrony /etc/ppp/ip-down.d/chrony \
-  /etc/network/if-up.d/chrony /etc/network/if-post-down.d/chrony
+  /etc/network/if-up.d/chrony /etc/network/if-post-down.d/chrony \
+  /usr/lib/networkd-dispatcher/off.d/chrony-onoffline \
+  /usr/lib/networkd-dispatcher/routable.d/chrony-onoffline \
+  /usr/lib/NetworkManager/dispatcher.d/20-chrony-onoffline \
+  /etc/dhcp/dhclient-exit-hooks.d/chrony
 
 mkdir -p /data/chrony/nts
 chown -R _chrony:_chrony /data/chrony
