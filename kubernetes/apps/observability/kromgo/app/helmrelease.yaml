@@ -1,0 +1,247 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kromgo
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: kromgo
+  interval: 1h
+  values:
+    replicaCount: 2
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: kromgo
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 128Mi
+    monitoring:
+      serviceMonitor:
+        enabled: true
+    httpRoute:
+      enabled: true
+      hostnames:
+        - kromgo.${SECRET_DOMAIN}
+      parentRefs:
+        - name: envoy-external
+          namespace: network
+          sectionName: https
+    config:
+      prometheus: http://vmsingle-vmetrics.observability.svc.cluster.local:8428
+      gallery:
+        enabled: true
+      cache:
+        enabled: true
+        maxAge: 300
+      defaults:
+        badge:
+          style: flat-square
+        graph:
+          maxDuration: 7d
+          theme: dark
+          yMin: 0
+          yMax: 100
+      # PromQL rounds and CEL formats; no dollar signs, Flux envsubst would eat them
+      badges:
+        - id: talos_version
+          title: Talos
+          icon: si:talos
+          query: topk(1, count by (os_image) (kube_node_info))
+          valueExpr: labels[?"os_image"].orValue("unknown").replace("Talos (", "").replace(")", "")
+          colorExpr: '"blue"'
+        - id: kubernetes_version
+          title: Kubernetes
+          icon: si:kubernetes
+          query: topk(1, count by (git_version) (kubernetes_build_info{job="apiserver"}))
+          valueExpr: labels[?"git_version"].orValue("unknown")
+          colorExpr: '"blue"'
+        - id: nodes
+          title: Nodes
+          icon: mdi:server
+          query: count(kube_node_status_condition{condition="Ready",status="true"} == 1)
+          valueExpr: string(int(result))
+          colorExpr: 'result < 3 ? "red" : "brightgreen"'
+        - id: uptime
+          title: Uptime
+          icon: mdi:timer-outline
+          query: min(time() - node_boot_time_seconds)
+          valueExpr: humanizeDuration(result)
+          colorExpr: '"blue"'
+        - id: pods
+          title: Pods
+          icon: mdi:cube-outline
+          query: sum(kube_pod_status_phase{phase="Running"})
+          valueExpr: string(int(result))
+          colorExpr: '"blue"'
+        - id: cpu_cores
+          title: CPU
+          icon: mdi:cpu-64-bit
+          query: count(node_cpu_seconds_total{mode="idle"})
+          valueExpr: string(int(result)) + " cores"
+          colorExpr: '"blue"'
+        - id: cpu_usage
+          title: CPU usage
+          icon: mdi:cpu-64-bit
+          query: round(avg(1 - rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: &percentColor 'colorScale(result, [50.0, 80.0], ["brightgreen", "orange", "red"])'
+        - id: memory_capacity
+          title: Memory
+          icon: mdi:memory
+          query: sum(node_memory_MemTotal_bytes)
+          valueExpr: humanizeBytes(result)
+          colorExpr: '"blue"'
+        - id: memory_usage
+          title: Memory usage
+          icon: mdi:memory
+          query: round((1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        # /var and /var/mnt/local-path, one series per disk
+        - id: node_storage_capacity
+          title: Node storage
+          icon: mdi:harddisk
+          query: sum(max by (instance, device) (node_filesystem_size_bytes{fstype="xfs"}))
+          valueExpr: humanizeBytes(result)
+          colorExpr: '"blue"'
+        - id: node_storage_usage
+          title: Node storage usage
+          icon: mdi:harddisk
+          query: round((1 - sum(max by (instance, device) (node_filesystem_avail_bytes{fstype="xfs"})) / sum(max by (instance, device) (node_filesystem_size_bytes{fstype="xfs"}))) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        # Raw capacity, before replication
+        - id: ceph_capacity
+          title: Ceph
+          icon: si:ceph
+          query: sum(ceph_cluster_total_bytes)
+          valueExpr: humanizeBytes(result)
+          colorExpr: '"blue"'
+        - id: ceph_usage
+          title: Ceph usage
+          icon: si:ceph
+          query: round(sum(ceph_cluster_total_used_bytes) / sum(ceph_cluster_total_bytes) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: &cephColor 'colorScale(result, [60.0, 75.0], ["brightgreen", "orange", "red"])'
+        - id: ceph_health
+          title: Ceph health
+          icon: si:ceph
+          query: max(ceph_health_status)
+          valueExpr: 'result == 0.0 ? "HEALTH_OK" : result == 1.0 ? "HEALTH_WARN" : "HEALTH_ERR"'
+          colorExpr: 'colorScale(result, [1.0, 2.0], ["brightgreen", "orange", "red"])'
+        # Per-node, no title: icon + value in one segment for the README table
+        - id: kube-srv-01_status
+          icon: mdi:server
+          query: max(kube_node_status_condition{condition="Ready",status="true",node="kube-srv-01"})
+          valueExpr: 'result == 1.0 ? "Ready" : "NotReady"'
+          colorExpr: 'result == 1.0 ? "brightgreen" : "red"'
+        - id: kube-srv-01_cpu
+          icon: mdi:cpu-64-bit
+          query: round((1 - avg(rate(node_cpu_seconds_total{mode="idle",instance="192.168.1.101:9100"}[5m]))) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        - id: kube-srv-01_memory
+          icon: mdi:memory
+          query: round((1 - sum(node_memory_MemAvailable_bytes{instance="192.168.1.101:9100"}) / sum(node_memory_MemTotal_bytes{instance="192.168.1.101:9100"})) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        - id: kube-srv-01_storage
+          icon: mdi:harddisk
+          query: round((1 - sum(node_filesystem_avail_bytes{fstype="xfs",instance="192.168.1.101:9100"}) / sum(node_filesystem_size_bytes{fstype="xfs",instance="192.168.1.101:9100"})) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        - id: kube-srv-01_ceph
+          icon: si:ceph
+          query: round(sum(ceph_osd_stat_bytes_used * on (ceph_daemon) group_left () ceph_osd_metadata{hostname="kube-srv-01"}) / sum(ceph_osd_stat_bytes * on (ceph_daemon) group_left () ceph_osd_metadata{hostname="kube-srv-01"}) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *cephColor
+        - id: kube-srv-01_uptime
+          icon: mdi:timer-outline
+          query: time() - node_boot_time_seconds{instance="192.168.1.101:9100"}
+          valueExpr: humanizeDuration(result)
+          colorExpr: '"blue"'
+        - id: kube-srv-02_status
+          icon: mdi:server
+          query: max(kube_node_status_condition{condition="Ready",status="true",node="kube-srv-02"})
+          valueExpr: 'result == 1.0 ? "Ready" : "NotReady"'
+          colorExpr: 'result == 1.0 ? "brightgreen" : "red"'
+        - id: kube-srv-02_cpu
+          icon: mdi:cpu-64-bit
+          query: round((1 - avg(rate(node_cpu_seconds_total{mode="idle",instance="192.168.1.102:9100"}[5m]))) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        - id: kube-srv-02_memory
+          icon: mdi:memory
+          query: round((1 - sum(node_memory_MemAvailable_bytes{instance="192.168.1.102:9100"}) / sum(node_memory_MemTotal_bytes{instance="192.168.1.102:9100"})) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        - id: kube-srv-02_storage
+          icon: mdi:harddisk
+          query: round((1 - sum(node_filesystem_avail_bytes{fstype="xfs",instance="192.168.1.102:9100"}) / sum(node_filesystem_size_bytes{fstype="xfs",instance="192.168.1.102:9100"})) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        - id: kube-srv-02_ceph
+          icon: si:ceph
+          query: round(sum(ceph_osd_stat_bytes_used * on (ceph_daemon) group_left () ceph_osd_metadata{hostname="kube-srv-02"}) / sum(ceph_osd_stat_bytes * on (ceph_daemon) group_left () ceph_osd_metadata{hostname="kube-srv-02"}) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *cephColor
+        - id: kube-srv-02_uptime
+          icon: mdi:timer-outline
+          query: time() - node_boot_time_seconds{instance="192.168.1.102:9100"}
+          valueExpr: humanizeDuration(result)
+          colorExpr: '"blue"'
+        - id: kube-srv-03_status
+          icon: mdi:server
+          query: max(kube_node_status_condition{condition="Ready",status="true",node="kube-srv-03"})
+          valueExpr: 'result == 1.0 ? "Ready" : "NotReady"'
+          colorExpr: 'result == 1.0 ? "brightgreen" : "red"'
+        - id: kube-srv-03_cpu
+          icon: mdi:cpu-64-bit
+          query: round((1 - avg(rate(node_cpu_seconds_total{mode="idle",instance="192.168.1.103:9100"}[5m]))) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        - id: kube-srv-03_memory
+          icon: mdi:memory
+          query: round((1 - sum(node_memory_MemAvailable_bytes{instance="192.168.1.103:9100"}) / sum(node_memory_MemTotal_bytes{instance="192.168.1.103:9100"})) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        - id: kube-srv-03_storage
+          icon: mdi:harddisk
+          query: round((1 - sum(node_filesystem_avail_bytes{fstype="xfs",instance="192.168.1.103:9100"}) / sum(node_filesystem_size_bytes{fstype="xfs",instance="192.168.1.103:9100"})) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        - id: kube-srv-03_ceph
+          icon: si:ceph
+          query: round(sum(ceph_osd_stat_bytes_used * on (ceph_daemon) group_left () ceph_osd_metadata{hostname="kube-srv-03"}) / sum(ceph_osd_stat_bytes * on (ceph_daemon) group_left () ceph_osd_metadata{hostname="kube-srv-03"}) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *cephColor
+        - id: kube-srv-03_uptime
+          icon: mdi:timer-outline
+          query: time() - node_boot_time_seconds{instance="192.168.1.103:9100"}
+          valueExpr: humanizeDuration(result)
+          colorExpr: '"blue"'
+      graphs:
+        - id: cpu_usage
+          title: CPU usage per node
+          query: max by (nodename) ((1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) * on (instance) group_left (nodename) node_uname_info) * 100
+          valueExpr: string(int(result)) + "%"
+        - id: memory_usage
+          title: Memory usage per node
+          query: max by (nodename) ((1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * on (instance) group_left (nodename) node_uname_info) * 100
+          valueExpr: string(int(result)) + "%"
+        - id: ceph_usage
+          title: Ceph usage
+          query: sum(ceph_cluster_total_used_bytes) / sum(ceph_cluster_total_bytes) * 100
+          valueExpr: string(int(result)) + "%"
+          fill: true
