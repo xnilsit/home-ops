@@ -20,7 +20,7 @@ spec:
           app:
             image:
               repository: ghcr.io/kyonew/dvinyl
-              tag: 3.1.4
+              tag: 3.2.1
             env:
               VINYL_PORT: &port 3099
               PROD: "true"
