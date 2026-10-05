@@ -207,11 +207,11 @@ spec:
             memory: 768Mi
         osd:
           limits:
-            memory: 6Gi
+            # osd_memory_target becomes 0.8x the limit (4Gi)
+            memory: 5Gi
           requests:
             cpu: 150m
-            # osd_memory_target, not the limit: an OSD here sits at ~2.3Gi
-            memory: 4Gi
+            memory: 5Gi
         prepareosd:
           limits:
             memory: 3000Mi
