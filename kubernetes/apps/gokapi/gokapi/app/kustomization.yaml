@@ -3,11 +3,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 components:
-  # Database PVC (named ${APP}), snapshotted to the NAS.
-  - ../../../../components/kopiur/backup
+  # Dedicated Dragonfly (${APP}-dragonfly) holding all metadata, snapshotted to Garage.
+  - ../../../../components/dragonfly
 resources:
   - ./objectbucketclaim.yaml
   - ./externalsecret-oidc.yaml
   - ./secret.sops.yaml
   - ./ocirepository.yaml
   - ./helmrelease.yaml
+  - ./backendtrafficpolicy.yaml

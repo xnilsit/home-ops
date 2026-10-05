@@ -18,25 +18,40 @@ spec:
     # The OIDC credential comes through the tofu-controller store
     - name: external-secrets-stores
       namespace: flux-system
+    # Owns the store the Dragonfly password is pulled through
+    - name: external-secrets-stores-database
+      namespace: flux-system
+    # Owns the store the snapshot credentials are pulled through
+    - name: external-secrets-stores-garage
+      namespace: flux-system
+    # Gates on the GarageKey being Ready, ie. the snapshot credentials existing.
+    - name: garage
+      namespace: flux-system
+    - name: dragonfly-operator
+      namespace: flux-system
     - name: envoy-gateway
       namespace: flux-system
-    # The database PVC is provisioned through kopiur's Restore populator
-    - name: kopiur-repository
-      namespace: flux-system
-    # ceph-block for the PVCs, and the bucket StorageClass the OBC claims through
+    # CephFS RWX for the staging volume, and the bucket StorageClass the OBC claims through
     - name: rook-ceph-cluster
       namespace: flux-system
   postBuild:
     substitute:
       APP: *app
-      # SQLite and logs only; uploads live in RGW.
-      KOPIUR_CAPACITY: 1Gi
-      KOPIUR_CRON: "H */6 * * *"
+      DRAGONFLY_REPLICAS: "2"
   healthChecks:
+    - apiVersion: dragonflydb.io/v1alpha1
+      kind: Dragonfly
+      name: gokapi-dragonfly
+      namespace: gokapi
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease
       name: *app
       namespace: gokapi
+  healthCheckExprs:
+    - apiVersion: dragonflydb.io/v1alpha1
+      kind: Dragonfly
+      current: has(status.phase) && status.phase in ['Ready', 'ready']
+      inProgress: has(status.phase) && status.phase in ['ResourcesCreated', 'Configuring', 'RollingUpdate']
   prune: true
   sourceRef:
     kind: GitRepository

@@ -14,8 +14,21 @@ spec:
       gokapi:
         annotations:
           reloader.stakater.com/auto: "true"
-        # SQLite on an RWO volume: two pods must never hold it at once.
-        strategy: Recreate
+        # StatefulSet for OrderedReady: the first pod creates the superadmin
+        # before the second starts, so the two cannot both create one.
+        type: statefulset
+        replicas: 2
+        strategy: RollingUpdate
+        podDisruptionBudget:
+          maxUnavailable: 1
+        pod:
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/controller: gokapi
         initContainers:
           config:
             image: &image
@@ -49,7 +62,7 @@ spec:
                   "RedirectUrl": "https://share.${SECRET_DOMAIN}/admin",
                   "PublicName": "Gokapi",
                   "DataDir": "/app/staging",
-                  "DatabaseUrl": "sqlite:///app/data/gokapi.sqlite",
+                  "DatabaseUrl": "redis://:$${DRAGONFLY_PASSWORD}@gokapi-dragonfly:6379",
                   "ConfigVersion": 22,
                   "MaxFileSizeMB": 20480,
                   "MaxMemory": 50,
@@ -62,13 +75,18 @@ spec:
                   "IncludeFilename": false
                 }
                 EOF
-                # Creates the superadmin on an empty database, renames it on later starts, then exits.
+                # Creates the superadmin in an empty database, renames it on later starts, then exits.
                 exec /app/gokapi --deployment-password "$(head -c 24 /dev/urandom | base64)"
             env: &env
               GOKAPI_CONFIG_DIR: /app/config
-              # Logs only; uploads are staged in config.json's DataDir.
-              GOKAPI_DATA_DIR: /app/data
+              # log.txt, shared by both pods.
+              GOKAPI_DATA_DIR: /app/staging
               TMPDIR: /app/staging
+              DRAGONFLY_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: gokapi-dragonfly-auth
+                    key: password
               OAUTH_CLIENT_ID:
                 valueFrom:
                   secretKeyRef:
@@ -149,7 +167,6 @@ spec:
     defaultPodOptions:
       securityContext:
         runAsNonRoot: true
-        # What kopiur's mover reads the volume as.
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
@@ -157,20 +174,16 @@ spec:
         seccompProfile:
           type: RuntimeDefault
     persistence:
-      data:
-        # Provisioned by components/kopiur/backup through its Restore populator.
-        existingClaim: gokapi
-        globalMounts:
-          - path: /app/data
       config:
         type: emptyDir
         globalMounts:
           - path: /app/config
       # Chunks are assembled here before the upload to RGW, so it must fit MaxFileSizeMB.
+      # Shared, so a chunk retried against the other pod lands in the same file.
       staging:
-        type: ephemeral
-        accessMode: ReadWriteOnce
-        storageClass: ceph-block
+        type: persistentVolumeClaim
+        accessMode: ReadWriteMany
+        storageClass: ceph-filesystem
         size: 50Gi
         globalMounts:
           - path: /app/staging
