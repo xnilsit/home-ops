@@ -124,7 +124,8 @@ spec:
                     name: &bucket gokapi
                     key: BUCKET_HOST
               GOKAPI_AWS_ENDPOINT:
-                value: http://$(BUCKET_HOST):80
+                # No :80: presigned URLs are signed without the default port, but Go sends it in Host.
+                value: http://$(BUCKET_HOST)
                 dependsOn: BUCKET_HOST
               GOKAPI_AWS_REGION: us-east-1
               GOKAPI_AWS_BUCKET:
