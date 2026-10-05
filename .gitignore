@@ -17,6 +17,7 @@ talosconfig
 /talos/rendered/
 # Misc.
 .claude/
+/opencode.json
 .private/
 .terraform/
 .venv/
