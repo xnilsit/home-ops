@@ -264,13 +264,18 @@ kind: BackendTrafficPolicy
 metadata:
   name: envoy
 spec:
+  # Order is preference on Accept-Encoding ties. Smaller bodies fit one packet
+  # anyway, and Envoy's default 30-byte floor made some grow.
   compressor:
     - type: Zstd
       zstd: {}
+      minContentLength: 1Ki
     - type: Brotli
       brotli: {}
+      minContentLength: 1Ki
     - type: Gzip
       gzip: {}
+      minContentLength: 1Ki
   rateLimit:
     type: Global
     global:

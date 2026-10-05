@@ -15,10 +15,13 @@ spec:
   compressor:
     - type: Zstd
       zstd: {}
+      minContentLength: 1Ki
     - type: Brotli
       brotli: {}
+      minContentLength: 1Ki
     - type: Gzip
       gzip: {}
+      minContentLength: 1Ki
   # Upload processing status lives in memory and streams over SSE, so a client must
   # stick to one pod. SourceIP rather than a cookie: gokapi-cli keeps none.
   loadBalancer:
