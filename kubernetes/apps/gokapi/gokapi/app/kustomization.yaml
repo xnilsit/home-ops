@@ -12,3 +12,13 @@ resources:
   - ./ocirepository.yaml
   - ./helmrelease.yaml
   - ./backendtrafficpolicy.yaml
+patches:
+  # Caps the loss on an ungraceful loss of both replicas at 5 minutes; snapshots are a few KB.
+  - patch: |-
+      apiVersion: dragonflydb.io/v1alpha1
+      kind: Dragonfly
+      metadata:
+        name: ${APP}-dragonfly
+      spec:
+        snapshot:
+          cron: "*/5 * * * *"
