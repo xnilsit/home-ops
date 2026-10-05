@@ -267,7 +267,9 @@ locals {
       display_name = "kguardian"
       description  = "Observed pod traffic and generated network policies."
       hostnames    = ["kguardian.${var.domain}"]
-      groups       = ["home-ops"]
+      # selfh.st carries no kguardian mark; this is the project's own favicon.
+      icon   = "https://cdn.jsdelivr.net/gh/kguardian-dev/kguardian@main/docs/favicon.svg"
+      groups = ["home-ops"]
     }
     kopia = {
       display_name = "Kopia"
