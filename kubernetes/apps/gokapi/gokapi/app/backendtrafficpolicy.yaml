@@ -5,23 +5,14 @@ kind: BackendTrafficPolicy
 metadata:
   name: gokapi
 spec:
-  # Replaces BackendTrafficPolicy/envoy in envoy-gateway/app/envoy.yaml rather than
-  # merging with it: merged rate limits stack, so the gateway's 1200/min would still
-  # apply. Everything else is copied from there.
+  # Inherits the rest of BackendTrafficPolicy/envoy in envoy-gateway/app/envoy.yaml.
+  # JSONMerge, not StrategicMerge: the latter appends rate limit rules to the
+  # gateway's, so its 1200/min would still apply; JSONMerge replaces the list.
+  mergeType: JSONMerge
   targetRefs:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       name: gokapi
-  compressor:
-    - type: Zstd
-      zstd: {}
-      minContentLength: 1Ki
-    - type: Brotli
-      brotli: {}
-      minContentLength: 1Ki
-    - type: Gzip
-      gzip: {}
-      minContentLength: 1Ki
   # Upload processing status lives in memory and streams over SSE, so a client must
   # stick to one pod. SourceIP rather than a cookie: gokapi-cli keeps none.
   loadBalancer:
@@ -46,12 +37,3 @@ spec:
           limit:
             requests: 6000
             unit: Minute
-  retry:
-    numRetries: 2
-    retryOn:
-      triggers:
-        - reset
-  tcpKeepalive: {}
-  timeout:
-    http:
-      requestTimeout: 0s
