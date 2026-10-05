@@ -1,3 +1,4 @@
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -7,6 +8,9 @@ spec:
     - "rgw.${SECRET_DOMAIN}"
   parentRefs:
     - {name: envoy-internal, namespace: network, sectionName: https}
+    # Public for Gokapi's presigned download URLs. S3 request bodies stay under
+    # Cloudflare's 100 MB limit: aws-sdk-go uploads in 5 MiB parts.
+    - {name: envoy-external, namespace: network, sectionName: https}
   rules:
     - matches:
         - {path: {type: PathPrefix, value: /}}
