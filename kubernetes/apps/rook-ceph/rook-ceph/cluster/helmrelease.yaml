@@ -208,10 +208,10 @@ spec:
         osd:
           limits:
             # osd_memory_target becomes 0.8x the limit (4Gi)
-            memory: 5Gi
+            memory: &osdMemory 5Gi
           requests:
             cpu: 150m
-            memory: 5Gi
+            memory: *osdMemory
         prepareosd:
           limits:
             memory: 3000Mi
