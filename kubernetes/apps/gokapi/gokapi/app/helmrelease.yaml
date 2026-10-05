@@ -118,20 +118,13 @@ spec:
               GOKAPI_LOG_STDOUT: "true"
               # Envoy's pods; their x-forwarded-for carries the client address.
               GOKAPI_TRUSTED_PROXIES: 10.42.0.0/16
-              BUCKET_HOST:
-                valueFrom:
-                  configMapKeyRef:
-                    name: &bucket gokapi
-                    key: BUCKET_HOST
-              GOKAPI_AWS_ENDPOINT:
-                # No :80: presigned URLs are signed without the default port, but Go sends it in Host.
-                value: http://$(BUCKET_HOST)
-                dependsOn: BUCKET_HOST
+              # Also the host in the presigned URLs downloads redirect to, so it must be public.
+              GOKAPI_AWS_ENDPOINT: https://rgw.${SECRET_DOMAIN}
               GOKAPI_AWS_REGION: us-east-1
               GOKAPI_AWS_BUCKET:
                 valueFrom:
                   configMapKeyRef:
-                    name: *bucket
+                    name: &bucket gokapi
                     key: BUCKET_NAME
               GOKAPI_AWS_KEY:
                 valueFrom:
@@ -143,8 +136,7 @@ spec:
                   secretKeyRef:
                     name: *bucket
                     key: AWS_SECRET_ACCESS_KEY
-              # RGW is cluster-internal, so presigned URLs would be unreachable.
-              GOKAPI_AWS_PROXY_DOWNLOAD: "true"
+              GOKAPI_AWS_PROXY_DOWNLOAD: "false"
             probes:
               liveness: &probes
                 enabled: true
@@ -166,6 +158,12 @@ spec:
               limits:
                 memory: 1Gi
     defaultPodOptions:
+      # Pins Gokapi's own S3 traffic to envoy-internal: k8s-gateway also answers with
+      # envoy-external, whose WAF would inspect every upload part from this pod.
+      hostAliases:
+        - ip: 192.168.1.150
+          hostnames:
+            - "rgw.${SECRET_DOMAIN}"
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
