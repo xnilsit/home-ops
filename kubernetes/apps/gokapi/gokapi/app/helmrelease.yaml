@@ -196,10 +196,10 @@ spec:
       app:
         hostnames:
           - "share.${SECRET_DOMAIN}"
-        # envoy-external-direct: proxied downloads are unbounded, and the
-        # Cloudflare tunnel is not meant for bulk file delivery.
+        # Downloads redirect to rgw.*, so only the UI, API and 45 MiB upload chunks
+        # come through here, all within Cloudflare's 100 MB request limit.
         parentRefs:
-          - name: envoy-external-direct
+          - name: envoy-external
             namespace: network
             sectionName: https
         rules:
