@@ -3,22 +3,17 @@
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: BackendTrafficPolicy
 metadata:
-  name: gokapi
+  name: ceph-rgw
 spec:
   # Inherits the rest of BackendTrafficPolicy/envoy in envoy-gateway/app/envoy.yaml.
   # JSONMerge, not StrategicMerge: the latter appends rate limit rules to the
   # gateway's, so its 1200/min would still apply; JSONMerge replaces the list.
+  # Gokapi's uploads alone send ~13 S3 parts/s.
   mergeType: JSONMerge
   targetRefs:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      name: gokapi
-  # Upload processing status lives in memory and streams over SSE, so a client must
-  # stick to one pod. SourceIP rather than a cookie: gokapi-cli keeps none.
-  loadBalancer:
-    type: ConsistentHash
-    consistentHash:
-      type: SourceIP
+      name: ceph-rgw
   rateLimit:
     type: Global
     global:
