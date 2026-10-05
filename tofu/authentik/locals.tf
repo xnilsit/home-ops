@@ -68,6 +68,19 @@ locals {
       ]
     }
 
+    gokapi = {
+      display_name = "Gokapi"
+      description  = "File sharing."
+      hostnames    = ["share.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/png/gokapi.png"
+      groups       = ["gokapi"]
+      # Gokapi keys users on the userinfo email, so sub and the id token are unused.
+      gateway_callback = false
+      extra_redirect_uris = [
+        "https://share.${var.domain}/oauth-callback",
+      ]
+    }
+
     # Quoted: an HCL object key cannot carry a hyphen unquoted. The key is also
     # the client_id the app is configured with, home-ops-garage-ui.
     "garage-ui" = {

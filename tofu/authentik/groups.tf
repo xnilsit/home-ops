@@ -17,6 +17,8 @@ locals {
     # DVinyl login; the -admin one maps to its instance admin.
     "dvinyl-user"  = {}
     "dvinyl-admin" = {}
+    # Gokapi login; members get a regular Gokapi user on first login.
+    "gokapi" = {}
   }
 }
 

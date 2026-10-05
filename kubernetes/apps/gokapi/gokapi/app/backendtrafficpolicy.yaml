@@ -1,0 +1,19 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/gateway.envoyproxy.io/backendtrafficpolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: gokapi
+spec:
+  # Keeps the gateway-wide compression and rate limit from envoy-gateway/app/envoy.yaml.
+  mergeType: StrategicMerge
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: gokapi
+  # Upload processing status lives in memory and streams over SSE, so a client must
+  # stick to one pod. SourceIP rather than a cookie: gokapi-cli keeps none.
+  loadBalancer:
+    type: ConsistentHash
+    consistentHash:
+      type: SourceIP
