@@ -1,0 +1,196 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: gokapi
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: gokapi
+  interval: 1h
+  values:
+    controllers:
+      gokapi:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # SQLite on an RWO volume: two pods must never hold it at once.
+        strategy: Recreate
+        initContainers:
+          config:
+            image: &image
+              repository: docker.io/f0rc3/gokapi
+              tag: v2.2.4
+            # Replaces the interactive first-run setup, which only ever writes config.json.
+            command:
+              - "/bin/sh"
+              - "-c"
+            args:
+              - |
+                set -eu
+                cat > /app/config/config.json <<EOF
+                {
+                  "Authentication": {
+                    "Method": 1,
+                    "SaltAdmin": "$${SALT_ADMIN}",
+                    "SaltFiles": "$${SALT_FILES}",
+                    "Username": "$${ADMIN_EMAIL}",
+                    "HeaderKey": "",
+                    "OauthProvider": "${AUTHENTIK_URL}/application/o/home-ops-gokapi/",
+                    "OAuthClientId": "$${OAUTH_CLIENT_ID}",
+                    "OAuthClientSecret": "$${OAUTH_CLIENT_SECRET}",
+                    "OauthGroupScope": "",
+                    "OAuthRecheckInterval": 12,
+                    "OAuthGroups": [],
+                    "OnlyRegisteredUsers": false
+                  },
+                  "Port": ":53842",
+                  "ServerUrl": "https://share.${SECRET_DOMAIN}/",
+                  "RedirectUrl": "https://share.${SECRET_DOMAIN}/admin",
+                  "PublicName": "Gokapi",
+                  "DataDir": "/app/staging",
+                  "DatabaseUrl": "sqlite:///app/data/gokapi.sqlite",
+                  "ConfigVersion": 22,
+                  "MaxFileSizeMB": 20480,
+                  "MaxMemory": 50,
+                  "ChunkSize": 45,
+                  "MaxParallelUploads": 3,
+                  "Encryption": {"Level": 0, "Cipher": null, "Salt": "", "Checksum": "", "ChecksumSalt": ""},
+                  "UseSsl": false,
+                  "PicturesAlwaysLocal": false,
+                  "SaveIp": false,
+                  "IncludeFilename": false
+                }
+                EOF
+                # Creates the superadmin on an empty database, renames it on later starts, then exits.
+                exec /app/gokapi --deployment-password "$(head -c 24 /dev/urandom | base64)"
+            env: &env
+              GOKAPI_CONFIG_DIR: /app/config
+              # Logs only; uploads are staged in config.json's DataDir.
+              GOKAPI_DATA_DIR: /app/data
+              TMPDIR: /app/staging
+              OAUTH_CLIENT_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: &oidcSecret gokapi-oidc
+                    key: client-id
+              OAUTH_CLIENT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: *oidcSecret
+                    key: client-secret
+            envFrom:
+              # ADMIN_EMAIL, SALT_ADMIN, SALT_FILES
+              - secretRef:
+                  name: gokapi-secret
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 128Mi
+        containers:
+          app:
+            image: *image
+            env:
+              <<: *env
+              GOKAPI_LOG_STDOUT: "true"
+              # Envoy's pods; their x-forwarded-for carries the client address.
+              GOKAPI_TRUSTED_PROXIES: 10.42.0.0/16
+              BUCKET_HOST:
+                valueFrom:
+                  configMapKeyRef:
+                    name: &bucket gokapi
+                    key: BUCKET_HOST
+              GOKAPI_AWS_ENDPOINT:
+                value: http://$(BUCKET_HOST):80
+                dependsOn: BUCKET_HOST
+              GOKAPI_AWS_REGION: us-east-1
+              GOKAPI_AWS_BUCKET:
+                valueFrom:
+                  configMapKeyRef:
+                    name: *bucket
+                    key: BUCKET_NAME
+              GOKAPI_AWS_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: *bucket
+                    key: AWS_ACCESS_KEY_ID
+              GOKAPI_AWS_KEY_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: *bucket
+                    key: AWS_SECRET_ACCESS_KEY
+              # RGW is cluster-internal, so presigned URLs would be unreachable.
+              GOKAPI_AWS_PROXY_DOWNLOAD: "true"
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: &port 53842
+                  initialDelaySeconds: 0
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness: *probes
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                memory: 1Gi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        # What kopiur's mover reads the volume as.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    persistence:
+      data:
+        # Provisioned by components/kopiur/backup through its Restore populator.
+        existingClaim: gokapi
+        globalMounts:
+          - path: /app/data
+      config:
+        type: emptyDir
+        globalMounts:
+          - path: /app/config
+      # Chunks are assembled here before the upload to RGW, so it must fit MaxFileSizeMB.
+      staging:
+        type: ephemeral
+        accessMode: ReadWriteOnce
+        storageClass: ceph-block
+        size: 50Gi
+        globalMounts:
+          - path: /app/staging
+    service:
+      app:
+        controller: gokapi
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        hostnames:
+          - "share.${SECRET_DOMAIN}"
+        # envoy-external-direct: proxied downloads are unbounded, and the
+        # Cloudflare tunnel is not meant for bulk file delivery.
+        parentRefs:
+          - name: envoy-external-direct
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port

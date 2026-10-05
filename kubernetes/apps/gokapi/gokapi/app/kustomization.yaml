@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Database PVC (named ${APP}), snapshotted to the NAS.
+  - ../../../../components/kopiur/backup
+resources:
+  - ./objectbucketclaim.yaml
+  - ./externalsecret-oidc.yaml
+  - ./secret.sops.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml
