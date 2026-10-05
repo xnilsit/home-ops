@@ -170,6 +170,13 @@ spec:
             ctl:ruleRemoveById=921422,
             ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:c"
 
+          # Gokapi's presigned download URLs carry the RFC 6266 filename
+          # (filename*=UTF-8''...) in this query arg, which trips 932240/942370.
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^rgw\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10021,phase:1,pass,nolog,t:none,
+            ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:response-content-disposition"
+
           - Include @owasp_crs/*.conf
 
           # Scores any backend 5xx, and one alone exceeds the outbound threshold.
