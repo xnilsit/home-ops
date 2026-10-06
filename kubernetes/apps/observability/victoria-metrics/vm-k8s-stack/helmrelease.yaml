@@ -80,6 +80,10 @@ spec:
         # the physical NICs from the same metric, more sensitively.
         NodeNetworkTransmitErrs:
           enabled: false
+        # Talos' short-lived node-update certs drag the p1 under the threshold for a few minutes.
+        KubeClientCertificateExpiration:
+          spec:
+            for: 30m
 
     alertmanager:
       enabled: true
