@@ -7,6 +7,7 @@ components:
   - ../../../../components/kopiur/backup
   # FerretDB backend, archived to Garage.
   - ../../../../components/postgres
+  - ../../../../components/postgres-recovery
 resources:
   - ./externalsecret-oidc.yaml
   - ./externalsecret-secret.yaml
@@ -27,10 +28,6 @@ patches:
         postgresGID: 999
         # FerretDB connects as superuser (FerretDB#4997).
         enableSuperuserAccess: true
-        bootstrap:
-          initdb:
-            postInitSQL:
-              - CREATE EXTENSION IF NOT EXISTS documentdb CASCADE;
         postgresql:
           shared_preload_libraries:
             - pg_cron
