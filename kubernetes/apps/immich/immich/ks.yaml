@@ -64,7 +64,7 @@ spec:
       # plain docker versioning, so Renovate would never open a PR.
       #
       # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/pgvector versioning=regex:^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-(?<build>\d+)-18-trixie$
-      PGVECTOR_IMAGE_TAG: 0.8.6-202610011123-18-trixie
+      PGVECTOR_IMAGE_TAG: 0.8.7-202610071437-18-trixie
       # renovate: datasource=docker depName=ghcr.io/tensorchord/vchord-scratch versioning=regex:^pg18-v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$
       VCHORD_IMAGE_TAG: pg18-v1.1.1
   healthChecks:
