@@ -1,0 +1,210 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: outline
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: outline
+  interval: 1h
+  values:
+    controllers:
+      outline:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        replicas: 2
+        strategy: RollingUpdate
+        podDisruptionBudget:
+          maxUnavailable: 1
+        pod:
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/controller: outline
+        initContainers:
+          # Browsers upload attachments straight to the bucket with a presigned POST.
+          cors:
+            image:
+              repository: docker.io/amazon/aws-cli
+              tag: 2.37.10
+            args:
+              - s3api
+              - put-bucket-cors
+              - --endpoint-url=http://$(BUCKET_HOST)
+              - --bucket=$(BUCKET_NAME)
+              - >-
+                --cors-configuration={"CORSRules":[{
+                "AllowedOrigins":["https://outline.${SECRET_DOMAIN}"],
+                "AllowedMethods":["GET","PUT","POST"],
+                "AllowedHeaders":["*"],
+                "MaxAgeSeconds":3600}]}
+            env:
+              HOME: /tmp
+              AWS_REGION: us-east-1
+            envFrom:
+              # BUCKET_HOST, BUCKET_NAME
+              - configMapRef:
+                  name: &bucket outline
+              # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+              - secretRef:
+                  name: *bucket
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 256Mi
+        containers:
+          app:
+            image:
+              repository: docker.io/outlinewiki/outline
+              tag: 1.10.1
+            env:
+              URL: https://outline.${SECRET_DOMAIN}
+              PORT: &port 3000
+              # TLS ends at Envoy.
+              FORCE_HTTPS: "false"
+              WEB_CONCURRENCY: "1"
+              DEFAULT_LANGUAGE: en_US
+              DATABASE_URL:
+                valueFrom:
+                  secretKeyRef:
+                    name: outline-postgres-app
+                    key: uri
+              DRAGONFLY_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: outline-dragonfly-auth
+                    key: password
+              REDIS_URL:
+                value: redis://:$(DRAGONFLY_PASSWORD)@outline-dragonfly:6379
+                dependsOn: DRAGONFLY_PASSWORD
+              # Lets the collaboration service run on more than one replica.
+              REDIS_COLLABORATION_URL:
+                value: redis://:$(DRAGONFLY_PASSWORD)@outline-dragonfly:6379
+                dependsOn: DRAGONFLY_PASSWORD
+              FILE_STORAGE: s3
+              # Uploads are a single request, and Cloudflare caps those at 100 MB.
+              FILE_STORAGE_UPLOAD_MAX_SIZE: "95000000"
+              # Also where browsers upload to and downloads redirect to, so it must be public.
+              AWS_S3_UPLOAD_BUCKET_URL: https://rgw.${SECRET_DOMAIN}
+              AWS_S3_UPLOAD_BUCKET_NAME:
+                valueFrom:
+                  configMapKeyRef:
+                    name: *bucket
+                    key: BUCKET_NAME
+              AWS_ACCESS_KEY_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: *bucket
+                    key: AWS_ACCESS_KEY_ID
+              AWS_SECRET_ACCESS_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: *bucket
+                    key: AWS_SECRET_ACCESS_KEY
+              AWS_REGION: us-east-1
+              AWS_S3_FORCE_PATH_STYLE: "true"
+              AWS_S3_ACL: private
+              OIDC_ISSUER_URL: ${AUTHENTIK_URL}/application/o/home-ops-outline/
+              OIDC_LOGOUT_URI: ${AUTHENTIK_URL}/application/o/home-ops-outline/end-session/
+              OIDC_CLIENT_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: &oidcSecret outline-oidc
+                    key: client-id
+              OIDC_CLIENT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: *oidcSecret
+                    key: client-secret
+              OIDC_DISPLAY_NAME: authentik
+              OIDC_USERNAME_CLAIM: preferred_username
+              OIDC_SCOPES: openid profile email
+              SMTP_HOST: mx.nilsit.email
+              SMTP_PORT: "465"
+              SMTP_SECURE: "true"
+              SMTP_USERNAME: no-reply@nilsit.email
+              SMTP_FROM_EMAIL: no-reply@nilsit.de
+            envFrom:
+              # SECRET_KEY, UTILS_SECRET, SMTP_PASSWORD
+              - secretRef:
+                  name: outline-secret
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /_health
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness: *probes
+              # Covers the migrations the first replica runs on start.
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /_health
+                    port: *port
+                  periodSeconds: 10
+                  failureThreshold: 60
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 100m
+                memory: 512Mi
+              limits:
+                memory: 1536Mi
+    defaultPodOptions:
+      # Pins Outline's own S3 traffic to envoy-internal: k8s-gateway also answers with
+      # envoy-external, whose WAF would inspect every upload from this pod.
+      hostAliases:
+        - ip: 192.168.1.150
+          hostnames:
+            - "rgw.${SECRET_DOMAIN}"
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    persistence:
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+    service:
+      app:
+        controller: outline
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /_health
+        hostnames:
+          - "outline.${SECRET_DOMAIN}"
+        parentRefs:
+          - name: envoy-external
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port

@@ -1,0 +1,24 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Dedicated Dragonfly (${APP}-dragonfly) for the job queues, cache and collaboration, snapshotted to Garage.
+  - ../../../../components/dragonfly
+  # Archived to Garage.
+  - ../../../../components/postgres
+resources:
+  - ./objectbucketclaim.yaml
+  - ./externalsecret-oidc.yaml
+  - ./secret.sops.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml
+patches:
+  # Bull's Lua scripts touch keys they do not declare.
+  - patch: |-
+      - op: add
+        path: /spec/args/-
+        value: --default_lua_flags=allow-undeclared-keys
+    target:
+      group: dragonflydb.io
+      kind: Dragonfly
