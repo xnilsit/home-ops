@@ -5,8 +5,6 @@ kind: ObjectBucketClaim
 metadata:
   name: ${APP}
 spec:
-  # The generated name reaches the app through the ConfigMap Rook writes
-  # alongside the credentials Secret, both named after this claim.
-  generateBucketName: ${APP}
+  bucketName: ${APP}
   # Retain: a deleted claim costs a manual cleanup, not every attachment.
   storageClassName: ceph-bucket-retain
