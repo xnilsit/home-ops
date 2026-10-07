@@ -19,6 +19,8 @@ locals {
     "dvinyl-admin" = {}
     # Gokapi login; members get a regular Gokapi user on first login.
     "gokapi" = {}
+    # Outline login; members join the workspace on first login.
+    "outline" = {}
   }
 }
 
