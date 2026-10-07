@@ -133,7 +133,7 @@ spec:
               SMTP_PORT: "465"
               SMTP_SECURE: "true"
               SMTP_USERNAME: no-reply@nilsit.email
-              SMTP_FROM_EMAIL: no-reply@nilsit.de
+              SMTP_FROM_EMAIL: Outline <no-reply@nilsit.de>
             envFrom:
               # SECRET_KEY, UTILS_SECRET, SMTP_PASSWORD
               - secretRef:
