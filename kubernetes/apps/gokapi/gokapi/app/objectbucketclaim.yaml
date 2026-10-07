@@ -5,8 +5,7 @@ kind: ObjectBucketClaim
 metadata:
   name: ${APP}
 spec:
-  # The generated name reaches the app through the ConfigMap Rook writes
-  # alongside the credentials Secret, both named after this claim.
-  generateBucketName: ${APP}
+  # Gokapi stores the bucket name on every file's metadata.
+  bucketName: ${APP}
   # Retain: a deleted claim costs a manual cleanup, not every uploaded file.
   storageClassName: ceph-bucket-retain

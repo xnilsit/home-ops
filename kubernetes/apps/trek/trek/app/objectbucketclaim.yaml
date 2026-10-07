@@ -5,9 +5,7 @@ kind: ObjectBucketClaim
 metadata:
   name: ${APP}
 spec:
-  # generateBucketName, not bucketName: this claim creates the bucket, and the
-  # generated name reaches the app through the ConfigMap Rook writes alongside
-  # the credentials Secret - both named after this claim.
-  generateBucketName: ${APP}
+  # TREK keeps the bucket name in its stored storage config.
+  bucketName: ${APP}
   # Retain: a deleted claim costs a manual cleanup, not every uploaded file.
   storageClassName: ceph-bucket-retain
