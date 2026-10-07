@@ -1,0 +1,74 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app outline
+  namespace: flux-system
+spec:
+  targetNamespace: outline
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/outline/outline/app
+  dependsOn:
+    # Writes the outline-oidc Secret the ExternalSecret reads
+    - name: authentik-oidc
+      namespace: flux-system
+    # The OIDC credential comes through the tofu-controller store
+    - name: external-secrets-stores
+      namespace: flux-system
+    # Owns the store the Dragonfly password is pulled through
+    - name: external-secrets-stores-database
+      namespace: flux-system
+    # Owns the store the snapshot credentials are pulled through
+    - name: external-secrets-stores-garage
+      namespace: flux-system
+    # The Cluster references the barman plugin
+    - name: barman-cloud-plugin
+      namespace: flux-system
+    # Backup bucket and key for the Cluster, and the Dragonfly snapshot credentials
+    - name: garage
+      namespace: flux-system
+    - name: dragonfly-operator
+      namespace: flux-system
+    - name: envoy-gateway
+      namespace: flux-system
+    # The bucket StorageClass the OBC claims through
+    - name: rook-ceph-cluster
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: *app
+      DRAGONFLY_REPLICAS: "2"
+      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql
+      PG_IMAGE_TAG: 18.6-minimal-trixie
+  healthChecks:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      name: outline-postgres
+      namespace: outline
+    - apiVersion: dragonflydb.io/v1alpha1
+      kind: Dragonfly
+      name: outline-dragonfly
+      namespace: outline
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: outline
+  healthCheckExprs:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      failed: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'False')
+      current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
+    - apiVersion: dragonflydb.io/v1alpha1
+      kind: Dragonfly
+      current: has(status.phase) && status.phase in ['Ready', 'ready']
+      inProgress: has(status.phase) && status.phase in ['ResourcesCreated', 'Configuring', 'RollingUpdate']
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: false
+  interval: 1h
+  timeout: 30m
