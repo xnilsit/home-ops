@@ -10,8 +10,6 @@ spec:
   interval: 1h
   values:
     fullnameOverride: k8s-gateway
-    domain: "${SECRET_DOMAIN} ${SECRET_DOMAIN_ALT}"
-    ttl: 1
     replicaCount: 3
     # CoreDNS forwards the internal domains here, so in-cluster resolution of
     # internal hostnames depends on these pods. Same class as blocky.
@@ -24,31 +22,41 @@ spec:
           matchLabels:
             app.kubernetes.io/name: k8s-gateway
             app.kubernetes.io/instance: k8s-gateway
+    serviceType: ClusterIP
     service:
-      type: ClusterIP
       # Pinned because CoreDNS forwards the internal domains here by address;
       # a recreated Service picking a new IP would silently break pod
       # resolution of internal hostnames. Same value as today, so this is a
       # no-op against the live Service.
       clusterIP: ${K8S_GATEWAY_IP}
-      port: 53
-      useTcp: true
-    fallthrough:
-      enabled: true
-    watchedResources:
-      - "HTTPRoute"
-      - "Service"
-    extraZonePlugins:
-      - name: log
-      - name: errors
-      - name: health
-        configBlock: |-
-          lameduck 5s
-      - name: ready
-      - name: prometheus
-        parameters: 0.0.0.0:9153
-      - name: forward
-        parameters: . 192.168.0.1
-      - name: loop
-      - name: reload
-      - name: loadbalance
+    # Unprivileged port inside the pod, as the 3.x chart did; the Service
+    # still exposes 53.
+    securityContext:
+      runAsUser: 1000
+    servers:
+      - zones:
+          - zone: .
+            use_tcp: true
+        port: 1053
+        servicePort: 53
+        plugins:
+          - name: k8s_gateway
+            parameters: ${SECRET_DOMAIN} ${SECRET_DOMAIN_ALT}
+            configBlock: |-
+              apex k8s-gateway.network
+              ttl 1
+              resources HTTPRoute Service
+              fallthrough
+          - name: log
+          - name: errors
+          - name: health
+            configBlock: |-
+              lameduck 5s
+          - name: ready
+          - name: prometheus
+            parameters: 0.0.0.0:9153
+          - name: forward
+            parameters: . 192.168.0.1
+          - name: loop
+          - name: reload
+          - name: loadbalance
