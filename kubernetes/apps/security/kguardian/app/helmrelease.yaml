@@ -45,6 +45,18 @@ spec:
         serviceMonitor:
           # The only component that actually serves /metrics today.
           enabled: true
+      # Every CronJob run is a new pod and a new Job "workload", and both
+      # windows default to 30 days. The runtime-coverage pass scans a
+      # namespace's pod_details rows once per container row, so that history
+      # ended up dominating pg-shared's load.
+      podInventory:
+        retention:
+          # Dead pods only back listings; traffic rows keep their resolved peer.
+          deadPodDays: 3
+      imageInventory:
+        retention:
+          # Also the "ran recently" history behind CVE exposure, so not shorter.
+          days: 7
 
     # Audit-only: reports flows an AuditNetworkPolicy would have denied, never blocks.
     evaluator:
