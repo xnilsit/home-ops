@@ -11,6 +11,11 @@ spec:
   values:
     fullnameOverride: k8s-gateway
     replicaCount: 3
+    # No surge: with three nodes and DoNotSchedule spread, a surge pod gets
+    # placed while the old pods still count, leaving the spread uneven.
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
     # CoreDNS forwards the internal domains here, so in-cluster resolution of
     # internal hostnames depends on these pods. Same class as blocky.
     priorityClassName: cluster-infra
