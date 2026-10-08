@@ -20,7 +20,7 @@ spec:
           app:
             image:
               repository: docker.io/moby/buildkit
-              tag: v0.33.1-rootless
+              tag: v0.34.0-rootless
             args:
               - "--addr"
               - "unix:///run/user/1000/buildkit/buildkitd.sock"
