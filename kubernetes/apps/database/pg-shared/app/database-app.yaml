@@ -1,0 +1,19 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/database_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: pg-shared-app
+spec:
+  name: app
+  owner: app
+  cluster:
+    name: pg-shared
+  # Adopts the bootstrap database, which no app connects to, only to hold
+  # pg_stat_statements so per-query load can be attributed across every app
+  # sharing this cluster (CNPG reserves the name postgres). Retain keeps
+  # deleting this CR from ever dropping the database.
+  databaseReclaimPolicy: retain
+  extensions:
+    - name: pg_stat_statements
+      ensure: present
