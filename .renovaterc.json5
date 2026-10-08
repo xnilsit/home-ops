@@ -35,6 +35,16 @@
       datasourceTemplate: "{{{datasource}}}",
       versioningTemplate: "{{{versioning}}}",
     },
+    {
+      description: "Immich machine-learning tag follows the immich release, its ghcr tag list is too large to page through",
+      customType: "regex",
+      managerFilePatterns: ["/kubernetes/apps/immich/immich/app/helmrelease\\.yaml$/"],
+      matchStrings: [
+        "repository: ghcr\\.io/immich-app/immich-machine-learning\\n(\\s*#.*\\n)*\\s*tag: (?<currentValue>v\\d+\\.\\d+\\.\\d+)-openvino",
+      ],
+      depNameTemplate: "immich-app/immich",
+      datasourceTemplate: "github-releases",
+    },
   ],
   packageRules: [
     // ---------------------------------------------------------------------
@@ -119,6 +129,15 @@
       group: {
         commitMessageTopic: "{{{groupName}}} group",
       },
+    },
+    // ---------------------------------------------------------------------
+    // Disabled lookups
+    // ---------------------------------------------------------------------
+    {
+      description: "Immich machine-learning image is bumped via the immich-app/immich custom manager",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["ghcr.io/immich-app/immich-machine-learning"],
+      enabled: false,
     },
     // ---------------------------------------------------------------------
     // Auto-merge

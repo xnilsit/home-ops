@@ -193,7 +193,8 @@ spec:
           app:
             image:
               repository: ghcr.io/immich-app/immich-machine-learning
-              # Moves in lockstep with the server tag above.
+              # Moves in lockstep with the server tag above, Renovate bumps it
+              # from the immich-app/immich GitHub releases (see .renovaterc.json5).
               tag: v3.3.0-openvino
             env:
               MACHINE_LEARNING_CACHE_FOLDER: &cache /cache
