@@ -17,6 +17,7 @@ resources:
   # recreate a live database's CRs and mint a new role password on the way.
   - ./databaserole-ntfy.yaml
   - ./database-ntfy.yaml
+  - ./database-app.yaml
   - ./scheduledbackup.yaml
   - ./pooler.yaml
   - ./podmonitor.yaml

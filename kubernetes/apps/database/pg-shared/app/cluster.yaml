@@ -85,6 +85,12 @@ spec:
       work_mem: 16MB
       maintenance_work_mem: 128MB
       wal_compression: "on"
+      # Any pg_stat_statements.* parameter makes CNPG add the library to
+      # shared_preload_libraries (a rolling restart). The extension itself is
+      # created in the app database by database-app.yaml; its view
+      # covers statements from every database on the instance.
+      pg_stat_statements.max: "5000"
+      pg_stat_statements.track: top
 
   resources:
     limits:
