@@ -31,7 +31,7 @@ spec:
           cors:
             image:
               repository: docker.io/amazon/aws-cli
-              tag: 2.37.11
+              tag: 2.37.12
             args:
               - s3api
               - put-bucket-cors
