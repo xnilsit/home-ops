@@ -81,6 +81,23 @@ locals {
       ]
     }
 
+    outline = {
+      display_name = "Outline"
+      description  = "Wiki and knowledge base."
+      hostnames    = ["outline.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/outline.svg"
+      groups       = ["outline"]
+      # Outline matches an invited user to a login only when email_verified is true.
+      email_verified = true
+      # Outline makes a user record per login, keyed on `sub`.
+      sub_mode                   = "user_username"
+      include_claims_in_id_token = true
+      gateway_callback           = false
+      extra_redirect_uris = [
+        "https://outline.${var.domain}/auth/oidc.callback",
+      ]
+    }
+
     # Quoted: an HCL object key cannot carry a hyphen unquoted. The key is also
     # the client_id the app is configured with, home-ops-garage-ui.
     "garage-ui" = {

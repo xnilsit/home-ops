@@ -10,7 +10,7 @@ spec:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy
   ref:
-    tag: 0.95.0
+    tag: 0.95.2
   url: oci://ghcr.io/victoriametrics/helm-charts/victoria-metrics-k8s-stack
 ---
 # yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
@@ -80,6 +80,10 @@ spec:
         # the physical NICs from the same metric, more sensitively.
         NodeNetworkTransmitErrs:
           enabled: false
+        # Talos' short-lived node-update certs drag the p1 under the threshold for a few minutes.
+        KubeClientCertificateExpiration:
+          spec:
+            for: 30m
 
     alertmanager:
       enabled: true

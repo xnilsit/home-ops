@@ -5,7 +5,6 @@ kind: ObjectBucketClaim
 metadata:
   name: ${APP}
 spec:
-  # TREK keeps the bucket name in its stored storage config.
   bucketName: ${APP}
-  # Retain: a deleted claim costs a manual cleanup, not every uploaded file.
+  # Retain: a deleted claim costs a manual cleanup, not every attachment.
   storageClassName: ceph-bucket-retain

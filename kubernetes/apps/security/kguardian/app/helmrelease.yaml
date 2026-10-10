@@ -45,6 +45,18 @@ spec:
         serviceMonitor:
           # The only component that actually serves /metrics today.
           enabled: true
+      # Every CronJob run is a new pod and a new Job "workload", and both
+      # windows default to 30 days. The runtime-coverage pass scans a
+      # namespace's pod_details rows once per container row, so that history
+      # ended up dominating pg-shared's load.
+      podInventory:
+        retention:
+          # Dead pods only back listings; traffic rows keep their resolved peer.
+          deadPodDays: 3
+      imageInventory:
+        retention:
+          # Also the "ran recently" history behind CVE exposure, so not shorter.
+          days: 7
 
     # Audit-only: reports flows an AuditNetworkPolicy would have denied, never blocks.
     evaluator:
@@ -62,3 +74,17 @@ spec:
               - op: add
                 path: /metadata/labels/app.kubernetes.io~1name
                 value: kguardian-broker
+          # The profile snapshotter keeps taking batches for the whole 300 s
+          # interval while candidates remain, and finished Jobs never stop being
+          # candidates (workload_syscalls has no retention). One batch of 200
+          # per tick still covers every live workload, which sort first. The
+          # chart has no value for it.
+          - target:
+              kind: Deployment
+              name: kguardian-broker
+            patch: |-
+              - op: add
+                path: /spec/template/spec/containers/0/env/-
+                value:
+                  name: PROFILE_SNAPSHOT_TICK_BUDGET_SECS
+                  value: "0"

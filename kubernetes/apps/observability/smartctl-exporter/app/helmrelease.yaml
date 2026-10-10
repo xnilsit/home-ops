@@ -30,5 +30,5 @@ spec:
     prometheusRules:
       enabled: false
     image:
-      repository: ghcr.io/home-operations/smartctl-exporter
-      tag: 0.14.0
+      repository: ghcr.io/prometheus-community/smartctl-exporter
+      tag: v0.15.0

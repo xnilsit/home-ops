@@ -177,6 +177,19 @@ spec:
             "id:10021,phase:1,pass,nolog,t:none,
             ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:response-content-disposition"
 
+          # Outline document and comment Markdown from the API. One rule per
+          # field: coraza applies only the last ruleRemoveTargetByTag of a rule.
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^outline\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10022,phase:1,pass,nolog,t:none,
+            ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.text"
+
+          # The same Markdown in the MCP server's tool calls.
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^outline\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10023,phase:1,pass,nolog,t:none,
+            ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.params.arguments.text"
+
           - Include @owasp_crs/*.conf
 
           # Scores any backend 5xx, and one alone exceeds the outbound threshold.
