@@ -36,19 +36,6 @@ items:
   - <<: *backend
     metadata: {name: unraid}
     spec: {endpoints: [{ip: {address: *unraid, port: 80}}]}
-  # ── proxmox — self-signed certs, replaces ServersTransport skipverify-https ──
-  - <<: *backend
-    metadata: {name: pbs} # same host as unraid
-    spec:
-      endpoints:
-        - {ip: {address: *unraid, port: 8007}}
-      tls: &skipverify {insecureSkipVerify: true}
-  - <<: *backend
-    metadata: {name: pve}
-    spec:
-      endpoints:
-        - {ip: {address: 192.168.1.5, port: 8006}}
-      tls: *skipverify
   # ── standalone hosts ────────────────────────────────────────────────────────
   - <<: *backend
     metadata: {name: oni}
