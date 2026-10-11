@@ -159,10 +159,10 @@ spec:
         useStrictSecurity: true
         resources:
           limits:
-            memory: 2Gi
+            memory: 3Gi
           requests:
             cpu: 500m
-            memory: 2Gi
+            memory: 3Gi
       route:
         enabled: true
         # The chart's rule carries no matches, so the derived probe is the bare
