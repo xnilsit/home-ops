@@ -20,7 +20,7 @@ spec:
           app:
             image:
               repository: git.sable.moe/sableclient/sable-next
-              tag: 2.0.1
+              tag: 2.0.2
             probes:
               liveness: &probes
                 enabled: true
