@@ -45,22 +45,6 @@ items:
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: guacamole}]}
   - <<: *route
-    metadata: {name: pbs}
-    spec:
-      hostnames:
-        - "pbs.${SECRET_DOMAIN}"
-      parentRefs: *external
-      rules:
-        - {matches: *root, backendRefs: [{<<: *ref, name: pbs}]}
-  - <<: *route
-    metadata: {name: pve}
-    spec:
-      hostnames:
-        - "pve.${SECRET_DOMAIN}"
-      parentRefs: *external
-      rules:
-        - {matches: *root, backendRefs: [{<<: *ref, name: pve}]}
-  - <<: *route
     metadata:
       name: paperless
       annotations:

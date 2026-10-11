@@ -45,7 +45,7 @@ spec:
     # cookieDomain deliberately unset, so cookies scope to ${OIDC_HOST} alone.
     # Setting it to ${SECRET_DOMAIN} would buy cross-subdomain SSO at the price
     # of shipping the encrypted id-token cookie to every other host under the
-    # apex, including the unraid and proxmox boxes behind external-services.
+    # apex, including the unraid box behind external-services.
   targetRefs:
     # By name, not the targetSelectors form the gateway-wide policies in
     # envoy-gateway/app/envoy.yaml use: app.kubernetes.io/name is not reliably
