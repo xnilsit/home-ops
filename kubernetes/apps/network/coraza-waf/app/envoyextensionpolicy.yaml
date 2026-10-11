@@ -190,6 +190,42 @@ spec:
             "id:10023,phase:1,pass,nolog,t:none,
             ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.params.arguments.text"
 
+          # Matrix server-to-server traffic is signed by the origin server and
+          # verified by continuwuity; event IDs, room IDs and PDU bodies read as
+          # injections to CRS. Off entirely for federation and key lookups.
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^matrix\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10024,phase:1,pass,nolog,t:none,chain"
+          - >-
+            SecRule REQUEST_FILENAME "@rx ^/_matrix/(?:federation|key)/"
+            "t:none,ctl:ruleEngine=Off"
+
+          # The client API: PUT/DELETE throughout, message and media bodies
+          # (encrypted, or arbitrary user text and files) uninspected, any
+          # upload content type, and inline JSON sync filters in the query.
+          # Headers and URI are still inspected.
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^matrix\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10025,phase:1,pass,nolog,t:none,
+            setvar:'tx.allowed_methods=GET HEAD POST OPTIONS PUT PATCH DELETE',
+            ctl:requestBodyAccess=Off,
+            ctl:ruleRemoveById=920420"
+
+          # One rule per field: coraza applies only the last ruleRemoveTargetByTag
+          # of a rule. Inline sync filters are JSON in the query string.
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^matrix\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10026,phase:1,pass,nolog,t:none,
+            ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:filter"
+
+          # Access tokens in the query string are opaque base64url, whose
+          # alphabet makes runs like -- that 942440 reads as SQL comments.
+          # LiveKit's signalling websocket carries its JWT the same way.
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^(?:matrix|livekit)\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10027,phase:1,pass,nolog,t:none,
+            ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:access_token"
+
           - Include @owasp_crs/*.conf
 
           # Scores any backend 5xx, and one alone exceeds the outbound threshold.

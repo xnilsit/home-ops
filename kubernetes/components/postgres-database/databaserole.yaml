@@ -1,0 +1,14 @@
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: ${APP}
+spec:
+  cluster:
+    name: ${PG_CLUSTER}
+  name: ${APP}
+  ensure: present
+  login: true
+  inherit: true
+  passwordSecret:
+    name: ${APP}-db

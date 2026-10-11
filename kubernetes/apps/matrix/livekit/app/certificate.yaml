@@ -1,0 +1,20 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/cert-manager.io/certificate_v1.json
+# LiveKit terminates TURNS itself - envoy only passes the TLS stream through by
+# SNI - so it needs a certificate of its own in this namespace.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: livekit-turn
+spec:
+  dnsNames:
+    - "turn.${SECRET_DOMAIN}"
+  duration: 160h
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  privateKey:
+    algorithm: ECDSA
+  secretName: livekit-turn-tls
+  usages:
+    - digital signature

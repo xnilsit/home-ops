@@ -98,6 +98,28 @@ locals {
       ]
     }
 
+    # Delegated authentication for the homeserver: Matrix clients do OAuth
+    # against continuwuity, which sends the user on to here.
+    continuwuity = {
+      display_name = "Matrix"
+      description  = "Chat, through Sable."
+      # Only the tile's launch URL with gateway_callback off, so it opens the
+      # web client; the redirect URI below is on matrix.
+      hostnames = ["chat.${var.domain}"]
+      icon      = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/matrix.svg"
+      groups    = ["matrix"]
+      # sub_mode left at hashed_user_id: continuwuity links an account to `sub`
+      # once and keys the localpart on preferred_username, so `sub` only has to
+      # be stable - and this one survives a username change.
+      #
+      # continuwuity reads preferred_username and name out of the id token.
+      include_claims_in_id_token = true
+      gateway_callback           = false
+      extra_redirect_uris = [
+        "https://matrix.${var.domain}/_continuwuity/oidc/complete",
+      ]
+    }
+
     # Quoted: an HCL object key cannot carry a hyphen unquoted. The key is also
     # the client_id the app is configured with, home-ops-garage-ui.
     "garage-ui" = {

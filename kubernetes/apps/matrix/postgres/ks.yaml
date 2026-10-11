@@ -1,0 +1,53 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app matrix-postgres
+  namespace: flux-system
+spec:
+  targetNamespace: &namespace matrix
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/matrix/postgres/app
+  dependsOn:
+    - name: cloudnative-pg
+      namespace: flux-system
+    # The Cluster references the barman plugin
+    - name: barman-cloud-plugin
+      namespace: flux-system
+    # Owns the GarageCluster handle and the grant the backup bucket and key use
+    - name: garage
+      namespace: flux-system
+  postBuild:
+    substitute:
+      # Names the Cluster matrix-postgres. The bridges each get their own role
+      # and database on it through components/postgres-database; the initdb
+      # database named after this is left unused.
+      APP: matrix
+      # Bridge state (WhatsApp sessions, Discord tokens, portal mappings) lives
+      # only here, so it gets a real failover target rather than pg-shared.
+      PG_INSTANCES: "3"
+      PG_STORAGE_SIZE: 5Gi
+      PG_BACKUP_CRON: "0 45 4 * * *"
+      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql
+      PG_IMAGE_TAG: 18.6-minimal-trixie
+  healthChecks:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      name: matrix-postgres
+      namespace: *namespace
+  healthCheckExprs:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      failed: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'False')
+      current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: false
+  interval: 1h
+  # Three instances bootstrap serially.
+  timeout: 30m

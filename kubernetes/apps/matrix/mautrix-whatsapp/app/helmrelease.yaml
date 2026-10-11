@@ -1,0 +1,241 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: mautrix-whatsapp
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: mautrix-whatsapp
+  interval: 1h
+  values:
+    controllers:
+      mautrix-whatsapp:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # Two bridges on one WhatsApp session would fight over it.
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: dock.mau.dev/mautrix/whatsapp
+              tag: v0.2609.0
+            command:
+              - /usr/bin/mautrix-whatsapp
+            args:
+              - --config=/config/config.yaml
+              # Never write the config back; it is a read-only ConfigMap.
+              - --no-update
+            env:
+              TZ: ${TIMEZONE}
+              # Secrets through env_config_prefix, so the config stays a plain
+              # ConfigMap. Nested keys are split on __.
+              MAUTRIX_WHATSAPP_DATABASE__URI:
+                valueFrom:
+                  secretKeyRef:
+                    name: mautrix-whatsapp-db
+                    key: uri
+              MAUTRIX_WHATSAPP_APPSERVICE__AS_TOKEN:
+                valueFrom:
+                  secretKeyRef:
+                    name: &secret mautrix-whatsapp
+                    key: AS_TOKEN
+              MAUTRIX_WHATSAPP_APPSERVICE__HS_TOKEN:
+                valueFrom:
+                  secretKeyRef:
+                    name: *secret
+                    key: HS_TOKEN
+              MAUTRIX_WHATSAPP_PROVISIONING__SHARED_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: *secret
+                    key: PROVISIONING_SHARED_SECRET
+              MAUTRIX_WHATSAPP_ENCRYPTION__PICKLE_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: *secret
+                    key: PICKLE_KEY
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: &port 29318
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 25m
+                memory: 128Mi
+              limits:
+                memory: 512Mi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1337
+        runAsGroup: 1337
+        fsGroup: 1337
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    configMaps:
+      config:
+        data:
+          # Rendered through tpl by the chart, hence the {{`...`}} around the
+          # bridge's own templates.
+          config.yaml: |-
+            network:
+              os_name: Mautrix-WhatsApp bridge
+              browser_name: unknown
+              displayname_template: '{{`{{or .BusinessName .PushName .Phone .RedactedPhone "Unknown user"}}`}} (WA)'
+              call_start_notices: true
+              identity_change_notices: false
+              send_presence_on_typing: false
+              enable_status_broadcast: true
+              disable_status_broadcast_send: true
+              mute_status_broadcast: true
+              pinned_tag: m.favourite
+              status_broadcast_tag: m.lowpriority
+              whatsapp_thumbnail: false
+              url_previews: false
+              extev_polls: false
+              disable_view_once: false
+              force_active_delivery_receipts: false
+              direct_media_auto_request: true
+              initial_auto_reconnect: true
+              animated_sticker:
+                target: webp
+                args:
+                  width: 320
+                  height: 320
+                  fps: 25
+              history_sync:
+                max_initial_conversations: -1
+                request_full_sync: false
+                dispatch_wait: 1m
+                media_requests:
+                  auto_request_media: true
+                  request_method: immediate
+                  max_async_handle: 2
+
+            bridge:
+              command_prefix: "!wa"
+              personal_filtering_spaces: true
+              private_chat_portal_meta: true
+              bridge_status_notices: errors
+              tag_only_on_create: true
+              mute_only_on_create: true
+              kick_matrix_users: true
+              cleanup_on_logout:
+                enabled: false
+              relay:
+                enabled: false
+              permissions:
+                "${SECRET_DOMAIN}": user
+                "@nilsit:${SECRET_DOMAIN}": admin
+
+            database:
+              type: postgres
+              # MAUTRIX_WHATSAPP_DATABASE__URI
+              uri: postgres://placeholder
+              max_open_conns: 5
+              max_idle_conns: 1
+
+            homeserver:
+              address: http://continuwuity.matrix.svc.cluster.local:8080
+              domain: ${SECRET_DOMAIN}
+              software: standard
+              async_media: false
+
+            appservice:
+              address: http://mautrix-whatsapp.matrix.svc.cluster.local:29318
+              hostname: 0.0.0.0
+              port: 29318
+              id: whatsapp
+              bot:
+                username: whatsappbot
+                displayname: WhatsApp bridge bot
+                avatar: mxc://maunium.net/NeXNQarUbrlYBiPCpprYsRqr
+              ephemeral_events: true
+              async_transactions: false
+              # MAUTRIX_WHATSAPP_APPSERVICE__AS_TOKEN / __HS_TOKEN
+              as_token: placeholder
+              hs_token: placeholder
+              username_template: whatsapp_{{`{{.}}`}}
+
+            matrix:
+              message_status_events: false
+              delivery_receipts: false
+              message_error_notices: true
+              sync_direct_chat_list: true
+              federate_rooms: true
+              upload_file_threshold: 5242880
+
+            provisioning:
+              # MAUTRIX_WHATSAPP_PROVISIONING__SHARED_SECRET
+              shared_secret: placeholder
+              allow_matrix_auth: true
+
+            public_media:
+              enabled: false
+
+            direct_media:
+              enabled: false
+
+            backfill:
+              enabled: true
+              max_initial_messages: 50
+              max_catchup_messages: 500
+
+            double_puppet:
+              allow_discovery: false
+
+            encryption:
+              allow: true
+              default: true
+              require: false
+              appservice: false
+              # Device masquerading for appservices; continuwuity supports it,
+              # and it is what lets the bot encrypt without a login.
+              msc4190: true
+              allow_key_sharing: true
+              # MAUTRIX_WHATSAPP_ENCRYPTION__PICKLE_KEY
+              pickle_key: placeholder
+              verification_levels:
+                receive: unverified
+                send: unverified
+                share: cross-signed-tofu
+
+            env_config_prefix: MAUTRIX_WHATSAPP_
+
+            logging:
+              min_level: info
+              writers:
+                - type: stdout
+                  format: json
+    persistence:
+      config:
+        type: configMap
+        identifier: config
+        globalMounts:
+          - path: /config/config.yaml
+            subPath: config.yaml
+            readOnly: true
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+    service:
+      app:
+        controller: mautrix-whatsapp
+        ports:
+          http:
+            port: *port

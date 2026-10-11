@@ -1,0 +1,24 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/gateway.networking.k8s.io/tlsroute_v1.json
+# TURN over TLS on 443, which is what still gets out of networks that block
+# everything but HTTPS. Shares the WAN:443 forward with the direct gateway's
+# HTTPS listener; envoy picks this one by SNI and passes the stream through.
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  name: livekit-turn
+  annotations:
+    # cloudflare-dns-direct publishes this as a CNAME to the WAN address. Also
+    # inherited from the Gateway; spelled out because nothing else points here.
+    external-dns.kubernetes.io/target: home.${SECRET_DOMAIN}
+spec:
+  hostnames:
+    - "turn.${SECRET_DOMAIN}"
+  parentRefs:
+    - name: envoy-external-direct
+      namespace: network
+      sectionName: turns
+  rules:
+    - backendRefs:
+        - name: livekit
+          port: 443

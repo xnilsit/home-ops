@@ -1,0 +1,19 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ./externalsecret.yaml
+  - ./certificate.yaml
+  - ./node-ip.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml
+  - ./tlsroute.yaml
+configMapGenerator:
+  - name: livekit-node-ip-script
+    files:
+      - node-ip.sh=./resources/node-ip.sh
+generatorOptions:
+  annotations:
+    # Shell; flux would otherwise eat every $... in it.
+    kustomize.toolkit.fluxcd.io/substitute: disabled

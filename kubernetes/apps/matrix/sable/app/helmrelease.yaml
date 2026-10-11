@@ -1,0 +1,121 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: sable
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: sable
+  interval: 1h
+  values:
+    controllers:
+      sable:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        replicas: 2
+        strategy: RollingUpdate
+        containers:
+          app:
+            image:
+              repository: git.sable.moe/sableclient/sable-next
+              tag: 2.0.1
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /config.json
+                    port: &port 8080
+                  periodSeconds: 30
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness: *probes
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 128Mi
+    defaultPodOptions:
+      securityContext:
+        # The image's own user; it owns /data and /config.
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+    configMaps:
+      config:
+        data:
+          # Upstream's static/config.json, pinned to this homeserver. The GIF
+          # provider keys are dropped: they are Sable's own, and the picker
+          # simply stays off without them.
+          config.json: |-
+            {
+              "homeserverList": ["${SECRET_DOMAIN}"],
+              "defaultHomeserver": 0,
+              "allowCustomHomeservers": false,
+              "pushNotificationDetails": {
+                "pushNotifyUrl": "https://sygnal.sable.moe/_matrix/push/v1/notify",
+                "vapidPublicKey": "BCnS4SbHjeOaqVFW4wjt5xDt_pYIL62qMzKePfYF9fl9PQU14RieIaObh7nLR_9dQf4sykZa-CTrcjkgMIE1mcg",
+                "webPushAppID": "moe.sable.app.sygnal",
+                "nativePushAppID": "moe.sable.client.android",
+                "unifiedPushGatewayUrl": "https://matrix.gateway.unifiedpush.org/_matrix/push/v1/notify",
+                "unifiedPushEmbeddedServerUrl": "https://ntfy.ow-ops.eu"
+              },
+              "embeds": {
+                "serviceUrl": ""
+              },
+              "supporterAwards": {
+                "serviceUrl": "https://awards.sable.moe",
+                "keys": {
+                  "1": "MQEJebxUXHl9QvvnB0uO11dAx6hlaqTe2hq/NadRjVk"
+                }
+              }
+            }
+    persistence:
+      config:
+        type: configMap
+        identifier: config
+        globalMounts:
+          - path: /app/config.json
+            subPath: config.json
+            readOnly: true
+      # Caddy's own state dirs, unused with admin off but still opened.
+      caddy-data:
+        type: emptyDir
+        globalMounts:
+          - path: /data
+      caddy-config:
+        type: emptyDir
+        globalMounts:
+          - path: /config
+    service:
+      app:
+        controller: sable
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /config.json
+        hostnames:
+          - "chat.${SECRET_DOMAIN}"
+        # Static files only, so the tunnel's limits never apply; all the
+        # traffic that matters goes from the browser to matrix.${SECRET_DOMAIN}.
+        parentRefs:
+          - name: envoy-external
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
