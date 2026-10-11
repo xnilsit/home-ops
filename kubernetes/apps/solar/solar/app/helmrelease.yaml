@@ -1,0 +1,253 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: solar
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: solar
+  interval: 1h
+  values:
+    controllers:
+      mosquitto:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        initContainers:
+          # mosquitto refuses a world-readable password file, and a Secret
+          # projection cannot be 0600.
+          passwd-hash:
+            image:
+              repository: &mosquittoImage docker.io/library/eclipse-mosquitto
+              tag: &mosquittoTag 2.1.2-alpine
+            command:
+              - "sh"
+              - "-c"
+            args:
+              - |
+                set -eu
+                umask 077
+                printf '%s:%s\n' "$MQTT_USERNAME" "$MQTT_PASSWORD" > /run/mosquitto/passwd
+                mosquitto_passwd -U /run/mosquitto/passwd
+            envFrom: &mqttCredentials
+              - secretRef:
+                  name: solar-mqtt
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 64Mi
+        containers:
+          app:
+            image:
+              repository: *mosquittoImage
+              tag: *mosquittoTag
+            command:
+              - "/usr/sbin/mosquitto"
+            args:
+              - "-c"
+              - "/mosquitto/config/mosquitto.conf"
+            probes:
+              liveness: &mqttProbe
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: &mqttPort 1883
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness: *mqttProbe
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 10m
+                memory: 16Mi
+              limits:
+                memory: 64Mi
+
+      deye-1:
+        containers:
+          app:
+            image: &deyeImage
+              repository: ghcr.io/kbialek/deye-inverter-mqtt
+              tag: 2026.10.1
+            env:
+              <<: &deyeEnv
+                DEYE_DATA_READ_INTERVAL: "30"
+                DEYE_METRIC_GROUPS: micro
+                DEYE_LOGGER_PORT: "8899"
+                DEYE_FEATURE_MQTT_PUBLISHER: "true"
+                MQTT_HOST: mosquitto
+                MQTT_PORT: "1883"
+                LOG_LEVEL: WARN
+              DEYE_LOGGER_SERIAL_NUMBER: "4169402743"
+              DEYE_LOGGER_IP_ADDRESS: 192.168.0.91
+              MQTT_TOPIC_PREFIX: solar
+            envFrom: *mqttCredentials
+            securityContext: *securityContext
+            resources: &deyeResources
+              requests:
+                cpu: 10m
+                memory: 48Mi
+              limits:
+                memory: 128Mi
+      deye-2:
+        containers:
+          app:
+            image: *deyeImage
+            env:
+              <<: *deyeEnv
+              DEYE_LOGGER_SERIAL_NUMBER: "4185815515"
+              DEYE_LOGGER_IP_ADDRESS: 192.168.0.92
+              MQTT_TOPIC_PREFIX: solar2
+            envFrom: *mqttCredentials
+            securityContext: *securityContext
+            resources: *deyeResources
+
+      mqtt2prometheus:
+        annotations: &reload
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image: &exporterImage
+              repository: ghcr.io/hikhvar/mqtt2prometheus
+              tag: v0.1.8-RC2
+            args:
+              - "-config"
+              - "/config/mqtt2prometheus.yaml"
+              - "-log-level"
+              - "warn"
+            env: &exporterEnv
+              MQTT2PROM_MQTT_USER:
+                valueFrom:
+                  secretKeyRef:
+                    name: solar-mqtt
+                    key: MQTT_USERNAME
+              MQTT2PROM_MQTT_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: solar-mqtt
+                    key: MQTT_PASSWORD
+            probes: &exporterProbes
+              liveness: &exporterProbe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /metrics
+                    port: &exporterPort 9641
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *exporterProbe
+            securityContext: *securityContext
+            resources: &exporterResources
+              requests:
+                cpu: 10m
+                memory: 16Mi
+              limits:
+                memory: 64Mi
+      mqtt2prometheus2:
+        annotations: *reload
+        containers:
+          app:
+            image: *exporterImage
+            args:
+              - "-config"
+              - "/config/mqtt2prometheus2.yaml"
+              - "-log-level"
+              - "warn"
+            env: *exporterEnv
+            probes: *exporterProbes
+            securityContext: *securityContext
+            resources: *exporterResources
+
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+
+    configMaps:
+      mosquitto:
+        data:
+          mosquitto.conf: |
+            listener 1883 0.0.0.0
+            protocol mqtt
+            allow_anonymous false
+            password_file /run/mosquitto/passwd
+            persistence false
+            log_dest stdout
+            log_type error
+            log_type warning
+            log_type notice
+
+    persistence:
+      mosquitto-config:
+        type: configMap
+        identifier: mosquitto
+        advancedMounts:
+          mosquitto:
+            app:
+              - path: /mosquitto/config/mosquitto.conf
+                subPath: mosquitto.conf
+                readOnly: true
+      mosquitto-passwd:
+        type: emptyDir
+        advancedMounts:
+          mosquitto:
+            passwd-hash:
+              - path: /run/mosquitto
+            app:
+              - path: /run/mosquitto
+      # mosquitto_passwd rewrites the file through tmpfile() in /tmp.
+      mosquitto-tmp:
+        type: emptyDir
+        advancedMounts:
+          mosquitto:
+            passwd-hash:
+              - path: /tmp
+      exporter-config:
+        type: configMap
+        name: mqtt2prometheus
+        advancedMounts:
+          mqtt2prometheus:
+            app:
+              - path: /config
+                readOnly: true
+          mqtt2prometheus2:
+            app:
+              - path: /config
+                readOnly: true
+
+    # Bare names: the old compose service names, which the imported series
+    # carry as their instance label and the vmsolar scrape config targets.
+    service:
+      mosquitto:
+        controller: mosquitto
+        forceRename: mosquitto
+        ports:
+          mqtt:
+            port: *mqttPort
+      mqtt2prometheus:
+        controller: mqtt2prometheus
+        forceRename: mqtt2prometheus
+        ports:
+          http:
+            port: *exporterPort
+      mqtt2prometheus2:
+        controller: mqtt2prometheus2
+        forceRename: mqtt2prometheus2
+        ports:
+          http:
+            port: *exporterPort

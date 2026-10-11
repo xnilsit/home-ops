@@ -1,0 +1,34 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/operator.victoriametrics.com/vmsingle_v1beta1.json
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMSingle
+metadata:
+  name: vmsolar
+spec:
+  # The cluster vmsingle keeps 6w; solar history is kept for good.
+  retentionPeriod: "100y"
+  replicaCount: 1
+  # Scrapes the two exporters itself, so no VMAgent and no copy in the
+  # cluster vmsingle.
+  configMaps:
+    - vmsolar-scrape
+  extraArgs:
+    promscrape.config: /etc/vm/configs/vmsolar-scrape/scrape.yaml
+  # VMSingle has no existingClaim; storageDataPath leaves the volume to the
+  # kopiur component.
+  storageDataPath: /vm-data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: vmsolar
+  volumeMounts:
+    - name: data
+      mountPath: /vm-data
+  useDefaultResources: false
+  useStrictSecurity: true
+  resources:
+    requests:
+      cpu: 20m
+      memory: 128Mi
+    limits:
+      memory: 512Mi

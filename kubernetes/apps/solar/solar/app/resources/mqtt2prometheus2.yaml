@@ -1,0 +1,198 @@
+---
+mqtt:
+  server: tcp://mosquitto:1883
+  topic_path: solar2/#
+  qos: 0
+  metric_per_topic_config:
+    metric_name_regex: "(?P<metricname>.*)"
+cache:
+  timeout: 24h
+json_parsing:
+  separator: .
+metrics:
+  - prom_name: solar2_day_energy
+    mqtt_name: solar2/day_energy
+    help: Cumulative energy produced today in kWh
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_total_energy
+    mqtt_name: solar2/total_energy
+    help: Cumulative energy produced in total in kWh
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_l1_voltage
+    mqtt_name: solar2/ac/l1/voltage
+    help: Voltage currently on Phase 1 in V
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_l1_current
+    mqtt_name: solar2/ac/l1/current
+    help: Current currently on Phase 1 in A
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_l1_power
+    mqtt_name: solar2/ac/l1/power
+    help: Power currently on Phase 1 in W
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_ac_freq
+    mqtt_name: solar2/ac/freq
+    help: AC Power Frequency in Hz
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_uptime
+    mqtt_name: solar2/uptime
+    help: Logger uptime in minutes
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_dc_total_power
+    mqtt_name: solar2/dc/total_power
+    help: Total DC power currently on all PV Modules in W
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_operating_power
+    mqtt_name: solar2/operating_power
+    help: Operating power in W
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_ac_active_power
+    mqtt_name: solar2/ac/active_power
+    help: Active AC power in W
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_radiator_temp
+    mqtt_name: solar2/radiator_temp
+    help: Radiator temperature in °C
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv1_power
+    mqtt_name: solar2/dc/pv1/power
+    help: Power currently on PV Module 1 in W
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv1_voltage
+    mqtt_name: solar2/dc/pv1/voltage
+    help: Voltage currently on PV Module 1 in V
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv1_current
+    mqtt_name: solar2/dc/pv1/current
+    help: Current currently on PV Module 1 in A
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv1_day_energy
+    mqtt_name: solar2/dc/pv1/day_energy
+    help: Cumulative energy produced today on PV Module 1 in kWh
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv1_total_energy
+    mqtt_name: solar2/dc/pv1/total_energy
+    help: Cumulative energy produced in total on PV Module 1 in kWh
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv2_power
+    mqtt_name: solar2/dc/pv2/power
+    help: Power currently on PV Module 2 in W
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv2_voltage
+    mqtt_name: solar2/dc/pv2/voltage
+    help: Voltage currently on PV Module 2 in V
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv2_current
+    mqtt_name: solar2/dc/pv2/current
+    help: Current currently on PV Module 2 in A
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv2_day_energy
+    mqtt_name: solar2/dc/pv2/day_energy
+    help: Cumulative energy produced today on PV Module 2 in kWh
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv2_total_energy
+    mqtt_name: solar2/dc/pv2/total_energy
+    help: Cumulative energy produced in total on PV Module 2 in kWh
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv3_power
+    mqtt_name: solar2/dc/pv3/power
+    help: Power currently on PV Module 3 in W
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv3_voltage
+    mqtt_name: solar2/dc/pv3/voltage
+    help: Voltage currently on PV Module 3 in V
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv3_current
+    mqtt_name: solar2/dc/pv3/current
+    help: Current currently on PV Module 3 in A
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv3_day_energy
+    mqtt_name: solar2/dc/pv3/day_energy
+    help: Cumulative energy produced today on PV Module 3 in kWh
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv3_total_energy
+    mqtt_name: solar2/dc/pv3/total_energy
+    help: Cumulative energy produced in total on PV Module 3 in kWh
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv4_power
+    mqtt_name: solar2/dc/pv4/power
+    help: Power currently on PV Module 4 in W
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv4_voltage
+    mqtt_name: solar2/dc/pv4/voltage
+    help: Voltage currently on PV Module 4 in V
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv4_current
+    mqtt_name: solar2/dc/pv4/current
+    help: Current currently on PV Module 4 in A
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv4_day_energy
+    mqtt_name: solar2/dc/pv4/day_energy
+    help: Cumulative energy produced today on PV Module 4 in kWh
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+  - prom_name: solar2_pv4_total_energy
+    mqtt_name: solar2/dc/pv4/total_energy
+    help: Cumulative energy produced in total on PV Module 4 in kWh
+    type: gauge
+    const_labels:
+      sensor_type: SUN800

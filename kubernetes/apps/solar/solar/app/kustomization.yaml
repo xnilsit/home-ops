@@ -1,0 +1,15 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ./secret.sops.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml
+configMapGenerator:
+  - name: mqtt2prometheus
+    files:
+      - mqtt2prometheus.yaml=./resources/mqtt2prometheus.yaml
+      - mqtt2prometheus2.yaml=./resources/mqtt2prometheus2.yaml
+generatorOptions:
+  disableNameSuffixHash: true

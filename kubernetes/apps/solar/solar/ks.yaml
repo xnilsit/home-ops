@@ -1,0 +1,64 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app solar
+  namespace: flux-system
+spec:
+  targetNamespace: &namespace solar
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/solar/solar/app
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: *namespace
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: false
+  interval: 1h
+  timeout: 10m
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app solar-metrics
+  namespace: flux-system
+spec:
+  targetNamespace: solar
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/solar/solar/metrics
+  dependsOn:
+    - name: vm-operator
+      namespace: flux-system
+    # GrafanaDatasource and GrafanaDashboard CRDs
+    - name: grafana-crds
+      namespace: flux-system
+    # The data PVC is provisioned through kopiur's Restore populator
+    - name: kopiur-repository
+      namespace: flux-system
+    - name: rook-ceph-cluster
+      namespace: flux-system
+  postBuild:
+    substitute:
+      # The VMSingle TSDB volume; the operator names its pod vmsingle-vmsolar.
+      APP: vmsolar
+      KOPIUR_CAPACITY: 5Gi
+      # useStrictSecurity runs vmsingle as nobody
+      KOPIUR_PUID: "65534"
+      KOPIUR_PGID: "65534"
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: false
+  interval: 1h
+  timeout: 10m

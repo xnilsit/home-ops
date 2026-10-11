@@ -1,0 +1,35 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/grafana.integreatly.org/grafanadatasource_v1beta1.json
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: solar
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  # The old Grafana's datasource uid, which every panel of the dashboard names.
+  uid: b25e598e-a1d1-4092-832c-2da8afcc42e1
+  datasource:
+    type: prometheus
+    name: solar
+    access: proxy
+    url: http://vmsingle-vmsolar.solar.svc.cluster.local:8428
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/grafana.integreatly.org/grafanadashboard_v1beta1.json
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: solar
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  folder: Solar
+  # Its public share (solar.${SECRET_DOMAIN_ALT}) lives in Grafana's database
+  # and references this uid.
+  configMapRef:
+    name: solar-dashboard
+    key: solar-dashboard.json

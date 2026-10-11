@@ -73,34 +73,7 @@ items:
         - "paperless.${SECRET_DOMAIN_ALT}"
       parentRefs: *external
       rules:
-        - {matches: *root, backendRefs: [{<<: *ref, name: paperless}]}
-  - <<: *route
-    metadata:
-      name: solar
-      annotations:
-        # The derived path would be the Exact / rule below, a 301 pinned to one
-        # public-dashboard UID - re-sharing that dashboard would read as an
-        # outage. Grafana's own health endpoint needs no auth.
-        gatus.home-operations.com/endpoint: |
-          path: /api/health
-    spec:
-      hostnames:
-        - "solar.${SECRET_DOMAIN_ALT}"
-      parentRefs: *external
-      rules:
-        # Replaces the solar-to-dashboard redirectRegex middleware. Exact
-        # matches outrank prefix ones, so only the bare host is redirected. The
-        # query rides along in replaceFullPath — Gateway API has no field for
-        # redirect query params and Envoy's path_redirect takes it verbatim.
-        - name: dashboard-redirect
-          matches:
-            - {path: {type: Exact, value: /}}
-          filters:
-            - type: RequestRedirect
-              requestRedirect:
-                statusCode: 301
-                path: {type: ReplaceFullPath, replaceFullPath: "/stats/public-dashboards/7549ee6cafba41f8930ffa88c541e7cd?orgId=1&refresh=30s"}
-        - {name: proxy, matches: *root, backendRefs: [{<<: *ref, name: solar}],}
+        - {matches: *root, backendRefs: [{<<: *ref, name: paperless}],}
 
   # ── envoy-external, behind OIDC — what sat behind traefik-forward-auth ──────
   # Each carries a SecurityPolicy in ./oidc.yaml. These were LAN-only on

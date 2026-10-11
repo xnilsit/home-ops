@@ -1,0 +1,52 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/gateway.networking.k8s.io/httproute_v1.json
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: solar
+  annotations:
+    # The bare host is a 301 pinned to one share token.
+    gatus.home-operations.com/endpoint: |
+      path: /api/health
+spec:
+  hostnames:
+    - "solar.${SECRET_DOMAIN_ALT}"
+  parentRefs:
+    - name: envoy-external
+      namespace: network
+      sectionName: https
+  rules:
+    # Gateway API has no redirect query field; Envoy takes replaceFullPath verbatim.
+    - name: dashboard-redirect
+      matches:
+        - path: {type: Exact, value: /}
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            statusCode: 301
+            path: {type: ReplaceFullPath, replaceFullPath: "/public-dashboards/7549ee6cafba41f8930ffa88c541e7cd?orgId=1&refresh=30s"}
+    # The old Grafana served from the /stats sub path.
+    - name: legacy-subpath
+      matches:
+        - path: {type: PathPrefix, value: /stats}
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            statusCode: 301
+            path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
+    # Only the public dashboard and what it loads; everything else stays on
+    # grafana.${CLUSTER_DOMAIN} behind OIDC.
+    - name: public-dashboard
+      matches:
+        - path: {type: PathPrefix, value: /public-dashboards/}
+        - path: {type: PathPrefix, value: /public/}
+        - path: {type: PathPrefix, value: /api/public/}
+        - path: {type: Exact, value: /api/health}
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove:
+              - "Authorization"
+      backendRefs:
+        - name: grafana-service
+          port: 3000

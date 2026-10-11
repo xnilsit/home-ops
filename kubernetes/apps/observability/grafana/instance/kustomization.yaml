@@ -8,6 +8,7 @@ resources:
   - ./grafana.yaml
   - ./externalsecret-oidc.yaml
   - ./httproute.yaml
+  - ./httproute-solar.yaml
   - ./servicemonitor.yaml
   - ./datasource-alerts.yaml
   - ./datasource-logs.yaml
