@@ -72,6 +72,22 @@ spec:
               limits:
                 memory: 3Gi
     defaultPodOptions:
+      # The kubelet's resolv.conf also lists fd2e:9a41:6b8c:4300::a, which
+      # nothing answers - kube-dns is single-stack IPv4. musl and glibc shrug
+      # that off; continuwuity's hickory resolver times the whole lookup out,
+      # which stalls federation and every appservice request. ndots 1, since
+      # nearly every name it resolves is a remote homeserver.
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - 10.43.0.10
+        searches:
+          - matrix.svc.cluster.local
+          - svc.cluster.local
+          - cluster.local
+        options:
+          - name: ndots
+            value: "1"
       securityContext:
         runAsNonRoot: true
         # Matches KOPIUR_PUID/PGID, which the Restore and SnapshotPolicy movers
