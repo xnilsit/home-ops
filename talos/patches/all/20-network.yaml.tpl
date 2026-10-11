@@ -18,8 +18,3 @@ addresses:
     routePriority: 1024
 routes:
   - gateway: "{{ .Data.gateway }}"
----
-apiVersion: v1alpha1
-kind: Layer2VIPConfig
-name: "{{ .Data.vip }}"
-link: ethSel0

@@ -1,0 +1,7 @@
+---
+apiVersion: v1alpha1
+kind: SysctlConfig
+params:
+  # Pod IPv6 egress. Cilium masquerades to this device's primary GUA, which
+  # kube-system/slaac-janitor keeps pointed at the live Telekom prefix.
+  net.ipv6.conf.enp2s0.accept_ra_defrtr: "1"

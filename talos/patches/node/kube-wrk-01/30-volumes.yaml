@@ -1,0 +1,27 @@
+---
+apiVersion: v1alpha1
+kind: RAIDArrayConfig
+name: data
+level: raid1
+metadata: "1.2"
+provisioning:
+  volumeSelector:
+    match: disk.serial in ["50026B7382A1123F", "50026B7382A1120B"]
+---
+apiVersion: v1alpha1
+kind: VolumeConfig
+name: EPHEMERAL
+provisioning:
+  diskSelector:
+    match: '"/dev/disk/by-id/md-name-talos:data" in disk.symlinks'
+  minSize: 300GiB
+  maxSize: 300GiB
+---
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: local-path
+provisioning:
+  diskSelector:
+    match: '"/dev/disk/by-id/md-name-talos:data" in disk.symlinks'
+  minSize: 1500GB
+  grow: true

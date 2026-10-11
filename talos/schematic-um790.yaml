@@ -1,0 +1,9 @@
+---
+customization:
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/amd-ucode
+      - siderolabs/amdgpu
+      - siderolabs/gvisor
+      - siderolabs/nvme-cli
+      - siderolabs/realtek-firmware

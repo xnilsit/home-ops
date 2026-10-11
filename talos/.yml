@@ -1,0 +1,9 @@
+---
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: local-path
+provisioning:
+  diskSelector:
+    match: disk.model == "WD_BLACK SN770 1TB"
+  grow: true
+  minSize: 800GB
