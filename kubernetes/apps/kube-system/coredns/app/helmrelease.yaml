@@ -18,6 +18,14 @@ spec:
     service:
       name: kube-dns
       clusterIP: "10.43.0.10"
+      # Talos derives the kubelet's clusterDNS from BOTH service subnets, so
+      # every pod's resolv.conf lists the ::a address as well. Unserved, it was
+      # a silent timeout for glibc/musl and a hard failure for resolvers that
+      # do not fall back (hickory, in continuwuity).
+      ipFamilyPolicy: RequireDualStack
+      clusterIPs:
+        - "10.43.0.10"
+        - "fd2e:9a41:6b8c:4300::a"
     replicaCount: 2
     # Deliberately the built-in class rather than cluster-infra (which blocky
     # and k8s-gateway use). The bootstrap helmfile installs coredns from these
