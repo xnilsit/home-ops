@@ -1,0 +1,241 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: livekit
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: livekit
+  interval: 1h
+  values:
+    controllers:
+      livekit:
+        annotations:
+          # Also restarts it when ./node-ip.yaml's NODE_IP changes, which is the
+          # point: LiveKit reads the address it advertises once, at startup.
+          reloader.stakater.com/auto: "true"
+        # One SFU. Calls are pinned to the node that hosts them, so a second
+        # replica would need Redis and buys nothing at this size.
+        strategy: Recreate
+        pod:
+          securityContext:
+            <<: &podSecurityContext
+              runAsNonRoot: true
+              runAsUser: 1000
+              runAsGroup: 1000
+              seccompProfile:
+                type: RuntimeDefault
+            # TURNS listens on 443 so the port it advertises is the one envoy
+            # passes through; LiveKit cannot advertise one port and bind another.
+            sysctls:
+              - name: net.ipv4.ip_unprivileged_port_start
+                value: "0"
+        containers:
+          app:
+            image:
+              repository: docker.io/livekit/livekit-server
+              tag: v1.13.9
+            args:
+              - --config=/config/livekit.yaml
+            env:
+              # The WAN address, for ICE. Optional so a first deploy starts
+              # before the tracker has published anything.
+              NODE_IP:
+                valueFrom:
+                  configMapKeyRef:
+                    name: livekit-node-ip
+                    key: NODE_IP
+                    optional: true
+              LIVEKIT_KEYS:
+                valueFrom:
+                  secretKeyRef:
+                    name: &keys livekit-keys
+                    key: LIVEKIT_KEYS
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: &port 7880
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness: *probes
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                memory: 1Gi
+      jwt:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: ghcr.io/element-hq/lk-jwt-service
+              tag: 0.8.0
+            env:
+              LIVEKIT_URL: wss://livekit.${SECRET_DOMAIN}
+              # Users of this homeserver may create rooms; everyone else may
+              # only join ones that already exist.
+              LIVEKIT_FULL_ACCESS_HOMESERVERS: ${SECRET_DOMAIN}
+            envFrom:
+              # LIVEKIT_KEY, LIVEKIT_SECRET
+              - secretRef:
+                  name: *keys
+            probes:
+              liveness: &jwtProbes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: &jwtPort 8080
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness: *jwtProbes
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 128Mi
+    defaultPodOptions:
+      securityContext: *podSecurityContext
+    configMaps:
+      config:
+        data:
+          livekit.yaml: |-
+            port: 7880
+            bind_addresses:
+              - ""
+            log_level: info
+            prometheus:
+              port: 6789
+            rtc:
+              # All media on one UDP port and one TCP fallback, both on the
+              # 192.168.1.153 VIP below and port-forwarded from the WAN as-is.
+              udp_port: 7882
+              tcp_port: 7881
+              # The advertised address is NODE_IP, never a STUN lookup at
+              # startup, which would go stale at the next PPPoE reconnect.
+              use_external_ip: false
+              enable_loopback_candidate: false
+            room:
+              # lk-jwt-service creates rooms for authorised users.
+              auto_create: false
+            turn:
+              enabled: true
+              domain: turn.${SECRET_DOMAIN}
+              # TLS terminated here, behind envoy's SNI passthrough on WAN:443.
+              tls_port: 443
+              cert_file: /certs/tls.crt
+              key_file: /certs/tls.key
+              # On the VIP and port-forwarded, like the media ports.
+              udp_port: 3478
+    persistence:
+      config:
+        type: configMap
+        identifier: config
+        advancedMounts:
+          livekit:
+            app:
+              - path: /config/livekit.yaml
+                subPath: livekit.yaml
+                readOnly: true
+      certs:
+        type: secret
+        name: livekit-turn-tls
+        advancedMounts:
+          livekit:
+            app:
+              - path: /certs
+                readOnly: true
+    service:
+      app:
+        # Named plainly, since ./tlsroute.yaml and the HTTPRoute below both
+        # point at it.
+        forceRename: livekit
+        controller: livekit
+        ports:
+          http:
+            port: *port
+          turns:
+            port: 443
+          metrics:
+            port: 6789
+      rtc:
+        controller: livekit
+        type: LoadBalancer
+        # Matches envoy's and the rest of the LAN VIPs; ICE identifies a
+        # session by its ufrag, not the source address, so the SNAT is fine.
+        externalTrafficPolicy: Cluster
+        annotations:
+          # IPv4 only: the WAN forward is IPv4 NAT, and NODE_IP is the A record.
+          lbipam.cilium.io/ips: "192.168.1.153"
+        ports:
+          rtc-tcp:
+            port: 7881
+            protocol: TCP
+          rtc-udp:
+            port: 7882
+            protocol: UDP
+          turn-udp:
+            port: 3478
+            protocol: UDP
+      jwt:
+        controller: jwt
+        ports:
+          http:
+            port: *jwtPort
+    serviceMonitor:
+      app:
+        service:
+          identifier: app
+        endpoints:
+          - port: metrics
+            path: /metrics
+            interval: 1m
+            scrapeTimeout: 10s
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /healthz
+        hostnames:
+          - "livekit.${SECRET_DOMAIN}"
+        # With matrix.${SECRET_DOMAIN}: the media already reaches the WAN
+        # address directly, so the tunnel would hide nothing here.
+        parentRefs:
+          - name: envoy-external-direct
+            namespace: network
+            sectionName: https
+        rules:
+          # MatrixRTC authorisation, see the foci in continuwuity's config.
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /sfu/get
+              - path:
+                  type: PathPrefix
+                  value: /get_token
+              - path:
+                  type: PathPrefix
+                  value: /healthz
+            backendRefs:
+              - identifier: jwt
+                port: *jwtPort
+          # Signalling websocket.
+          - backendRefs:
+              - identifier: app
+                port: *port

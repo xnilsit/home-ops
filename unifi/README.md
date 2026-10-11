@@ -77,7 +77,19 @@ there. The WAN IPv4 address and the delegated IPv6 prefix change with each recon
 Two WAN port-forwards, 80 and 443, both to `192.168.1.152` — the `envoy-external-direct`
 Gateway. That is the ingress path for the hostnames the Cloudflare tunnel cannot carry, because
 it caps request bodies at 100 MB. Port 80 exists only for the https redirect; cert-manager
-solves DNS-01 and never needs it.
+solves DNS-01 and never needs it. WAN:443 also carries TURNS for `turn.<domain>`, which the
+gateway passes through to LiveKit by SNI.
+
+Three more, all to `192.168.1.153` — the LiveKit media VIP in `kubernetes/apps/matrix/livekit`:
+
+| WAN port | Protocol | Purpose |
+| -------- | -------- | ------- |
+| 7882 | UDP | WebRTC media, every call multiplexed on one port |
+| 7881 | TCP | WebRTC media fallback where UDP is blocked |
+| 3478 | UDP | TURN |
+
+LiveKit advertises the WAN IPv4 address in its ICE candidates; `livekit-node-ip` follows
+`home.<domain>` and restarts LiveKit after each reconnect, so ongoing calls drop at 04:00.
 
 Everything else public still arrives through cloudflared, which is outbound-only and needs no
 forward at all.

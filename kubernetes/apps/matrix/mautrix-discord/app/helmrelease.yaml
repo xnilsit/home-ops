@@ -1,0 +1,220 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: mautrix-discord
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: mautrix-discord
+  interval: 1h
+  values:
+    controllers:
+      mautrix-discord:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # Two bridges on one Discord session would fight over it.
+        strategy: Recreate
+        initContainers:
+          # Not a bridgev2 bridge yet, so no env_config_prefix: the secrets are
+          # merged into a copy of the ConfigMap with the yq the image ships.
+          config:
+            image: &image
+              repository: dock.mau.dev/mautrix/discord
+              tag: v0.7.7
+            command:
+              - /bin/sh
+              - -c
+            args:
+              - >-
+                yq '
+                .appservice.database.uri = strenv(DATABASE_URI) |
+                .appservice.as_token = strenv(AS_TOKEN) |
+                .appservice.hs_token = strenv(HS_TOKEN) |
+                .bridge.provisioning.shared_secret = strenv(PROVISIONING_SHARED_SECRET) |
+                .bridge.avatar_proxy_key = strenv(AVATAR_PROXY_KEY)
+                ' /config/config.yaml > /data/config.yaml
+            env:
+              DATABASE_URI:
+                valueFrom:
+                  secretKeyRef:
+                    name: mautrix-discord-db
+                    key: uri
+            envFrom:
+              # AS_TOKEN, HS_TOKEN, PROVISIONING_SHARED_SECRET, AVATAR_PROXY_KEY
+              - secretRef:
+                  name: mautrix-discord
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 64Mi
+        containers:
+          app:
+            image: *image
+            command:
+              - /usr/bin/mautrix-discord
+            args:
+              - --config=/data/config.yaml
+            env:
+              TZ: ${TIMEZONE}
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: &port 29334
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 25m
+                memory: 128Mi
+              limits:
+                memory: 1Gi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1337
+        runAsGroup: 1337
+        fsGroup: 1337
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    configMaps:
+      config:
+        data:
+          # Rendered through tpl by the chart, hence the {{`...`}} around the
+          # bridge's own templates. Secrets are placeholders, filled in by the
+          # config init container.
+          config.yaml: |-
+            homeserver:
+              address: http://continuwuity.matrix.svc.cluster.local:8080
+              domain: ${SECRET_DOMAIN}
+              software: standard
+              async_media: false
+
+            appservice:
+              address: http://mautrix-discord.matrix.svc.cluster.local:29334
+              hostname: 0.0.0.0
+              port: 29334
+              database:
+                type: postgres
+                uri: postgres://placeholder
+                max_open_conns: 5
+                max_idle_conns: 1
+              id: discord
+              bot:
+                username: discordbot
+                displayname: Discord bridge bot
+                avatar: mxc://maunium.net/nIdEykemnwdisvHbpxflpDlC
+              ephemeral_events: true
+              async_transactions: false
+              as_token: placeholder
+              hs_token: placeholder
+
+            bridge:
+              username_template: discord_{{`{{.}}`}}
+              displayname_template: '{{`{{if .Webhook}}Webhook{{else}}{{or .GlobalName .Username}}{{if .Bot}} (bot){{end}}{{end}}`}}'
+              channel_name_template: '{{`{{if or (eq .Type 3) (eq .Type 4)}}{{.Name}}{{else}}#{{.Name}}{{end}}`}}'
+              guild_name_template: '{{`{{.Name}}`}}'
+              private_chat_portal_meta: default
+              public_address: null
+              avatar_proxy_key: placeholder
+              startup_private_channel_create_limit: 5
+              delivery_receipts: false
+              message_status_events: false
+              message_error_notices: true
+              restricted_rooms: false
+              autojoin_thread_on_open: true
+              embed_fields_as_tables: true
+              mute_channels_on_create: false
+              sync_direct_chat_list: true
+              custom_emoji_reactions: true
+              delete_portal_on_channel_delete: false
+              delete_guild_on_leave: true
+              federate_rooms: true
+              prefix_webhook_messages: true
+              use_discord_cdn_upload: true
+              forbid_dming_strangers: true
+              cache_media: unencrypted
+              direct_media:
+                enabled: false
+              animated_sticker:
+                target: webp
+                args:
+                  width: 320
+                  height: 320
+                  fps: 25
+              double_puppet_server_map: {}
+              double_puppet_allow_discovery: false
+              login_shared_secret_map: {}
+              command_prefix: "!discord"
+              backfill:
+                forward_limits:
+                  initial:
+                    dm: 50
+                    channel: 50
+                    thread: 50
+                  missed:
+                    dm: 500
+                    channel: 500
+                    thread: 500
+                max_guild_members: -1
+              encryption:
+                allow: true
+                default: true
+                appservice: false
+                msc4190: true
+                require: false
+                allow_key_sharing: true
+                verification_levels:
+                  receive: unverified
+                  send: unverified
+                  share: cross-signed-tofu
+              provisioning:
+                prefix: /_matrix/provision
+                shared_secret: placeholder
+              permissions:
+                "${SECRET_DOMAIN}": user
+                "@nilsit:${SECRET_DOMAIN}": admin
+
+            logging:
+              min_level: info
+              writers:
+                - type: stdout
+                  format: json
+    persistence:
+      config:
+        type: configMap
+        identifier: config
+        advancedMounts:
+          mautrix-discord:
+            config:
+              - path: /config/config.yaml
+                subPath: config.yaml
+                readOnly: true
+      # The merged config. Nothing else on disk: all bridge state is in Postgres.
+      data:
+        type: emptyDir
+        globalMounts:
+          - path: /data
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+    service:
+      app:
+        controller: mautrix-discord
+        ports:
+          http:
+            port: *port

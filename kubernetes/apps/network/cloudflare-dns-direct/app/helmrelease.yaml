@@ -32,6 +32,8 @@ spec:
     sources:
       # No crd source: the DNSEndpoint for the tunnel belongs to cloudflare-dns.
       - "gateway-httproute"
+      # turn.${SECRET_DOMAIN}, the TURNS passthrough on the same gateway.
+      - "gateway-tlsroute"
     txtPrefix: k8s.
     # Distinct from cloudflare-dns's `default`, so two sync-policy instances in
     # one zone never delete each other's records.

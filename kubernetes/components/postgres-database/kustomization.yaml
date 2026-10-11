@@ -1,0 +1,24 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# A role and a database for one app on a CNPG Cluster in the app's OWN
+# namespace - the per-namespace counterpart of ../postgres-shared, for when
+# several apps share a dedicated cluster from ../postgres.
+#
+# Required in the app's ks.yaml postBuild.substitute:
+#   APP         the role, database and secret name
+#   PG_CLUSTER  the Cluster's metadata.name, e.g. matrix-postgres
+#
+# The workload reads the `uri` key of the ${APP}-db Secret.
+#
+# The app Kustomization must dependsOn external-secrets-generators, which owns
+# the ClusterGenerator the password is minted from, and whatever owns the
+# Cluster.
+resources:
+  # Must precede the DatabaseRole, which cannot create a role without its
+  # password secret.
+  - ./externalsecret.yaml
+  # A DatabaseRole must exist before the Database that names it as owner.
+  - ./databaserole.yaml
+  - ./database.yaml

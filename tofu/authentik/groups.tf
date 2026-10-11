@@ -21,6 +21,8 @@ locals {
     "gokapi" = {}
     # Outline login; members join the workspace on first login.
     "outline" = {}
+    # Matrix login; members get @<username> on the homeserver on first login.
+    "matrix" = {}
   }
 }
 

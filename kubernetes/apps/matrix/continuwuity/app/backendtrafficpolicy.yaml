@@ -1,0 +1,34 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/gateway.envoyproxy.io/backendtrafficpolicy_v1alpha1.json
+# Unshared limit, so a client loading a timeline's worth of thumbnails, or a
+# busy homeserver catching up on federation, keeps its budget for other routes
+# and does not 429 everything else that IP talks to.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: continuwuity
+spec:
+  # JSONMerge replaces the gateway's shared rate limit rules.
+  mergeType: JSONMerge
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: continuwuity
+  rateLimit:
+    type: Global
+    global:
+      rules:
+        - clientSelectors:
+            - sourceCIDR:
+                type: Distinct
+                value: 0.0.0.0/0
+          limit:
+            requests: 3000
+            unit: Minute
+        - clientSelectors:
+            - sourceCIDR:
+                type: Distinct
+                value: ::/0
+          limit:
+            requests: 3000
+            unit: Minute

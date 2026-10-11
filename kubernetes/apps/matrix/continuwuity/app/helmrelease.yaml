@@ -1,0 +1,189 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: continuwuity
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: continuwuity
+  interval: 1h
+  values:
+    controllers:
+      continuwuity:
+        # Exactly one: RocksDB is embedded and single-writer, and continuwuity
+        # has neither a Postgres backend nor a worker split. Availability comes
+        # from the volume - ceph-block reattaches on another node, kopiur
+        # restores it on a rebuilt cluster.
+        type: statefulset
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: forgejo.ellis.link/continuwuation/continuwuity
+              tag: v26.9.1
+            env:
+              TZ: ${TIMEZONE}
+              CONTINUWUITY_CONFIG: /etc/continuwuity/continuwuity.toml
+              # Read through the env overlay rather than templated into the
+              # TOML, which keeps the config a plain ConfigMap with no secret
+              # in it. Nested keys are split on __.
+              CONTINUWUITY_OAUTH__OIDC__CLIENT_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: &oidcSecret continuwuity-oidc
+                    key: client-id
+              CONTINUWUITY_OAUTH__OIDC__CLIENT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: *oidcSecret
+                    key: client-secret
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /_matrix/client/versions
+                    port: &port 8080
+                  periodSeconds: 15
+                  timeoutSeconds: 5
+                  failureThreshold: 6
+              readiness: *probes
+              # Covers the background migrations a release can start on boot.
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: *port
+                  periodSeconds: 5
+                  failureThreshold: 120
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 200m
+                memory: 512Mi
+              limits:
+                memory: 3Gi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        # Matches KOPIUR_PUID/PGID, which the Restore and SnapshotPolicy movers
+        # are pinned to.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    configMaps:
+      config:
+        data:
+          continuwuity.toml: |-
+            [global]
+            # Cannot be changed without wiping the database.
+            server_name = "${SECRET_DOMAIN}"
+            address = ["::"]
+            port = 8080
+            database_path = "/data"
+
+            log = "info"
+            log_colors = false
+            new_user_displayname_suffix = ""
+
+            # Envoy resolves the real client from x-forwarded-for against its
+            # trusted CIDRs and hands it on in this header.
+            accepted_ip_sources = ["x_envoy_external_address", "direct"]
+
+            # Media uploads. envoy-external-direct has no body cap of its own.
+            max_request_size = 209715200
+
+            # Accounts only come from authentik; see [global.oauth.oidc].
+            allow_registration = false
+            allow_encryption = true
+            allow_federation = true
+            allow_public_room_directory_over_federation = false
+            lockdown_public_room_directory = true
+            require_auth_for_profile_requests = true
+
+            admins_list = ["@nilsit:${SECRET_DOMAIN}"]
+
+            # Cached remote media has no retention of its own; purge it on
+            # every start so the volume does not fill up.
+            admin_execute = ["media delete-past-remote-media -b 30d"]
+            admin_execute_errors_ignore = true
+
+            [global.well_known]
+            # Both served from ${SECRET_DOMAIN}/.well-known/matrix/* through
+            # ./httproute-well-known.yaml. The client base URL is also what
+            # the OIDC redirect URI is built from.
+            client = "https://matrix.${SECRET_DOMAIN}"
+            server = "matrix.${SECRET_DOMAIN}:443"
+            support_mxid = "@nilsit:${SECRET_DOMAIN}"
+
+            [global.matrix_rtc]
+            foci = [{ type = "livekit", livekit_service_url = "https://livekit.${SECRET_DOMAIN}" }]
+
+            # Delegated authentication. While this section exists, continuwuity
+            # only offers next-gen (OAuth) login: Element X, Element Web and
+            # Sable work, password-only clients do not.
+            [global.oauth.oidc]
+            # Trailing slash required: it must byte-match the issuer authentik
+            # publishes, which the discovery client checks.
+            discovery_url = "${AUTHENTIK_URL}/application/o/home-ops-continuwuity/"
+            # client_id and client_secret come from the environment.
+            additional_scopes = ["profile", "email"]
+            provider_name = "authentik"
+            # The localpart is the authentik username, so nobody can claim
+            # someone else's.
+            prompt_for_localpart = false
+            preferred_username_claim = "preferred_username"
+            profile_key_map = { displayname = "name" }
+            profile_key_import_mode = "on_registration"
+    persistence:
+      data:
+        # Provisioned by components/kopiur/backup through its Restore populator.
+        existingClaim: continuwuity
+        globalMounts:
+          - path: /data
+      config:
+        type: configMap
+        identifier: config
+        globalMounts:
+          - path: /etc/continuwuity/continuwuity.toml
+            subPath: continuwuity.toml
+            readOnly: true
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+    service:
+      app:
+        controller: continuwuity
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /_matrix/client/versions
+        hostnames:
+          - "matrix.${SECRET_DOMAIN}"
+        # envoy-external-direct, not envoy-external: the tunnel caps request
+        # bodies at 100 MB and puts Cloudflare's bot rules in front of
+        # federation, which is all server-to-server traffic.
+        parentRefs:
+          - name: envoy-external-direct
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port

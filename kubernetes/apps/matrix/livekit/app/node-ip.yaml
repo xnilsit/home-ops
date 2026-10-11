@@ -1,0 +1,106 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/configmap-v1.json
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: livekit-node-ip
+  annotations:
+    # Written by the tracker below; shipped only so there is something to patch.
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+# No keys on purpose: LiveKit reads NODE_IP as optional, and an absent key
+# leaves the variable unset rather than empty.
+data: {}
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/serviceaccount-v1.json
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: livekit-node-ip
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/role-rbac-v1.json
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: livekit-node-ip
+rules:
+  # No create: the object is git-owned.
+  - apiGroups:
+      - ""
+    resources:
+      - "configmaps"
+    resourceNames:
+      - "livekit-node-ip"
+    verbs:
+      - "get"
+      - "patch"
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/rolebinding-rbac-v1.json
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: livekit-node-ip
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: livekit-node-ip
+subjects:
+  - kind: ServiceAccount
+    name: livekit-node-ip
+    namespace: matrix
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/deployment-apps-v1.json
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: &app livekit-node-ip
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: *app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: *app
+    spec:
+      serviceAccountName: *app
+      containers:
+        - name: app
+          # Alpine with kubectl, curl and jq already in it, like ipv6-prefix-tracker.
+          image: mirror.gcr.io/alpine/k8s:1.37.1
+          command:
+            - "/bin/sh"
+            - "/script/node-ip.sh"
+          env:
+            - name: DOMAIN
+              value: "${SECRET_DOMAIN}"
+            # kubectl wants a writable cache dir under a read-only root.
+            - name: HOME
+              value: /tmp
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+            seccompProfile: {type: RuntimeDefault}
+          volumeMounts:
+            - name: script
+              mountPath: /script
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 10m
+            limits:
+              memory: 128Mi
+      volumes:
+        - name: script
+          configMap:
+            name: livekit-node-ip-script
+        - name: tmp
+          emptyDir: {}
