@@ -1,25 +1,20 @@
 {
-  "annotations": {
-    "list": [
-      {
-        "builtIn": 1,
-        "datasource": {
-          "type": "grafana",
-          "uid": "-- Grafana --"
-        },
-        "enable": true,
-        "hide": true,
-        "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts",
-        "type": "dashboard"
-      }
-    ]
-  },
+  "uid": "cc189c3b-7b6a-445b-9c26-40c68ee311b8",
+  "title": "Solar Dashboard",
   "editable": true,
-  "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
-  "id": 1,
-  "links": [],
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "",
+  "schemaVersion": 41,
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
   "panels": [
     {
       "type": "stat",
@@ -27,6 +22,12 @@
       "datasource": {
         "type": "prometheus",
         "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 3,
+        "h": 8
       },
       "targets": [
         {
@@ -37,8 +38,8 @@
           },
           "expr": "last_over_time(solar_logger_online[2m]) or on() vector(0)",
           "legendFormat": "Logger 1",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "B",
@@ -48,12 +49,27 @@
           },
           "expr": "last_over_time(solar2_logger_online[2m]) or on() vector(0)",
           "legendFormat": "Logger 2",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         }
       ],
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red"
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
           "mappings": [
             {
               "type": "value",
@@ -70,22 +86,7 @@
                 }
               }
             }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red"
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          }
+          ]
         },
         "overrides": []
       },
@@ -100,48 +101,16 @@
         "orientation": "horizontal",
         "colorMode": "background",
         "graphMode": "none",
-        "textMode": "value_and_name",
-        "justifyMode": "auto",
-        "wideLayout": true
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 0,
-        "w": 3,
-        "h": 8
+        "textMode": "value_and_name"
       },
       "id": 1
     },
     {
+      "type": "gauge",
+      "title": "AC power",
       "datasource": {
         "type": "prometheus",
         "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "max": 800,
-          "min": 0,
-          "noValue": "Offline",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "orange",
-                "value": 700
-              },
-              {
-                "color": "red",
-                "value": 780
-              }
-            ]
-          },
-          "unit": "watt"
-        },
-        "overrides": []
       },
       "gridPos": {
         "x": 3,
@@ -149,23 +118,6 @@
         "w": 5,
         "h": 8
       },
-      "id": 2,
-      "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
-      },
-      "pluginVersion": "11.6.1",
       "targets": [
         {
           "refId": "A",
@@ -175,8 +127,8 @@
           },
           "expr": "sum(solar_l1_power) and on() (last_over_time(solar_logger_online[2m]) == 1)",
           "legendFormat": "Logger 1",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "B",
@@ -186,60 +138,27 @@
           },
           "expr": "sum(solar2_l1_power) and on() (last_over_time(solar2_logger_online[2m]) == 1)",
           "legendFormat": "Logger 2",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "title": "AC power",
-      "transformations": [
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Total",
-            "binary": {
-              "left": "Power L1",
-              "reducer": "sum",
-              "right": "Power L2"
-            },
-            "mode": "binary",
-            "reduce": {
-              "include": [
-                "Power L1",
-                "Power L2"
-              ],
-              "reducer": "sum"
-            },
-            "replaceFields": false
-          }
+          "instant": true,
+          "range": false
         },
         {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": false
-            },
-            "indexByName": {
-              "Power L1": 0,
-              "Power L2": 1,
-              "Time": 3,
-              "Total": 2
-            },
-            "renameByName": {}
-          }
+          "refId": "T",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "sum({__name__=~\"solar2?_l1_power\"})",
+          "legendFormat": "Total",
+          "instant": true,
+          "range": false
         }
       ],
-      "type": "gauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-      },
       "fieldConfig": {
         "defaults": {
-          "mappings": [],
-          "max": 800,
+          "unit": "watt",
           "min": 0,
+          "max": 800,
+          "noValue": "Offline",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -255,23 +174,43 @@
                 "value": 780
               }
             ]
-          },
-          "unit": "watt",
-          "noValue": "Offline"
+          }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "T"
+            },
+            "properties": [
+              {
+                "id": "max",
+                "value": 1600
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1400
+                    },
+                    {
+                      "color": "red",
+                      "value": 1560
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
       },
-      "gridPos": {
-        "x": 8,
-        "y": 0,
-        "w": 4,
-        "h": 8
-      },
-      "id": 3,
       "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -279,11 +218,25 @@
           "fields": "",
           "values": false
         },
+        "orientation": "auto",
         "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
+        "showThresholdMarkers": true
       },
-      "pluginVersion": "11.6.1",
+      "id": 2
+    },
+    {
+      "type": "gauge",
+      "title": "DC power",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 8
+      },
       "targets": [
         {
           "refId": "A",
@@ -293,8 +246,8 @@
           },
           "expr": "sum(solar_dc_total_power) and on() (last_over_time(solar_logger_online[2m]) == 1)",
           "legendFormat": "Logger 1",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "B",
@@ -304,55 +257,36 @@
           },
           "expr": "sum(solar2_dc_total_power) and on() (last_over_time(solar2_logger_online[2m]) == 1)",
           "legendFormat": "Logger 2",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         }
       ],
-      "title": "DC power",
-      "type": "gauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-      },
       "fieldConfig": {
         "defaults": {
-          "mappings": [],
-          "max": 100,
+          "unit": "watt",
           "min": 0,
+          "max": 800,
           "noValue": "Offline",
           "thresholds": {
-            "mode": "percentage",
+            "mode": "absolute",
             "steps": [
               {
-                "color": "red"
+                "color": "green"
               },
               {
                 "color": "orange",
-                "value": 65
+                "value": 700
               },
               {
-                "color": "green",
-                "value": 85
+                "color": "red",
+                "value": 780
               }
             ]
-          },
-          "unit": "percent"
+          }
         },
         "overrides": []
       },
-      "gridPos": {
-        "x": 12,
-        "y": 0,
-        "w": 2,
-        "h": 8
-      },
-      "id": 4,
       "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -360,11 +294,25 @@
           "fields": "",
           "values": false
         },
+        "orientation": "auto",
         "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
+        "showThresholdMarkers": true
       },
-      "pluginVersion": "11.6.1",
+      "id": 3
+    },
+    {
+      "type": "gauge",
+      "title": "Efficiency Logger 1",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 2,
+        "h": 8
+      },
       "targets": [
         {
           "refId": "A",
@@ -374,24 +322,15 @@
           },
           "expr": "100 * sum(solar_l1_power) / sum(solar_dc_total_power > 0) and on() (last_over_time(solar_logger_online[2m]) == 1)",
           "legendFormat": "Logger 1",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         }
       ],
-      "title": "Efficiency Logger 1",
-      "type": "gauge",
-      "description": "AC output over DC input, from the latest reading."
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-      },
       "fieldConfig": {
         "defaults": {
-          "mappings": [],
-          "max": 100,
+          "unit": "percent",
           "min": 0,
+          "max": 100,
           "noValue": "Offline",
           "thresholds": {
             "mode": "percentage",
@@ -408,22 +347,11 @@
                 "value": 85
               }
             ]
-          },
-          "unit": "percent"
+          }
         },
         "overrides": []
       },
-      "gridPos": {
-        "x": 14,
-        "y": 0,
-        "w": 2,
-        "h": 8
-      },
-      "id": 5,
       "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -431,11 +359,26 @@
           "fields": "",
           "values": false
         },
+        "orientation": "auto",
         "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
+        "showThresholdMarkers": true
       },
-      "pluginVersion": "11.6.1",
+      "description": "AC output over DC input, from the latest reading.",
+      "id": 4
+    },
+    {
+      "type": "gauge",
+      "title": "Efficiency Logger 2",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 0,
+        "w": 2,
+        "h": 8
+      },
       "targets": [
         {
           "refId": "A",
@@ -445,28 +388,114 @@
           },
           "expr": "100 * sum(solar2_l1_power) / sum(solar2_dc_total_power > 0) and on() (last_over_time(solar2_logger_online[2m]) == 1)",
           "legendFormat": "Logger 2",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         }
       ],
-      "title": "Efficiency Logger 2",
-      "type": "gauge",
-      "description": "AC output over DC input, from the latest reading."
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "noValue": "Offline",
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "red"
+              },
+              {
+                "color": "orange",
+                "value": 65
+              },
+              {
+                "color": "green",
+                "value": 85
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "description": "AC output over DC input, from the latest reading.",
+      "id": 5
     },
     {
+      "type": "stat",
+      "title": "Both loggers",
       "datasource": {
         "type": "prometheus",
         "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
       },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "POWER",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "sum({__name__=~\"solar2?_l1_power\"}) or on() vector(0)",
+          "legendFormat": "Power now",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "TODAY",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "sum(last_over_time({__name__=~\"solar2?_day_energy\"}[12h]))",
+          "legendFormat": "Energy today",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "TOTAL",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "sum(last_over_time({__name__=~\"solar2?_total_energy\"}[1y]))",
+          "legendFormat": "Energy total",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "SAVED",
+          "datasource": {
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "type": "math",
+          "expression": "$TOTAL * 0.35"
+        }
+      ],
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "fixedColor": "green",
-            "mode": "fixed"
-          },
-          "mappings": [],
           "min": 0,
-          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -527,19 +556,7 @@
           }
         ]
       },
-      "gridPos": {
-        "x": 16,
-        "y": 0,
-        "w": 8,
-        "h": 8
-      },
-      "id": 6,
       "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "vertical",
-        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -547,117 +564,19 @@
           "fields": "",
           "values": false
         },
-        "showPercentChange": false,
-        "textMode": "value_and_name",
-        "wideLayout": true
+        "orientation": "vertical",
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name"
       },
-      "pluginVersion": "11.6.1",
-      "targets": [
-        {
-          "refId": "POWER",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-          },
-          "expr": "sum({__name__=~\"solar2?_l1_power\"}) or on() vector(0)",
-          "legendFormat": "Power now",
-          "range": false,
-          "instant": true
-        },
-        {
-          "refId": "TODAY",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-          },
-          "expr": "sum(last_over_time({__name__=~\"solar2?_day_energy\"}[12h]))",
-          "legendFormat": "Energy today",
-          "range": false,
-          "instant": true
-        },
-        {
-          "refId": "TOTAL",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-          },
-          "expr": "sum(last_over_time({__name__=~\"solar2?_total_energy\"}[30d]))",
-          "legendFormat": "Energy total",
-          "range": false,
-          "instant": true
-        },
-        {
-          "refId": "SAVED",
-          "datasource": {
-            "type": "__expr__",
-            "uid": "__expr__"
-          },
-          "type": "math",
-          "expression": "$TOTAL * 0.35"
-        }
-      ],
-      "title": "Both loggers",
-      "type": "stat"
+      "id": 6
     },
     {
+      "type": "timeseries",
+      "title": "Power history",
       "datasource": {
         "type": "prometheus",
         "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "watt"
-        },
-        "overrides": []
       },
       "gridPos": {
         "x": 0,
@@ -665,22 +584,29 @@
         "w": 12,
         "h": 8
       },
-      "id": 7,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.6.1",
       "targets": [
+        {
+          "refId": "total_dc",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "sum({__name__=~\"solar2?_dc_total_power\"})",
+          "legendFormat": "Total DC",
+          "instant": false,
+          "range": true
+        },
+        {
+          "refId": "total_ac",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "sum({__name__=~\"solar2?_l1_power\"})",
+          "legendFormat": "Total AC",
+          "instant": false,
+          "range": true
+        },
         {
           "refId": "solar_dc",
           "datasource": {
@@ -689,8 +615,8 @@
           },
           "expr": "solar_dc_total_power",
           "legendFormat": "Logger 1 DC",
-          "range": true,
-          "instant": false
+          "instant": false,
+          "range": true
         },
         {
           "refId": "solar_ac",
@@ -700,8 +626,8 @@
           },
           "expr": "solar_l1_power",
           "legendFormat": "Logger 1 AC",
-          "range": true,
-          "instant": false
+          "instant": false,
+          "range": true
         },
         {
           "refId": "solar_m1",
@@ -711,8 +637,8 @@
           },
           "expr": "solar_pv1_power",
           "legendFormat": "Logger 1 module 1",
-          "range": true,
-          "instant": false
+          "instant": false,
+          "range": true
         },
         {
           "refId": "solar_m2",
@@ -722,8 +648,8 @@
           },
           "expr": "solar_pv2_power",
           "legendFormat": "Logger 1 module 2",
-          "range": true,
-          "instant": false
+          "instant": false,
+          "range": true
         },
         {
           "refId": "solar2_dc",
@@ -733,8 +659,8 @@
           },
           "expr": "solar2_dc_total_power",
           "legendFormat": "Logger 2 DC",
-          "range": true,
-          "instant": false
+          "instant": false,
+          "range": true
         },
         {
           "refId": "solar2_ac",
@@ -744,8 +670,8 @@
           },
           "expr": "solar2_l1_power",
           "legendFormat": "Logger 2 AC",
-          "range": true,
-          "instant": false
+          "instant": false,
+          "range": true
         },
         {
           "refId": "solar2_m1",
@@ -755,8 +681,8 @@
           },
           "expr": "solar2_pv1_power",
           "legendFormat": "Logger 2 module 1",
-          "range": true,
-          "instant": false
+          "instant": false,
+          "range": true
         },
         {
           "refId": "solar2_m2",
@@ -766,82 +692,104 @@
           },
           "expr": "solar2_pv2_power",
           "legendFormat": "Logger 2 module 2",
-          "range": true,
-          "instant": false
+          "instant": false,
+          "range": true
         }
       ],
-      "title": "Power history",
-      "transformations": [
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Total DC",
-            "binary": {
-              "left": "Total L1",
-              "reducer": "sum",
-              "right": "Total L2"
-            },
-            "mode": "binary",
-            "reduce": {
-              "include": [
-                "Total L1",
-                "Total L2"
-              ],
-              "reducer": "lastNotNull"
-            },
-            "replaceFields": false
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "auto",
+            "spanNulls": false
           }
         },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Total AC",
-            "binary": {
-              "left": "AC Power L1",
-              "reducer": "sum",
-              "right": "AC Power L2"
-            },
-            "mode": "binary",
-            "reduce": {
-              "reducer": "sum"
-            }
-          }
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": false
-            },
-            "indexByName": {
-              "AC Power L1": 2,
-              "AC Power L2": 3,
-              "L1M1": 7,
-              "L1M2": 8,
-              "L2M1": 9,
-              "L2M2": 10,
-              "Time": 0,
-              "Total AC": 1,
-              "Total DC": 4,
-              "Total L1": 5,
-              "Total L2": 6
-            },
-            "renameByName": {}
-          }
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
         }
-      ],
-      "type": "timeseries"
+      },
+      "id": 7
     },
     {
+      "type": "gauge",
+      "title": "Module DC power",
       "datasource": {
         "type": "prometheus",
         "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
       },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "solar_m1",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "solar_pv1_power",
+          "legendFormat": "Logger 1 module 1",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "solar_m2",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "solar_pv2_power",
+          "legendFormat": "Logger 1 module 2",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "solar2_m1",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "solar2_pv1_power",
+          "legendFormat": "Logger 2 module 1",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "solar2_m2",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "solar2_pv2_power",
+          "legendFormat": "Logger 2 module 2",
+          "instant": true,
+          "range": false
+        }
+      ],
       "fieldConfig": {
         "defaults": {
-          "mappings": [],
-          "max": 400,
+          "unit": "watt",
           "min": 0,
+          "max": 400,
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
@@ -858,22 +806,11 @@
                 "value": 390
               }
             ]
-          },
-          "unit": "watt"
+          }
         },
         "overrides": []
       },
-      "gridPos": {
-        "x": 12,
-        "y": 8,
-        "w": 8,
-        "h": 8
-      },
-      "id": 8,
       "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -881,70 +818,54 @@
           "fields": "",
           "values": false
         },
+        "orientation": "auto",
         "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
+        "showThresholdMarkers": true
       },
-      "pluginVersion": "11.6.1",
-      "targets": [
-        {
-          "refId": "solar_m1",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-          },
-          "expr": "solar_pv1_power",
-          "legendFormat": "Logger 1 module 1",
-          "range": false,
-          "instant": true
-        },
-        {
-          "refId": "solar_m2",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-          },
-          "expr": "solar_pv2_power",
-          "legendFormat": "Logger 1 module 2",
-          "range": false,
-          "instant": true
-        },
-        {
-          "refId": "solar2_m1",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-          },
-          "expr": "solar2_pv1_power",
-          "legendFormat": "Logger 2 module 1",
-          "range": false,
-          "instant": true
-        },
-        {
-          "refId": "solar2_m2",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-          },
-          "expr": "solar2_pv2_power",
-          "legendFormat": "Logger 2 module 2",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "title": "Module DC power",
-      "type": "gauge"
+      "id": 8
     },
     {
+      "type": "gauge",
+      "title": "Temperature",
       "datasource": {
         "type": "prometheus",
         "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
       },
+      "gridPos": {
+        "x": 20,
+        "y": 8,
+        "w": 4,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "sum(solar_radiator_temp)",
+          "legendFormat": "Logger 1",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "sum(solar2_radiator_temp)",
+          "legendFormat": "Logger 2",
+          "instant": true,
+          "range": false
+        }
+      ],
       "fieldConfig": {
         "defaults": {
-          "mappings": [],
-          "max": 65,
+          "unit": "celsius",
           "min": -20,
+          "max": 65,
           "noValue": "All loggers offline",
           "thresholds": {
             "mode": "absolute",
@@ -961,22 +882,11 @@
                 "value": 60
               }
             ]
-          },
-          "unit": "celsius"
+          }
         },
         "overrides": []
       },
-      "gridPos": {
-        "x": 20,
-        "y": 8,
-        "w": 4,
-        "h": 8
-      },
-      "id": 9,
       "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -984,62 +894,18 @@
           "fields": "",
           "values": false
         },
+        "orientation": "auto",
         "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
+        "showThresholdMarkers": true
       },
-      "pluginVersion": "11.6.1",
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-          },
-          "expr": "sum(solar_radiator_temp)",
-          "legendFormat": "Logger 1",
-          "range": false,
-          "instant": true
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-          },
-          "expr": "sum(solar2_radiator_temp)",
-          "legendFormat": "Logger 2",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "title": "Temperature",
-      "type": "gauge"
+      "id": 9
     },
     {
+      "type": "bargauge",
+      "title": "Energy today",
       "datasource": {
         "type": "prometheus",
         "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd"
-          },
-          "mappings": [],
-          "min": 0,
-          "noValue": "All loggers offline",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              }
-            ]
-          },
-          "unit": "kwatth"
-        },
-        "overrides": []
       },
       "gridPos": {
         "x": 0,
@@ -1047,34 +913,18 @@
         "w": 12,
         "h": 11
       },
-      "id": 10,
-      "options": {
-        "displayMode": "lcd",
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "maxVizHeight": 300,
-        "minVizHeight": 10,
-        "minVizWidth": 0,
-        "namePlacement": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showUnfilled": true,
-        "sizing": "auto",
-        "text": {},
-        "valueMode": "color"
-      },
-      "pluginVersion": "11.6.1",
       "targets": [
+        {
+          "refId": "total",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "sum(last_over_time({__name__=~\"solar2?_day_energy\"}[12h]))",
+          "legendFormat": "Total",
+          "instant": true,
+          "range": false
+        },
         {
           "refId": "solar",
           "datasource": {
@@ -1083,8 +933,8 @@
           },
           "expr": "last_over_time(solar_day_energy[12h])",
           "legendFormat": "Logger 1",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "solar_m1",
@@ -1094,8 +944,8 @@
           },
           "expr": "last_over_time(solar_pv1_day_energy[12h])",
           "legendFormat": "Logger 1 module 1",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "solar_m2",
@@ -1105,8 +955,8 @@
           },
           "expr": "last_over_time(solar_pv2_day_energy[12h])",
           "legendFormat": "Logger 1 module 2",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "solar2",
@@ -1116,8 +966,8 @@
           },
           "expr": "last_over_time(solar2_day_energy[12h])",
           "legendFormat": "Logger 2",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "solar2_m1",
@@ -1127,8 +977,8 @@
           },
           "expr": "last_over_time(solar2_pv1_day_energy[12h])",
           "legendFormat": "Logger 2 module 1",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "solar2_m2",
@@ -1138,85 +988,18 @@
           },
           "expr": "last_over_time(solar2_pv2_day_energy[12h])",
           "legendFormat": "Logger 2 module 2",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         }
       ],
-      "title": "Energy today",
-      "transformations": [
-        {
-          "disabled": true,
-          "id": "reduce",
-          "options": {
-            "includeTimeField": false,
-            "labelsToFields": false,
-            "mode": "reduceFields",
-            "reducers": [
-              "lastNotNull"
-            ]
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Total",
-            "binary": {
-              "left": {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Total L1"
-                }
-              },
-              "right": {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Total L2"
-                }
-              }
-            },
-            "mode": "binary",
-            "reduce": {
-              "reducer": "sum"
-            },
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
-            },
-            "includeByName": {},
-            "indexByName": {
-              "L1M1": 4,
-              "L1M2": 5,
-              "L2M1": 6,
-              "L2M2": 7,
-              "Time": 0,
-              "Total": 1,
-              "Total L1": 2,
-              "Total L2": 3
-            },
-            "renameByName": {}
-          }
-        }
-      ],
-      "type": "bargauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-      },
       "fieldConfig": {
         "defaults": {
+          "unit": "kwatth",
+          "min": 0,
+          "noValue": "All loggers offline",
           "color": {
             "mode": "continuous-GrYlRd"
           },
-          "mappings": [],
-          "min": 0,
-          "noValue": "All loggers offline",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1224,31 +1007,11 @@
                 "color": "green"
               }
             ]
-          },
-          "unit": "kwatth"
+          }
         },
         "overrides": []
       },
-      "gridPos": {
-        "x": 12,
-        "y": 16,
-        "w": 12,
-        "h": 11
-      },
-      "id": 11,
       "options": {
-        "displayMode": "lcd",
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "maxVizHeight": 300,
-        "minVizHeight": 10,
-        "minVizWidth": 0,
-        "namePlacement": "auto",
-        "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -1256,22 +1019,48 @@
           "fields": "",
           "values": false
         },
+        "orientation": "horizontal",
+        "displayMode": "lcd",
         "showUnfilled": true,
-        "sizing": "auto",
         "valueMode": "color"
       },
-      "pluginVersion": "11.6.1",
+      "id": 10
+    },
+    {
+      "type": "bargauge",
+      "title": "Energy total",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 11
+      },
       "targets": [
+        {
+          "refId": "total",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
+          },
+          "expr": "sum(last_over_time({__name__=~\"solar2?_total_energy\"}[1y]))",
+          "legendFormat": "Total",
+          "instant": true,
+          "range": false
+        },
         {
           "refId": "solar",
           "datasource": {
             "type": "prometheus",
             "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
           },
-          "expr": "last_over_time(solar_total_energy[12h])",
+          "expr": "last_over_time(solar_total_energy[1y])",
           "legendFormat": "Logger 1",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "solar_m1",
@@ -1279,10 +1068,10 @@
             "type": "prometheus",
             "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
           },
-          "expr": "last_over_time(solar_pv1_total_energy[12h])",
+          "expr": "last_over_time(solar_pv1_total_energy[1y])",
           "legendFormat": "Logger 1 module 1",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "solar_m2",
@@ -1290,10 +1079,10 @@
             "type": "prometheus",
             "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
           },
-          "expr": "last_over_time(solar_pv2_total_energy[12h])",
+          "expr": "last_over_time(solar_pv2_total_energy[1y])",
           "legendFormat": "Logger 1 module 2",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "solar2",
@@ -1301,10 +1090,10 @@
             "type": "prometheus",
             "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
           },
-          "expr": "last_over_time(solar2_total_energy[12h])",
+          "expr": "last_over_time(solar2_total_energy[1y])",
           "legendFormat": "Logger 2",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "solar2_m1",
@@ -1312,10 +1101,10 @@
             "type": "prometheus",
             "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
           },
-          "expr": "last_over_time(solar2_pv1_total_energy[12h])",
+          "expr": "last_over_time(solar2_pv1_total_energy[1y])",
           "legendFormat": "Logger 2 module 1",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "solar2_m2",
@@ -1323,58 +1112,45 @@
             "type": "prometheus",
             "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
           },
-          "expr": "last_over_time(solar2_pv2_total_energy[12h])",
+          "expr": "last_over_time(solar2_pv2_total_energy[1y])",
           "legendFormat": "Logger 2 module 2",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         }
       ],
-      "title": "Energy total",
-      "transformations": [
-        {
-          "id": "reduce",
-          "options": {
-            "includeTimeField": false,
-            "mode": "reduceFields",
-            "reducers": [
-              "lastNotNull"
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "min": 0,
+          "noValue": "All loggers offline",
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
             ]
           }
         },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Total",
-            "binary": {
-              "left": "Total L1",
-              "reducer": "sum",
-              "right": "Total L2"
-            },
-            "mode": "binary",
-            "reduce": {
-              "reducer": "sum"
-            }
-          }
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "indexByName": {
-              "L1M1": 4,
-              "L1M2": 5,
-              "L2M1": 6,
-              "L2M2": 7,
-              "Time": 1,
-              "Total": 0,
-              "Total L1": 2,
-              "Total L2": 3
-            },
-            "renameByName": {}
-          }
-        }
-      ],
-      "type": "bargauge"
+        "orientation": "horizontal",
+        "displayMode": "lcd",
+        "showUnfilled": true,
+        "valueMode": "color"
+      },
+      "id": 11
     },
     {
       "type": "timeseries",
@@ -1383,9 +1159,12 @@
         "type": "prometheus",
         "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
       },
-      "timeFrom": "30d",
-      "interval": "1d",
-      "maxDataPoints": 400,
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 12,
+        "h": 9
+      },
       "targets": [
         {
           "refId": "A",
@@ -1395,8 +1174,8 @@
           },
           "expr": "max_over_time(solar_day_energy[1d] offset -1d)",
           "legendFormat": "Logger 1",
-          "range": true,
-          "instant": false
+          "instant": false,
+          "range": true
         },
         {
           "refId": "B",
@@ -1406,8 +1185,8 @@
           },
           "expr": "max_over_time(solar2_day_energy[1d] offset -1d)",
           "legendFormat": "Logger 2",
-          "range": true,
-          "instant": false
+          "instant": false,
+          "range": true
         }
       ],
       "fieldConfig": {
@@ -1421,12 +1200,11 @@
             "drawStyle": "bars",
             "fillOpacity": 80,
             "lineWidth": 1,
-            "barAlignment": 0,
+            "showPoints": "never",
             "stacking": {
               "mode": "normal",
               "group": "A"
             },
-            "showPoints": "never",
             "spanNulls": false
           }
         },
@@ -1443,12 +1221,9 @@
           "sort": "none"
         }
       },
-      "gridPos": {
-        "x": 0,
-        "y": 27,
-        "w": 12,
-        "h": 9
-      },
+      "timeFrom": "30d",
+      "interval": "1d",
+      "maxDataPoints": 400,
       "id": 12
     },
     {
@@ -1458,9 +1233,12 @@
         "type": "prometheus",
         "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
       },
-      "timeFrom": "1y",
-      "interval": "1d",
-      "maxDataPoints": 400,
+      "gridPos": {
+        "x": 12,
+        "y": 27,
+        "w": 8,
+        "h": 9
+      },
       "targets": [
         {
           "refId": "A",
@@ -1470,39 +1248,8 @@
           },
           "expr": "sum(max_over_time({__name__=~\"solar2?_day_energy\"}[1d] offset -1d))",
           "legendFormat": "Energy",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "transformations": [
-        {
-          "id": "convertFieldType",
-          "options": {
-            "conversions": [
-              {
-                "targetField": "Time",
-                "destinationType": "string",
-                "dateFormat": "YYYY-MM"
-              }
-            ]
-          }
-        },
-        {
-          "id": "groupBy",
-          "options": {
-            "fields": {
-              "Time": {
-                "operation": "groupby",
-                "aggregations": []
-              },
-              "Energy": {
-                "operation": "aggregate",
-                "aggregations": [
-                  "sum"
-                ]
-              }
-            }
-          }
+          "instant": false,
+          "range": true
         }
       ],
       "fieldConfig": {
@@ -1538,36 +1285,48 @@
           "sort": "none"
         }
       },
-      "gridPos": {
-        "x": 12,
-        "y": 27,
-        "w": 8,
-        "h": 9
-      },
+      "timeFrom": "1y",
+      "interval": "1d",
+      "maxDataPoints": 400,
+      "transformations": [
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "Time",
+                "destinationType": "string",
+                "dateFormat": "YYYY-MM"
+              }
+            ]
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "Time": {
+                "operation": "groupby",
+                "aggregations": []
+              },
+              "Energy": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "sum"
+                ]
+              }
+            }
+          }
+        }
+      ],
       "id": 13
     },
     {
+      "type": "stat",
+      "title": "Best day, last 365 days",
       "datasource": {
         "type": "prometheus",
         "uid": "b25e598e-a1d1-4092-832c-2da8afcc42e1"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              }
-            ]
-          },
-          "unit": "kwatth"
-        },
-        "overrides": []
       },
       "gridPos": {
         "x": 20,
@@ -1575,25 +1334,6 @@
         "w": 4,
         "h": 9
       },
-      "id": 14,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "vertical",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "max"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.6.1",
       "targets": [
         {
           "refId": "A",
@@ -1603,8 +1343,8 @@
           },
           "expr": "max_over_time(solar_day_energy[1y])",
           "legendFormat": "Logger 1",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         },
         {
           "refId": "B",
@@ -1614,40 +1354,41 @@
           },
           "expr": "max_over_time(solar2_day_energy[1y])",
           "legendFormat": "Logger 2",
-          "range": false,
-          "instant": true
+          "instant": true,
+          "range": false
         }
       ],
-      "title": "Best day, last 365 days",
-      "transformations": [
-        {
-          "id": "reduce",
-          "options": {
-            "includeTimeField": false,
-            "mode": "reduceFields",
-            "reducers": [
-              "lastNotNull"
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
             ]
           }
-        }
-      ],
-      "type": "stat"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "vertical",
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "id": 14
     }
-  ],
-  "preload": false,
-  "refresh": "30s",
-  "schemaVersion": 41,
-  "tags": [],
-  "templating": {
-    "list": []
-  },
-  "time": {
-    "from": "now-6h",
-    "to": "now"
-  },
-  "timepicker": {},
-  "timezone": "",
-  "title": "Solar Dashboard",
-  "uid": "cc189c3b-7b6a-445b-9c26-40c68ee311b8",
-  "version": 1
+  ]
 }
