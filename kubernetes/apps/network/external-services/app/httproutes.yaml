@@ -37,14 +37,6 @@ items:
       rules:
         - {matches: *root, backendRefs: [{<<: *ref, name: containernursery}]}
   - <<: *route
-    metadata: {name: guacamole}
-    spec:
-      hostnames:
-        - "remote.${SECRET_DOMAIN}"
-      parentRefs: *external
-      rules:
-        - {matches: *root, backendRefs: [{<<: *ref, name: guacamole}]}
-  - <<: *route
     metadata:
       name: paperless
       annotations:

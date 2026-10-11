@@ -19,9 +19,6 @@ items:
     metadata: {name: duplicacy}
     spec: {endpoints: [{ip: {address: *unraid, port: 13875}}]}
   - <<: *backend
-    metadata: {name: guacamole}
-    spec: {endpoints: [{ip: {address: *unraid, port: 8880}}]}
-  - <<: *backend
     metadata: {name: openspeedtest}
     spec: {endpoints: [{ip: {address: *unraid, port: 3001}}]}
   - <<: *backend
