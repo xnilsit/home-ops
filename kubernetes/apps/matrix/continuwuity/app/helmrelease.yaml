@@ -72,11 +72,10 @@ spec:
               limits:
                 memory: 3Gi
     defaultPodOptions:
-      # The kubelet's resolv.conf also lists fd2e:9a41:6b8c:4300::a, which
-      # nothing answers - kube-dns is single-stack IPv4. musl and glibc shrug
-      # that off; continuwuity's hickory resolver times the whole lookup out,
-      # which stalls federation and every appservice request. ndots 1, since
-      # nearly every name it resolves is a remote homeserver.
+      # ndots 1, since nearly every name it resolves is a remote homeserver:
+      # the default 5 would walk the three cluster search domains first on
+      # every federation lookup. One nameserver, so hickory has nothing to
+      # time out on if the second kube-dns family ever stops answering.
       dnsPolicy: None
       dnsConfig:
         nameservers:
