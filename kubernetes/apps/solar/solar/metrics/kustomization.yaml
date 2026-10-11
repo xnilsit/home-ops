@@ -11,12 +11,16 @@ configMapGenerator:
   - name: vmsolar-scrape
     files:
       - scrape.yaml=./resources/scrape.yaml
+    options:
+      # Named in VMSingle.spec.configMaps, which kustomize does not rewrite.
+      disableNameSuffixHash: true
   - name: solar-dashboard
     files:
       - solar-dashboard.json=./resources/solar-dashboard.json
     options:
       annotations:
-        # Panel math references $A and $B.
+        # Panel math references $TOTAL.
         kustomize.toolkit.fluxcd.io/substitute: disabled
-generatorOptions:
-  disableNameSuffixHash: true
+configurations:
+  # Propagates the generated name hash into GrafanaDashboard.spec.configMapRef.
+  - ./kustomizeconfig.yaml
