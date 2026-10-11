@@ -231,6 +231,31 @@ spec:
           query: time() - node_boot_time_seconds{instance="192.168.1.103:9100"}
           valueExpr: humanizeDuration(result)
           colorExpr: '"blue"'
+        - id: kube-wrk-01_status
+          icon: mdi:server
+          query: max(kube_node_status_condition{condition="Ready",status="true",node="kube-wrk-01"})
+          valueExpr: 'result == 1.0 ? "Ready" : "NotReady"'
+          colorExpr: 'result == 1.0 ? "brightgreen" : "red"'
+        - id: kube-wrk-01_cpu
+          icon: mdi:cpu-64-bit
+          query: round((1 - avg(rate(node_cpu_seconds_total{mode="idle",instance="192.168.1.111:9100"}[5m]))) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        - id: kube-wrk-01_memory
+          icon: mdi:memory
+          query: round((1 - sum(node_memory_MemAvailable_bytes{instance="192.168.1.111:9100"}) / sum(node_memory_MemTotal_bytes{instance="192.168.1.111:9100"})) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        - id: kube-wrk-01_storage
+          icon: mdi:harddisk
+          query: round((1 - sum(node_filesystem_avail_bytes{fstype="xfs",instance="192.168.1.111:9100"}) / sum(node_filesystem_size_bytes{fstype="xfs",instance="192.168.1.111:9100"})) * 100, 0.1)
+          valueExpr: humanizeFloat(result) + "%"
+          colorExpr: *percentColor
+        - id: kube-wrk-01_uptime
+          icon: mdi:timer-outline
+          query: time() - node_boot_time_seconds{instance="192.168.1.111:9100"}
+          valueExpr: humanizeDuration(result)
+          colorExpr: '"blue"'
       graphs:
         - id: cpu_usage
           title: CPU usage per node
