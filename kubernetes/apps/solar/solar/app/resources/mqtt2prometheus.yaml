@@ -196,3 +196,14 @@ metrics:
     type: gauge
     const_labels:
       sensor_type: SUN800
+  - prom_name: solar_logger_online
+    mqtt_name: solar/logger_status
+    help: Logger reachable by deye-inverter-mqtt (1) or not (0)
+    type: gauge
+    const_labels:
+      sensor_type: SUN800
+    string_value_mapping:
+      map:
+        online: 1
+        offline: 0
+      error_value: 0
