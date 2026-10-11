@@ -40,14 +40,14 @@ spec:
             args:
               - --config=/config/livekit.yaml
             env:
-              # The WAN address, for ICE. Optional so a first deploy starts
-              # before the tracker has published anything.
+              # The WAN address, for ICE. Not optional - app-template's schema
+              # rejects that - so on a fresh cluster the pod waits in
+              # CreateContainerConfigError until the tracker's first write.
               NODE_IP:
                 valueFrom:
                   configMapKeyRef:
                     name: livekit-node-ip
                     key: NODE_IP
-                    optional: true
               LIVEKIT_KEYS:
                 valueFrom:
                   secretKeyRef:

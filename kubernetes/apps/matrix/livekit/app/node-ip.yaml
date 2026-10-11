@@ -7,8 +7,8 @@ metadata:
   annotations:
     # Written by the tracker below; shipped only so there is something to patch.
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
-# No keys on purpose: LiveKit reads NODE_IP as optional, and an absent key
-# leaves the variable unset rather than empty.
+# No keys on purpose: LiveKit holds in CreateContainerConfigError until the
+# tracker writes NODE_IP, rather than starting with a wrong address.
 data: {}
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/serviceaccount-v1.json
