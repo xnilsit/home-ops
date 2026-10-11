@@ -4,18 +4,54 @@
 # plus a short connect timeout, so a powered-down LAN box fails fast instead of
 # hanging. mergeType keeps the gateway-wide compression/retry policy from
 # envoy-gateway/app/envoy.yaml in effect for these routes.
-apiVersion: gateway.envoyproxy.io/v1alpha1
-kind: BackendTrafficPolicy
-metadata:
-  name: external-services
-spec:
-  mergeType: StrategicMerge
-  targetSelectors:
-    - group: gateway.networking.k8s.io
-      kind: HTTPRoute
-      matchLabels: {app.kubernetes.io/part-of: external-services}
-      matchExpressions:
-        - {key: external-services.home-ops/no-circuit-breaker, operator: DoesNotExist}
-  healthCheck:
-    passive: {interval: 5s, baseEjectionTime: 30s, consecutive5XxErrors: 5, consecutiveGatewayErrors: 3, maxEjectionPercent: 100, alwaysEjectOneEndpoint: true}
-  timeout: {tcp: {connectTimeout: 3s}}
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: gateway.envoyproxy.io/v1alpha1
+    kind: BackendTrafficPolicy
+    metadata:
+      name: external-services
+    spec:
+      mergeType: StrategicMerge
+      targetSelectors:
+        - group: gateway.networking.k8s.io
+          kind: HTTPRoute
+          matchLabels: {app.kubernetes.io/part-of: external-services}
+          matchExpressions:
+            - {key: external-services.home-ops/no-circuit-breaker, operator: DoesNotExist}
+            - {key: external-services.home-ops/own-traffic-policy, operator: DoesNotExist}
+      healthCheck: &healthCheck
+        passive: {interval: 5s, baseEjectionTime: 30s, consecutive5XxErrors: 5, consecutiveGatewayErrors: 3, maxEjectionPercent: 100, alwaysEjectOneEndpoint: true}
+      timeout: &timeout {tcp: {connectTimeout: 3s}}
+  # Unshared limit, so a client looping on the webgui keeps its budget elsewhere.
+  - apiVersion: gateway.envoyproxy.io/v1alpha1
+    kind: BackendTrafficPolicy
+    metadata:
+      name: unraid
+    spec:
+      # JSONMerge replaces the gateway's shared rate limit rules.
+      mergeType: JSONMerge
+      targetRefs:
+        - group: gateway.networking.k8s.io
+          kind: HTTPRoute
+          name: unraid
+      healthCheck: *healthCheck
+      timeout: *timeout
+      rateLimit:
+        type: Global
+        global:
+          rules:
+            - clientSelectors:
+                - sourceCIDR:
+                    type: Distinct
+                    value: 0.0.0.0/0
+              limit:
+                requests: 1200
+                unit: Minute
+            - clientSelectors:
+                - sourceCIDR:
+                    type: Distinct
+                    value: ::/0
+              limit:
+                requests: 1200
+                unit: Minute

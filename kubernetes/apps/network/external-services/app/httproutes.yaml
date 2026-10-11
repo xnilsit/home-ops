@@ -167,6 +167,8 @@ items:
   - <<: *route
     metadata:
       name: unraid
+      # BackendTrafficPolicy/unraid in ./policies.yaml carries its circuit breaker.
+      labels: {external-services.home-ops/own-traffic-policy: "true"}
       annotations:
         # / 302s to /Main, which is itself a redirect for an unauthenticated client.
         gatus.home-operations.com/endpoint: |
