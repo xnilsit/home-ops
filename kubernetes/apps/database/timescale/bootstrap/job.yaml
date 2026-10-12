@@ -22,8 +22,8 @@ spec:
       initContainers:
         - name: psql
           # Same operand image as the cluster, so the client major always
-          # matches the server. Ships psql 18.
-          image: &image ghcr.io/cloudnative-pg/postgresql:18-minimal-trixie
+          # matches the server.
+          image: &image ghcr.io/cloudnative-pg/postgresql:${PG_IMAGE_TAG}
           command:
             - psql
           args:
