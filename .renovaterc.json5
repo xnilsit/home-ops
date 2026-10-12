@@ -130,6 +130,16 @@
         commitMessageTopic: "{{{groupName}}} group",
       },
     },
+    {
+      description: "Scanopy Group: server and daemon images must match",
+      groupName: "scanopy",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["ghcr.io/scanopy/scanopy/server", "ghcr.io/scanopy/scanopy/daemon"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+      minimumGroupSize: 2,
+    },
     // ---------------------------------------------------------------------
     // Disabled lookups
     // ---------------------------------------------------------------------
