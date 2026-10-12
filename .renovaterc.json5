@@ -168,6 +168,17 @@
       },
       minimumGroupSize: 2,
     },
+    {
+      description: "VictoriaMetrics Group: the k8s-stack chart and the pinned vmsolar image",
+      groupName: "victoria-metrics",
+      matchPackageNames: [
+        "ghcr.io/victoriametrics/helm-charts/victoria-metrics-k8s-stack",
+        "docker.io/victoriametrics/victoria-metrics",
+      ],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
     // ---------------------------------------------------------------------
     // Disabled lookups
     // ---------------------------------------------------------------------
