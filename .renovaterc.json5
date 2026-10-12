@@ -15,6 +15,16 @@
     enabled: true,
     schedule: ["every weekend"],
   },
+  // Images pulled through the apoci cache are looked up at their origin
+  registryAliases: {
+    "registry.nilsit.de/docker.io": "docker.io",
+    "registry.nilsit.de/ghcr.io": "ghcr.io",
+    "registry.nilsit.de/quay.io": "quay.io",
+    "registry.nilsit.de/mirror.gcr.io": "mirror.gcr.io",
+    "registry.nilsit.de/dock.mau.dev": "dock.mau.dev",
+    "registry.nilsit.de/git.sable.moe": "git.sable.moe",
+    "registry.nilsit.de/forgejo.ellis.link": "forgejo.ellis.link",
+  },
   customManagers: [
     {
       description: "Spegel dashboard, the tag sits inside the raw.githubusercontent URL",

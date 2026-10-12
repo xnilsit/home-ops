@@ -19,7 +19,7 @@ spec:
         initContainers:
           seed-storage:
             image:
-              repository: docker.io/mauriceboe/trek
+              repository: registry.nilsit.de/docker.io/mauriceboe/trek
               tag: &tag 4.3.3
             # TREK imports this file exactly once - on the first boot with no
             # stored storage configuration - and ignores it afterwards, when
@@ -92,7 +92,7 @@ spec:
         containers:
           app:
             image:
-              repository: docker.io/mauriceboe/trek
+              repository: registry.nilsit.de/docker.io/mauriceboe/trek
               tag: *tag
             # The image's own CMD, minus its `gosu node`: gosu calls setgroups,
             # which needs CAP_SETGID, and the pod already runs as node. Only

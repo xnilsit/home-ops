@@ -28,7 +28,7 @@ spec:
         containers:
           app:
             image:
-              repository: ghcr.io/immich-app/immich-server
+              repository: registry.nilsit.de/ghcr.io/immich-app/immich-server
               tag: &serverTag v3.3.1
             env:
               DB_HOSTNAME: &dbHost immich-rw
@@ -95,7 +95,7 @@ spec:
         containers:
           app:
             image:
-              repository: ghcr.io/immich-app/immich-server
+              repository: registry.nilsit.de/ghcr.io/immich-app/immich-server
               tag: *serverTag
             env:
               DB_HOSTNAME: *dbHost
@@ -145,7 +145,7 @@ spec:
         containers:
           app:
             image:
-              repository: ghcr.io/immich-app/immich-server
+              repository: registry.nilsit.de/ghcr.io/immich-app/immich-server
               tag: *serverTag
             env:
               DB_HOSTNAME: *dbHost
@@ -192,7 +192,7 @@ spec:
         containers:
           app:
             image:
-              repository: ghcr.io/immich-app/immich-machine-learning
+              repository: registry.nilsit.de/ghcr.io/immich-app/immich-machine-learning
               # Moves in lockstep with the server tag above, Renovate bumps it
               # from the immich-app/immich GitHub releases (see .renovaterc.json5).
               tag: v3.3.1-openvino

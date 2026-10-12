@@ -32,7 +32,7 @@ spec:
         initContainers:
           config:
             image: &image
-              repository: docker.io/f0rc3/gokapi
+              repository: registry.nilsit.de/docker.io/f0rc3/gokapi
               tag: v2.2.4
             # Replaces the interactive first-run setup, which only ever writes config.json.
             command:

@@ -19,7 +19,7 @@ spec:
         containers:
           app:
             image:
-              repository: docker.io/moby/buildkit
+              repository: registry.nilsit.de/docker.io/moby/buildkit
               tag: v0.34.0-rootless
             args:
               - "--addr"

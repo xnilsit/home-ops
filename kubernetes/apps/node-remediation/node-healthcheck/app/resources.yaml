@@ -902,7 +902,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-          image: quay.io/medik8s/node-healthcheck-operator:v5.8.0
+          image: registry.nilsit.de/quay.io/medik8s/node-healthcheck-operator:v5.8.0
           lifecycle:
             postStart:
               exec:

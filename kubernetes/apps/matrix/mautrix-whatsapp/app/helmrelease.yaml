@@ -19,7 +19,7 @@ spec:
         containers:
           app:
             image:
-              repository: dock.mau.dev/mautrix/whatsapp
+              repository: registry.nilsit.de/dock.mau.dev/mautrix/whatsapp
               tag: v0.2609.0
             command:
               - /usr/bin/mautrix-whatsapp

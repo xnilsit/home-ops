@@ -35,7 +35,7 @@ spec:
         containers:
           app:
             image:
-              repository: docker.io/livekit/livekit-server
+              repository: registry.nilsit.de/docker.io/livekit/livekit-server
               tag: v1.13.9
             args:
               - --config=/config/livekit.yaml
@@ -81,7 +81,7 @@ spec:
         containers:
           app:
             image:
-              repository: ghcr.io/element-hq/lk-jwt-service
+              repository: registry.nilsit.de/ghcr.io/element-hq/lk-jwt-service
               tag: 0.8.0
             env:
               LIVEKIT_URL: wss://livekit.${SECRET_DOMAIN}

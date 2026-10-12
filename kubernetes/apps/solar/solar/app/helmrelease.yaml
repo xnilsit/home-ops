@@ -75,7 +75,7 @@ spec:
         containers:
           app:
             image: &deyeImage
-              repository: ghcr.io/kbialek/deye-inverter-mqtt
+              repository: registry.nilsit.de/ghcr.io/kbialek/deye-inverter-mqtt
               tag: 2026.10.1
             env:
               <<: &deyeEnv
@@ -116,7 +116,7 @@ spec:
         containers:
           app:
             image: &exporterImage
-              repository: ghcr.io/hikhvar/mqtt2prometheus
+              repository: registry.nilsit.de/ghcr.io/hikhvar/mqtt2prometheus
               tag: v0.1.8-RC2
             args:
               - "-config"

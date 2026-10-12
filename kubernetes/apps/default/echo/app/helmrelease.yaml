@@ -15,7 +15,7 @@ spec:
         containers:
           app:
             image:
-              repository: ghcr.io/mendhak/http-https-echo
+              repository: registry.nilsit.de/ghcr.io/mendhak/http-https-echo
               tag: 42
             env:
               HTTP_PORT: &port 80

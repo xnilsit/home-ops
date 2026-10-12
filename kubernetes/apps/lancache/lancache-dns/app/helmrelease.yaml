@@ -23,7 +23,7 @@ spec:
             image:
               # lancachenet publish no versioned tags and nothing on GHCR, so
               # the digest is the only pin Renovate can move.
-              repository: docker.io/lancachenet/lancache-dns
+              repository: registry.nilsit.de/docker.io/lancachenet/lancache-dns
               tag: latest@sha256:6e046a40e9f0467b1df97ca2ba9b8b7c0d4404736a349c0f8df11fa212871a03
             env:
               # Both or neither: dnstool exits fatally if one is set alone.
