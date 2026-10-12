@@ -41,6 +41,13 @@ spec:
       #
       # renovate: datasource=docker depName=ghcr.io/ferretdb/postgres-documentdb versioning=regex:^17-\d+\.\d+\.\d+-ferretdb-(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$
       PG_IMAGE_TAG: 17-0.107.0-ferretdb-2.7.0
+      PG_CPU_REQUEST: 25m
+      PG_MEMORY_REQUEST: 128Mi
+      PG_MEMORY_LIMIT: 512Mi
+      PG_SHARED_BUFFERS: 64MB
+      PG_EFFECTIVE_CACHE_SIZE: 192MB
+      PG_WORK_MEM: 4MB
+      PG_MAINTENANCE_WORK_MEM: 64MB
   healthChecks:
     - apiVersion: postgresql.cnpg.io/v1
       kind: Cluster
