@@ -1,0 +1,248 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: apoci
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: apoci
+  interval: 1h
+  values:
+    controllers:
+      apoci:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # Upload sessions, GC and delivery queues are per-process; a chunk on another pod kills the push.
+        replicas: 1
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: git.ow-ops.eu/ow-ops/apoci
+              tag: 0.0.57
+            env:
+              APOCI_REGISTRY_TOKEN:
+                valueFrom:
+                  secretKeyRef:
+                    name: &secret apoci-secret
+                    key: APOCI_REGISTRY_TOKEN
+              APOCI_ADMIN_TOKEN:
+                valueFrom:
+                  secretKeyRef:
+                    name: *secret
+                    key: APOCI_ADMIN_TOKEN
+              APOCI_DB_DSN:
+                valueFrom:
+                  secretKeyRef:
+                    name: apoci-pg-shared
+                    key: uri
+              APOCI_STORAGE_S3_BUCKET:
+                valueFrom:
+                  configMapKeyRef:
+                    name: &bucket apoci
+                    key: BUCKET_NAME
+              APOCI_STORAGE_S3_ACCESS_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: *bucket
+                    key: AWS_ACCESS_KEY_ID
+              APOCI_STORAGE_S3_SECRET_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: *bucket
+                    key: AWS_SECRET_ACCESS_KEY
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: &port 5000
+                  periodSeconds: 30
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness:
+                <<: *probes
+                spec:
+                  httpGet:
+                    path: /readyz
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              # Covers the schema migrations on start.
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: *port
+                  periodSeconds: 5
+                  failureThreshold: 60
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                memory: 1Gi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    configMaps:
+      config:
+        data:
+          # Rendered through tpl, so no Go template syntax. Secrets arrive as APOCI_* env vars.
+          apoci.yaml: |
+            endpoint: https://registry.${SECRET_DOMAIN}
+            accountDomain: ${SECRET_DOMAIN}
+            listen: ":5000"
+            dataDir: /apoci/storage
+            keyPath: /apoci/keys/ap.key
+            logFormat: json
+
+            database:
+              driver: postgres
+              # Behind the transaction-mode pooler, so keep the client side small.
+              maxOpenConns: 10
+              maxIdleConns: 5
+
+            storage:
+              type: s3
+              s3:
+                region: us-east-1
+                endpoint: http://rook-ceph-rgw-ceph-objectstore.rook-ceph.svc
+                forcePathStyle: true
+                tempDir: /apoci/uploads
+
+            limits:
+              # Mirrored images carry layers past the 512 MiB default.
+              maxBlobSize: 2147483648
+
+            rateLimits:
+              # Envoy pods, whose X-Forwarded-For carries the real client.
+              trustedProxies:
+                - 10.42.0.0/16
+                - fd2e:9a41:6b8c:4200::/56
+
+            metrics:
+              enabled: true
+              listen: ":9090"
+
+            ui:
+              enabled: true
+
+            # Pulled as registry.${SECRET_DOMAIN}/<name>/<repo>:<tag>. private
+            # makes the registry token a requirement before anything is fetched.
+            upstreams:
+              enabled: true
+              fetchTimeout: 60s
+              registries:
+                - name: docker.io
+                  endpoint: https://registry-1.docker.io
+                  private: true
+                - name: ghcr.io
+                  endpoint: https://ghcr.io
+                  private: true
+                - name: quay.io
+                  endpoint: https://quay.io
+                  private: true
+                - name: registry.k8s.io
+                  endpoint: https://registry.k8s.io
+                  private: true
+                - name: mirror.gcr.io
+                  endpoint: https://mirror.gcr.io
+                  private: true
+                - name: gcr.io
+                  endpoint: https://gcr.io
+                  private: true
+                - name: public.ecr.aws
+                  endpoint: https://public.ecr.aws
+                  private: true
+                - name: codeberg.org
+                  endpoint: https://codeberg.org
+                  private: true
+                - name: dock.mau.dev
+                  endpoint: https://dock.mau.dev
+                  private: true
+                - name: git.sable.moe
+                  endpoint: https://git.sable.moe
+                  private: true
+                - name: forgejo.ellis.link
+                  endpoint: https://forgejo.ellis.link
+                  private: true
+                - name: git.ow-ops.eu
+                  endpoint: https://git.ow-ops.eu
+                  private: true
+    persistence:
+      config:
+        type: configMap
+        identifier: config
+        globalMounts:
+          - path: /apoci/config
+            readOnly: true
+      keys:
+        type: secret
+        name: *secret
+        defaultMode: 0440
+        items:
+          - key: ap.key
+            path: ap.key
+        globalMounts:
+          - path: /apoci/keys
+            readOnly: true
+      storage:
+        type: emptyDir
+        globalMounts:
+          - path: /apoci/storage
+      # Chunked pushes are staged here before they go to the bucket.
+      uploads:
+        type: emptyDir
+        sizeLimit: 10Gi
+        globalMounts:
+          - path: /apoci/uploads
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+    service:
+      app:
+        controller: apoci
+        ports:
+          http:
+            port: *port
+          metrics:
+            port: 9090
+    serviceMonitor:
+      app:
+        endpoints:
+          - port: metrics
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /healthz
+        hostnames:
+          - "registry.${SECRET_DOMAIN}"
+        # envoy-external-direct: the tunnel caps request bodies at 100 MB.
+        parentRefs:
+          - name: envoy-external-direct
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port

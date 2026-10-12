@@ -26,6 +26,16 @@
       datasourceTemplate: "github-releases",
     },
     {
+      description: "apoci dashboard, the tag sits inside the Forgejo raw URL",
+      customType: "regex",
+      managerFilePatterns: ["/kubernetes/apps/apoci/apoci/app/grafanadashboard\\.yaml$/"],
+      matchStrings: [
+        "git\\.ow-ops\\.eu/(?<depName>ow-ops/apoci)/raw/tag/(?<currentValue>v[^/]+)/",
+      ],
+      datasourceTemplate: "forgejo-tags",
+      registryUrlTemplate: "https://git.ow-ops.eu",
+    },
+    {
       description: "Annotated dependencies with a trailing versioning=, which the preset's annotation regex does not match",
       customType: "regex",
       managerFilePatterns: ["/\\.ya?ml$/"],
@@ -118,6 +128,14 @@
       description: "Spegel Group: the helm chart and the dashboard pinned to the matching tag",
       groupName: "spegel",
       matchPackageNames: ["ghcr.io/spegel-org/helm-charts/spegel", "spegel-org/spegel"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
+    {
+      description: "apoci Group: the image and the dashboard pinned to the matching tag",
+      groupName: "apoci",
+      matchPackageNames: ["git.ow-ops.eu/ow-ops/apoci", "ow-ops/apoci"],
       group: {
         commitMessageTopic: "{{{groupName}}} group",
       },
