@@ -18,7 +18,7 @@ spec:
       # master is never promoted.
       priorityClassName: cluster-platform
       image:
-        repository: ghcr.io/dragonflydb/operator
+        repository: registry.nilsit.de/ghcr.io/dragonflydb/operator
     rbacProxy:
       enabled: false
     serviceMonitor:

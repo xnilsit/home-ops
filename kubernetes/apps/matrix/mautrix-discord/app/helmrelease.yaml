@@ -21,7 +21,7 @@ spec:
           # merged into a copy of the ConfigMap with the yq the image ships.
           config:
             image: &image
-              repository: dock.mau.dev/mautrix/discord
+              repository: registry.nilsit.de/dock.mau.dev/mautrix/discord
               tag: v0.7.7
             command:
               - /bin/sh

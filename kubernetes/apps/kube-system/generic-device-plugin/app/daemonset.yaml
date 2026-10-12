@@ -51,7 +51,7 @@ spec:
         - name: generic-device-plugin
           # Upstream publishes only `latest` and git SHAs - no semver - so this
           # is pinned by SHA tag and has to be bumped by hand.
-          image: docker.io/squat/generic-device-plugin:2cc50b0
+          image: registry.nilsit.de/docker.io/squat/generic-device-plugin:2cc50b0
           args:
             - --domain=squat.ai
             - --device

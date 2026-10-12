@@ -30,7 +30,7 @@ spec:
           # Browsers upload attachments straight to the bucket with a presigned POST.
           cors:
             image:
-              repository: docker.io/amazon/aws-cli
+              repository: registry.nilsit.de/docker.io/amazon/aws-cli
               tag: 2.37.12
             args:
               - s3api
@@ -65,7 +65,7 @@ spec:
         containers:
           app:
             image:
-              repository: docker.io/outlinewiki/outline
+              repository: registry.nilsit.de/docker.io/outlinewiki/outline
               tag: 1.11.0
             env:
               URL: https://outline.${SECRET_DOMAIN}

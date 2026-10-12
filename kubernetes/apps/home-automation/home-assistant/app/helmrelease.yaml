@@ -30,7 +30,7 @@ spec:
             # it" with "the upgrade broke it"; bump in its own PR once the
             # cutover is verified.
             image:
-              repository: ghcr.io/home-operations/home-assistant
+              repository: registry.nilsit.de/ghcr.io/home-operations/home-assistant
               tag: 2026.10.1
             env:
               TZ: ${TIMEZONE}

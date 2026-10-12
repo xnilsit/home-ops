@@ -69,7 +69,7 @@ spec:
       containers:
         - name: app
           # Alpine with kubectl, curl and jq already in it, like ipv6-prefix-tracker.
-          image: mirror.gcr.io/alpine/k8s:1.37.1
+          image: registry.nilsit.de/mirror.gcr.io/alpine/k8s:1.37.1
           command:
             - "/bin/sh"
             - "/script/node-ip.sh"
