@@ -14,7 +14,7 @@ spec:
     githubConfigSecret: home-ops-runner-github-app
     # The runs-on label.
     runnerScaleSetName: home-ops-runner
-    minRunners: 2
+    minRunners: 3
     maxRunners: 6
     # Explicit so rendering skips the chart's cluster lookup.
     controllerServiceAccount:
