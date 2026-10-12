@@ -32,8 +32,6 @@ spec:
     remediation:
       retries: 3
   values:
-    fullnameOverride: "vm-operator-crds"
-
     crds:
       enabled: true
       # plain == false results in CRDs being rendered as templates which allows them to be upgraded
