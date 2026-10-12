@@ -34,51 +34,10 @@ jobs:
             kubernetes/**
             .github/workflows/flate.yaml
 
-  test:
-    name: Flate Test
-    needs: pre-job
-    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'home-ops-runner' }}
-    permissions:
-      contents: read
-    if: ${{ needs.pre-job.outputs.any_changed == 'true' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      # S3 on RGW on home-ops-runner; GitHub cache on hosted runners.
-      - name: Restore flate cache
-        uses: runs-on/cache@88d90644011a3a9957fd141a106f5a94f9794203 # v5.0.7
-        with:
-          path: ${{ runner.temp }}/flate
-          key: flate-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            flate-${{ runner.os }}-${{ runner.arch }}-
-
-      # base: "" keeps the test full-tree; the action's default would narrow it
-      # to the change filter, which can miss a shared component or root patch
-      - name: Setup flate
-        uses: home-operations/flate/action@631b76b69c4e58c6f4d1cb01e23616fa61aebafa # v0.6.5
-        with:
-          base: ""
-          cache: false
-
-      - name: Run flate test
-        run: |
-          set -uo pipefail
-          rc=0
-          flate test all --path ./kubernetes | tee test.log || rc=$?
-          {
-            echo '### flate test'
-            echo '```'
-            cat test.log
-            echo '```'
-          } >> "${GITHUB_STEP_SUMMARY}"
-          exit "${rc}"
-
-  diff:
-    name: Flate Diff
+  # Test and diff share one job so the checkout, cache restore, and flate
+  # install happen once per PR instead of twice
+  flate:
+    name: Flate Test & Diff
     needs: pre-job
     runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'home-ops-runner' }}
     permissions:
@@ -95,13 +54,30 @@ jobs:
           persist-credentials: false
 
       # S3 on RGW on home-ops-runner; GitHub cache on hosted runners.
+      # Keyed on what fills the cache (source definitions, plus this file for
+      # the flate version), so an exact hit skips the save. baselines holds
+      # per-SHA checkouts of main and is stale by the next run.
       - name: Restore flate cache
         uses: runs-on/cache@88d90644011a3a9957fd141a106f5a94f9794203 # v5.0.7
         with:
-          path: ${{ runner.temp }}/flate
-          key: flate-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/flate
+            ${{ runner.temp }}/flate-bin
+            !${{ runner.temp }}/flate/baselines
+          key: flate-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/flate.yaml', 'kubernetes/flux/**', 'kubernetes/**/ocirepository.yaml') }}
           restore-keys: |
             flate-${{ runner.os }}-${{ runner.arch }}-
+
+      # The binary dir is keyed on this file so a flate bump never reuses a
+      # stale binary; drop the ones a prefix restore brought along
+      - name: Prune stale flate binaries
+        env:
+          FLATE_BIN: ${{ hashFiles('.github/workflows/flate.yaml') }}
+        run: |
+          set -euo pipefail
+          if [[ -d "${RUNNER_TEMP}/flate-bin" ]]; then
+            find "${RUNNER_TEMP}/flate-bin" -mindepth 1 -maxdepth 1 ! -name "${FLATE_BIN}" -exec rm -rf {} +
+          fi
 
       # base exports FLATE_BASE, which flate diff picks up as --base
       - name: Setup flate
@@ -109,6 +85,7 @@ jobs:
         uses: home-operations/flate/action@631b76b69c4e58c6f4d1cb01e23616fa61aebafa # v0.6.5
         with:
           base: origin/${{ github.event.pull_request.base.ref }}
+          bindir: ${{ runner.temp }}/flate-bin/${{ hashFiles('.github/workflows/flate.yaml') }}
           cache: false
 
       # The default --strip-attr set already covers the chart-bump noise
@@ -177,12 +154,29 @@ jobs:
           message-failure: Diff was not successful
           message-path: comment.md
 
+      # An empty FLATE_BASE keeps the test full-tree; changed-only mode can miss
+      # a shared component or root patch. Runs even when the diff failed.
+      - name: Run flate test
+        if: ${{ !cancelled() && steps.flate.outcome == 'success' }}
+        env:
+          FLATE_BASE: ""
+        run: |
+          set -uo pipefail
+          rc=0
+          flate test all --path ./kubernetes | tee test.log || rc=$?
+          {
+            echo '### flate test'
+            echo '```'
+            cat test.log
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+          exit "${rc}"
+
   flate-status:
     name: Flate Success
     needs:
       - "pre-job"
-      - "test"
-      - "diff"
+      - "flate"
     runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'home-ops-runner' }}
     permissions: {}
     if: ${{ always() }}
