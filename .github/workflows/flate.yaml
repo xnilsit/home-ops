@@ -54,17 +54,17 @@ jobs:
           persist-credentials: false
 
       # S3 on RGW on home-ops-runner; GitHub cache on hosted runners.
-      # Keyed on what fills the cache (source definitions, plus this file for
-      # the flate version), so an exact hit skips the save. baselines holds
-      # per-SHA checkouts of main and is stale by the next run.
+      # Restores the newest entry; the save key is computed after the run.
+      # baselines holds per-SHA checkouts of main and is stale by the next run.
       - name: Restore flate cache
-        uses: runs-on/cache@88d90644011a3a9957fd141a106f5a94f9794203 # v5.0.7
+        id: cache
+        uses: runs-on/cache/restore@88d90644011a3a9957fd141a106f5a94f9794203 # v5.0.7
         with:
           path: |
             ${{ runner.temp }}/flate
             ${{ runner.temp }}/flate-bin
             !${{ runner.temp }}/flate/baselines
-          key: flate-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/flate.yaml', 'kubernetes/flux/**', 'kubernetes/**/ocirepository.yaml') }}
+          key: flate-${{ runner.os }}-${{ runner.arch }}-
           restore-keys: |
             flate-${{ runner.os }}-${{ runner.arch }}-
 
@@ -171,6 +171,32 @@ jobs:
             echo '```'
           } >> "${GITHUB_STEP_SUMMARY}"
           exit "${rc}"
+
+      # Sources live in content-addressed sources/<name>/<digest> dirs, so their
+      # listing changes only when a run fetched something new. flate touches
+      # every source it uses, so gc only drops superseded versions.
+      - name: Compute flate cache key
+        id: cache-key
+        if: ${{ !cancelled() && steps.flate.outcome == 'success' }}
+        env:
+          FLATE_BIN: ${{ hashFiles('.github/workflows/flate.yaml') }}
+        run: |
+          set -euo pipefail
+          flate cache gc --max-age 168h
+          sources="$(cd "${FLATE_CACHE_DIR}/sources" && find . -mindepth 2 -maxdepth 2 -type d | sort)"
+          hash="$(printf '%s\n%s\n' "${FLATE_BIN}" "${sources}" | sha256sum | cut -d' ' -f1)"
+          echo "key=flate-${RUNNER_OS}-${RUNNER_ARCH}-${hash}" >> "${GITHUB_OUTPUT}"
+
+      # Saved even when the test fails, so a cold cache doesn't stay cold
+      - name: Save flate cache
+        if: ${{ !cancelled() && steps.cache-key.outputs.key != '' && steps.cache-key.outputs.key != steps.cache.outputs.cache-matched-key }}
+        uses: runs-on/cache/save@88d90644011a3a9957fd141a106f5a94f9794203 # v5.0.7
+        with:
+          path: |
+            ${{ runner.temp }}/flate
+            ${{ runner.temp }}/flate-bin
+            !${{ runner.temp }}/flate/baselines
+          key: ${{ steps.cache-key.outputs.key }}
 
   flate-status:
     name: Flate Success
