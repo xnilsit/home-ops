@@ -104,6 +104,8 @@ spec:
           type: RuntimeDefault
     configMaps:
       config:
+        # The OBC owns the unsuffixed apoci ConfigMap.
+        suffix: config
         data:
           # Rendered through tpl, so no Go template syntax. Secrets arrive as APOCI_* env vars.
           apoci.yaml: |
