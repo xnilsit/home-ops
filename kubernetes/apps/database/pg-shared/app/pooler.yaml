@@ -21,8 +21,8 @@ spec:
     parameters:
       # Lets PgBouncer track named prepared statements across the pool.
       max_prepared_statements: "100"
-      # Per (user, database) pair, per pod: four databases over two pods caps
-      # backends at 40, against max_connections=100.
+      # Per (user, database) pair, per pod: five databases over two pods caps
+      # backends at 50, against max_connections=100.
       default_pool_size: "5"
       max_client_conn: "500"
 
