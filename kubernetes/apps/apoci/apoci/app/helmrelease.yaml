@@ -14,7 +14,7 @@ spec:
       apoci:
         annotations:
           reloader.stakater.com/auto: "true"
-        # In-process queues assume a single writer.
+        # Upload sessions, GC and delivery queues are per-process; a chunk on another pod kills the push.
         replicas: 1
         strategy: Recreate
         containers:
