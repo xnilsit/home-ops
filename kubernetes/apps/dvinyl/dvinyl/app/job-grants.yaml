@@ -1,0 +1,63 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/job-batch-v1.json
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ${APP}-postgres-grants
+  annotations:
+    # Recreated on spec change instead of failing on the immutable template.
+    kustomize.toolkit.fluxcd.io/force: enabled
+spec:
+  # Retries until the Cluster accepts connections.
+  backoffLimit: 8
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        # DocumentDB's hooks need schema USAGE on every connection to the
+        # postgres db; without it pg_rewind, slot checks and metrics scrapes fail.
+        - name: psql
+          image: ghcr.io/ferretdb/postgres-documentdb:${PG_IMAGE_TAG}
+          command:
+            - psql
+          args:
+            - -X
+            - -v
+            - ON_ERROR_STOP=1
+            - -c
+            - GRANT USAGE ON SCHEMA documentdb_core, documentdb_api_catalog, documentdb_api_internal TO streaming_replica, cnpg_metrics_exporter
+          env:
+            - name: PGHOST
+              value: ${APP}-postgres-rw
+            - name: PGDATABASE
+              value: postgres
+            - name: PGSSLMODE
+              value: require
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: ${APP}-postgres-superuser
+                  key: username
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ${APP}-postgres-superuser
+                  key: password
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - "ALL"
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 32Mi
