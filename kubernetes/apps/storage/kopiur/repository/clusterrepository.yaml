@@ -58,6 +58,12 @@ spec:
   moverDefaults:
     cache: {mode: Persistent, capacity: 20Gi, storageClassName: ceph-block}
   scheduleDefaults: {timezone: "${TIMEZONE}"}
-  # spec.create is deliberately absent, which means create.enabled: true:
-  # bootstrap connects first and only initialises when the bucket holds no repo,
-  # so a wrong password fails AuthFailure instead of creating a second one.
+  parameters:
+    epoch:
+      # kopia only compacts an epoch once a newer one exists, so the two newest
+      # are always loose index blobs. At the 24h default the hourly policies leave
+      # ~1800 of them - above the 1000 IndexBlobHealth threshold every day.
+      minDuration: 6h
+      # spec.create is deliberately absent, which means create.enabled: true:
+      # bootstrap connects first and only initialises when the bucket holds no repo,
+      # so a wrong password fails AuthFailure instead of creating a second one.
