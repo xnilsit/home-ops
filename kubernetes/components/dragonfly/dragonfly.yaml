@@ -39,7 +39,7 @@ spec:
     # Timestamped so a replica's shutdown save cannot clobber the master's.
     - --dbfilename=dump-{timestamp}
     # Bare host:port - a scheme here yields a doubled URL.
-    - --s3_endpoint=192.168.0.200:3900
+    - --s3_endpoint=garage.garage.svc.cluster.local:3900
     - --s3_use_https=false
   snapshot:
     # Own prefix in the bucket every Dragonfly shares.

@@ -9,11 +9,12 @@ spec:
   configuration:
     # serverName is supplied as a plugin parameter on the Cluster, not here.
     #
-    # Garage on the NAS, like every other cluster's archive, and deliberately by
-    # IP rather than through s3.${SECRET_DOMAIN}: backups must not depend on the
-    # ingress path. Own bucket per app - see ./garagebucket.yaml.
+    # Garage on the NAS through its edge gateways, like every other cluster's
+    # archive, and deliberately not through s3.${SECRET_DOMAIN}: backups must
+    # not depend on the ingress path. Own bucket per app - see
+    # ./garagebucket.yaml.
     destinationPath: s3://${APP}-postgres-backup/
-    endpointURL: http://192.168.0.200:3900
+    endpointURL: http://garage.garage.svc.cluster.local:3900
     # Written by ./garagekey.yaml, straight into this namespace.
     s3Credentials:
       accessKeyId:
