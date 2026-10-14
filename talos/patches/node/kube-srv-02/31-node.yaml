@@ -1,0 +1,7 @@
+---
+# Has a 10G port. Cilium's L2 announcement policy selects on this, so a VIP is
+# only ever announced from a node that can answer for it.
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+labels:
+  home-ops/nic-10g: "true"
