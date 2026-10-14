@@ -26,6 +26,9 @@ spec:
   # Only the 10G ports; the 1G onboard NICs carry no f<n> function suffix.
   interfaces:
     - ^enp[0-9]+s[0-9]+f[0-9]+(np[0-9]+)?$
+  # Nodes without a matching port still stand for the leader lease, and a VIP
+  # whose lease one wins is answered by nobody on the LAN. The label is set per
+  # node in talos/patches/node/*/31-node.yaml.
   nodeSelector:
     matchLabels:
-      kubernetes.io/os: linux
+      home-ops/nic-10g: "true"
