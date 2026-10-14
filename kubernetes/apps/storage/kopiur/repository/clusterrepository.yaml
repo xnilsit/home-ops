@@ -14,9 +14,9 @@ spec:
   backend:
     s3:
       bucket: kopiur
-      # Straight at the NAS, not through s3.${SECRET_DOMAIN} - same reasoning as
-      # the barman ObjectStores: mover uploads never cross Envoy.
-      endpoint: 192.168.0.200:3900
+      # The Garage edge gateways, not s3.${SECRET_DOMAIN} - same reasoning as the
+      # barman ObjectStores: mover uploads never cross Envoy.
+      endpoint: garage.garage.svc.cluster.local:3900
       # Garage checks the region in the SigV4 credential scope and rejects a
       # mismatch.
       region: eu-central-1
