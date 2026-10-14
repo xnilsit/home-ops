@@ -1,0 +1,58 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/rolebinding-rbac-v1.json
+# The chart's kopiur-ui-doctor Role (deployments get/list here), behind the
+# doctor's controller-running and webhook-running checks. ui.rbac.bindings only
+# renders ClusterRoleBindings, so it is bound by hand. home-ops is the
+# console's anonymous user (helmrelease.yaml).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kopiur-ui-doctor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kopiur-ui-doctor
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: home-ops
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/role-rbac-v1.json
+# The rest of what the doctor page needs, which the chart does not ship.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kopiur-ui-doctor-probes
+rules:
+  # webhook-admits: a dry-run create of an invalid SnapshotPolicy in the
+  # operator namespace. RBAC has no dry-run verb, so this is plain create.
+  - apiGroups:
+      - kopiur.home-operations.com
+    resources:
+      - snapshotpolicies
+    verbs:
+      - create
+  # credentials-present: the ClusterRepository's encryption Secret. Every
+  # namespace bound to kopiur-ui-browse already hands this password out.
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - kopiur-encryption
+    verbs:
+      - get
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/rolebinding-rbac-v1.json
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kopiur-ui-doctor-probes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kopiur-ui-doctor-probes
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: home-ops
