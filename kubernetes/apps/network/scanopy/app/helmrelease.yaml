@@ -14,8 +14,6 @@ spec:
       scanopy:
         annotations:
           reloader.stakater.com/auto: "true"
-        # RWO /data volume: two pods must never hold it at once.
-        strategy: Recreate
         containers:
           app:
             image:
@@ -89,11 +87,8 @@ spec:
         pod:
           securityContext:
             runAsNonRoot: true
-            # 1000 matches KOPIUR_PUID/PGID, which the movers reading /data run as.
             runAsUser: 1000
             runAsGroup: 1000
-            fsGroup: 1000
-            fsGroupChangePolicy: OnRootMismatch
             seccompProfile:
               type: RuntimeDefault
       daemon:
@@ -180,14 +175,9 @@ spec:
             runAsGroup: 0
             seccompProfile:
               type: RuntimeDefault
+    # No /data, unlike upstream's compose file: the server keeps all its state in
+    # Postgres and has written nothing there since the move off SQLite.
     persistence:
-      data:
-        # Provisioned by components/kopiur/backup through its Restore populator.
-        existingClaim: scanopy
-        advancedMounts:
-          scanopy:
-            app:
-              - path: /data
       daemon-config:
         existingClaim: scanopy-daemon-config
         advancedMounts:

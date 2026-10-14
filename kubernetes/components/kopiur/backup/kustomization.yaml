@@ -14,3 +14,5 @@ resources:
   - ./snapshotschedule.yaml
   - ./pvc.yaml
   - ./restore.yaml
+  # kopiur-ui's file browser for this app's snapshots
+  - ./rolebinding.yaml

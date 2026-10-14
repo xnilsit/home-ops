@@ -311,13 +311,6 @@ locals {
       icon   = "https://cdn.jsdelivr.net/gh/kguardian-dev/kguardian@main/docs/logo/dark.png"
       groups = ["home-ops"]
     }
-    kopia = {
-      display_name = "Kopia"
-      description  = "Backup repository browser."
-      hostnames    = ["kopia.${var.domain}"]
-      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/kopia.svg"
-      groups       = ["home-ops"]
-    }
     # kopiur's own console. It reads no identity from the gateway, so this group
     # is the only thing deciding who acts as its single anonymous user.
     kopiur = {

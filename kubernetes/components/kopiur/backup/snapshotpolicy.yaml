@@ -38,3 +38,21 @@ spec:
     keepHourly: 24
     keepDaily: 7
     keepWeekly: 4
+  # Gated by kopiur until the first backup exists, so a fresh app does not fail
+  # its first verify against an empty repository.
+  verification:
+    # Daily blob-level `kopia snapshot verify`: every pack the latest snapshot
+    # references is present, plus a full read of a share of its files.
+    quick:
+      schedule: {cron: "H 5 * * *", jitter: 2h}
+    verifyFilesPercent: 5
+    # Monthly scratch-restore of the latest snapshot into a throwaway PVC the
+    # size of the real one. Jittered over four hours: every app shares the 1st,
+    # and each restore reads its whole snapshot off the NAS.
+    deep:
+      schedule: {cron: "H 6 1 * *", jitter: 4h}
+      capacity: ${KOPIUR_CAPACITY:=5Gi}
+      storageClassName: ceph-block
+    # Catches the silent success of a snapshot that captured nothing. An app
+    # whose volume is legitimately empty overrides it.
+    successExpr: "${KOPIUR_VERIFY_EXPR:=stats.files > 0 && stats.errors == 0}"

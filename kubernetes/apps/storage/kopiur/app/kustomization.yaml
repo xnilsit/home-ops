@@ -9,4 +9,3 @@ resources:
   - ./secret.sops.yaml
   - ./externalsecret.yaml
   - ./helmrelease.yaml
-  - ./httproute.yaml

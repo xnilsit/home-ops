@@ -34,27 +34,6 @@ spec:
     passwordSecretRef: {name: kopiur-encryption, namespace: storage, key: KOPIA_PASSWORD}
   # Owner half of the fail-closed projection gate; consumers still opt in.
   credentialProjection: {allowed: true}
-  # Presence of this block is the on switch for the kopia web UI - the operator
-  # runs `kopia server start` in a long-lived Deployment plus Service, both named
-  # nas-kopia-ui. Routed at kopia.${SECRET_DOMAIN} from ../app/httproute.yaml.
-  server:
-    # Required on a ClusterRepository, which has no namespace of its own.
-    namespace: storage
-    # Read-write: create, delete and policy edits from the UI. Only the
-    # SecurityPolicy in ../oidc stands between a visitor and destroying a backup.
-    readOnly: false
-    auth:
-      # No kopia login - the OIDC SecurityPolicy in ../oidc is the only gate, and
-      # a second one would just be a password to keep. In-cluster traffic to the
-      # nas-kopia-ui Service bypasses it, though: anything in the cluster that
-      # can reach port 51515 now has the repository.
-      insecure:
-        acknowledgeInsecure: true
-    resources:
-      limits:
-        memory: 1Gi
-      requests:
-        cpu: 10m
   moverDefaults:
     cache: {mode: Persistent, capacity: 20Gi, storageClassName: ceph-block}
   scheduleDefaults: {timezone: "${TIMEZONE}"}

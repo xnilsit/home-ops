@@ -25,13 +25,8 @@ spec:
         # Grants the operator secrets create/patch/delete. A mover Job runs in
         # the workload namespace and reads credentials via envFrom, which is
         # namespace-local, so the shared ClusterRepository's Secrets have to be
-        # copied in per run - and reaped again when the run ends.
-        enabled: true
-      kopiaUi:
-        # Same secrets grant, needed again for the ClusterRepository's kopia web
-        # UI: the operator mints its login into nas-kopia-ui-auth and mirrors the
-        # repository credentials next to the server pod. Without the flag the
-        # ClusterRepository status reports a 403 naming it.
+        # copied in per run - and reaped again when the run ends. kopiur-ui's
+        # browse sessions get their copy the same way.
         enabled: true
     monitoring:
       serviceMonitor:
@@ -56,12 +51,16 @@ spec:
           enabled: true
           user: home-ops
       rbac:
-        # View and operate: snapshots, restores, suspend, maintenance. The file
-        # browser (browseRole) stays off - it hands out repository credentials.
+        # View and operate: snapshots, restores, suspend, maintenance.
         bindings:
           - role: user
             users:
               - home-ops
+        # The in-snapshot file browser. Binding it in a namespace hands out the
+        # repository credentials there (they sit in the session pod's env), so
+        # it is bound per namespace by components/kopiur/backup, to the same
+        # single user the rest of the console already runs as.
+        browseRole: true
       # Anonymous mode trusts every caller, so only envoy-internal may reach
       # the app port. The ops port (/metrics, /healthz) stays cluster-wide.
       networkPolicy:
