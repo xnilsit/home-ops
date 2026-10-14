@@ -5,7 +5,8 @@ kind: Kustomization
 resources:
   - ./httproute.yaml
 components:
-  # Same pair as ../oidc, for the route above. Its own directory because APP
-  # and OIDC_ROUTE are per-Kustomization substitutions.
+  # Split out of ../app so the authentik chain does not end up gating backups:
+  # kopiur-repository dependsOn kopiur and is what every SnapshotPolicy waits on.
+  # gatus probes the route with a bearer token; the console sends none of its own.
   - ../../../../components/oidc
   - ../../../../components/oidc-probe

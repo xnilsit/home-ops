@@ -260,8 +260,8 @@ Expect `state: RUNNING`, `mqtt: true`, **`hassio: false`**, 16 MQTT devices, and
 an entity count close to the 2094 the VM had (the `hassio` platform's 57 go away
 with the Supervisor).
 
-Then force the first backup and confirm it landed, in the kopia UI at
-`kopia.${SECRET_DOMAIN}`, before declaring success:
+Then force the first backup and confirm it landed, in the kopiur UI at
+`kopiur.${SECRET_DOMAIN}`, before declaring success:
 
 ```sh
 kubectl -n home-automation get snapshots.kopiur.home-operations.com -w
