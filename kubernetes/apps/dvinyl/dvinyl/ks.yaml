@@ -37,6 +37,9 @@ spec:
       APP: *app
       KOPIUR_CAPACITY: 5Gi
       KOPIUR_CRON: "H */6 * * *"
+      # The volume is empty today (every snapshot holds 0 files), so the
+      # component's files > 0 check would fail every verify.
+      KOPIUR_VERIFY_EXPR: "stats.errors == 0"
       # Versioned by its FerretDB suffix; grouped with ghcr.io/ferretdb/ferretdb.
       #
       # renovate: datasource=docker depName=ghcr.io/ferretdb/postgres-documentdb versioning=regex:^17-\d+\.\d+\.\d+-ferretdb-(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$

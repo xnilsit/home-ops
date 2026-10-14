@@ -38,6 +38,9 @@ spec:
       # Scan results live in Postgres; /data is uploads and generated assets
       KOPIUR_CAPACITY: 5Gi
       KOPIUR_CRON: "H * * * *"
+      # The volume is empty today (every snapshot holds 0 files), so the
+      # component's files > 0 check would fail every verify.
+      KOPIUR_VERIFY_EXPR: "stats.errors == 0"
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease

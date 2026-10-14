@@ -1,6 +1,8 @@
 ---
 # The library is CephFS, where the component's default staging class runs a full
-# subvolume clone; stage on the shallow class instead.
+# subvolume clone; stage on the shallow class instead. No deep verification: a
+# monthly scratch-restore of the whole library is a 250Gi read off the NAS and a
+# 250Gi Ceph write for what the daily quick verify mostly covers.
 #
 # yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
 apiVersion: kopiur.home-operations.com/v1alpha1
@@ -13,3 +15,5 @@ spec:
     # A backingSnapshot volume can only be mounted read-only.
     accessModes:
       - ReadOnlyMany
+  verification:
+    deep: null
