@@ -36,7 +36,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/docker.io/livekit/livekit-server
-              tag: v1.13.9
+              tag: v1.13.10
             args:
               - --config=/config/livekit.yaml
             env:
