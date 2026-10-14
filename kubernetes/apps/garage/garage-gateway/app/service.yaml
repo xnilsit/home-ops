@@ -1,0 +1,41 @@
+---
+# S3 across both edge gateways - what every in-cluster client and the
+# s3.${SECRET_DOMAIN} route point at. The operator's own <cr>-gateway Services
+# each select one gateway only.
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage
+spec:
+  selector:
+    app.kubernetes.io/name: garage
+    garage.rajsingh.info/tier: gateway
+  ports:
+    - {name: s3-api, port: 3900, targetPort: 3900}
+---
+# One LAN address per gateway identity, the rpc_public_addr in ./gateway.yaml.
+# The NAS cannot route to pod IPs, and without these it could never dial a
+# gateway back. Not <cr>-rpc: the operator owns that name for publicEndpoint.
+apiVersion: v1
+kind: List
+items:
+  - <<: &service {apiVersion: v1, kind: Service}
+    metadata:
+      name: edge-a-rpc-lan
+      annotations: {lbipam.cilium.io/ips: "192.168.1.154"}
+    spec: &spec
+      type: LoadBalancer
+      selector:
+        app.kubernetes.io/instance: edge-a
+        garage.rajsingh.info/tier: gateway
+      ports:
+        - {name: rpc, port: 3901, targetPort: 3901}
+  - <<: *service
+    metadata:
+      name: edge-b-rpc-lan
+      annotations: {lbipam.cilium.io/ips: "192.168.1.155"}
+    spec:
+      <<: *spec
+      selector:
+        app.kubernetes.io/instance: edge-b
+        garage.rajsingh.info/tier: gateway

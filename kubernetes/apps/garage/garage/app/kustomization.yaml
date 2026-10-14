@@ -11,7 +11,6 @@ resources:
   - ./garagereferencegrant.yaml
   - ./garagebucket.yaml
   - ./garagekey.yaml
-  - ./httproute.yaml
   - ./vmscrapeconfig.yaml
   - ./grafanadashboard.yaml
 configMapGenerator:

@@ -259,9 +259,13 @@ spec:
         namespaces:
           from: All
       tls:
+        # Envoy picks one by SNI. The second covers Garage's
+        # <bucket>.s3.${SECRET_DOMAIN}.
         certificateRefs:
           - kind: Secret
             name: "${SECRET_DOMAIN/./-}-production-tls"
+          - kind: Secret
+            name: "s3-${SECRET_DOMAIN/./-}-production-tls"
     # Plain TCP, not TLS: blocky terminates DoT itself, so envoy only proxies
     # bytes and never sees the cert.
     - name: dot

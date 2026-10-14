@@ -1,0 +1,80 @@
+---
+# Two edge gateways in front of the NAS: Garage nodes that join its cluster with
+# a capacity-less role, store no blocks and forward every S3 request over RPC.
+# The operator assigns that role in the NAS layout itself.
+#
+# Two CRs rather than one at replicas: 2 - an edge gateway renders one shared
+# garage.toml, so its rpc_public_addr can only name one identity. Each CR gets
+# its own LAN address from ./service.yaml so the NAS can dial it back.
+apiVersion: v1
+kind: List
+items:
+  - <<: &cluster {apiVersion: garage.rajsingh.info/v1beta2, kind: GarageCluster}
+    metadata: {name: edge-a}
+    spec: &spec
+      image: registry.nilsit.de/docker.io/dxflrs/garage:v2.4.1
+      zone: cluster
+      # Must equal the NAS's replication_factor: Garage refuses peers that
+      # disagree.
+      replication:
+        factor: 1
+      # Same engine as the NAS, for the same reason: no lmdb mmap or
+      # unclean-shutdown failure modes.
+      database:
+        engine: sqlite
+      gateway: &gateway
+        replicas: 1
+        rpcPublicAddr: 192.168.1.154:3901
+        # node_key lives here, so this PVC is the gateway's identity. 10Gi
+        # because the claim template cannot be resized in place - changing it
+        # means scaling to 0 and waiting for the old role to retire.
+        metadata:
+          size: 10Gi
+          storageClassName: ceph-block
+        pvcRetentionPolicy:
+          whenDeleted: Retain
+          whenScaled: Retain
+        # Every backup and S3 client in the cluster goes through these pods.
+        priorityClassName: cluster-platform
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: garage
+                    garage.rajsingh.info/tier: gateway
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            memory: 1Gi
+      connectTo:
+        adminApiEndpoint: http://192.168.0.200:3903
+        adminTokenSecretRef:
+          name: garage-credentials
+          key: admin-token
+        rpcSecretRef:
+          name: garage-credentials
+          key: rpc-secret
+      admin:
+        adminTokenSecretRef:
+          name: garage-credentials
+          key: admin-token
+      s3Api:
+        # Garage checks the region in the SigV4 credential scope, and every
+        # client already signs for this one.
+        region: eu-central-1
+        # <bucket>.s3.${SECRET_DOMAIN}. Any other Host, the in-cluster Service
+        # name included, falls back to path-style.
+        rootDomain: .s3.${SECRET_DOMAIN}
+      monitoring:
+        enabled: true
+  - <<: *cluster
+    metadata: {name: edge-b}
+    spec:
+      <<: *spec
+      gateway:
+        <<: *gateway
+        rpcPublicAddr: 192.168.1.155:3901

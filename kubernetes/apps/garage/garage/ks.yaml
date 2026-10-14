@@ -14,9 +14,6 @@ spec:
   dependsOn:
     - name: garage-operator
       namespace: flux-system
-    # The HTTPRoute's Backend needs the envoy gateway CRDs and envoy-internal
-    - name: envoy-gateway
-      namespace: flux-system
   healthChecks:
     - apiVersion: garage.rajsingh.info/v1beta2
       kind: GarageCluster

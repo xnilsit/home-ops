@@ -5,10 +5,21 @@ cluster's own Ceph RGW. Buckets, keys and permissions are **not** managed here �
 in `kubernetes/apps/garage/` and applied by
 [garage-operator](https://github.com/rajsinghtech/garage-operator) through Garage's Admin API.
 
+Two edge gateways run in the cluster (`GarageCluster` `edge-a` and `edge-b`): Garage nodes with a
+capacity-less role that store nothing and forward every request here over RPC. They are reached at
+`garage.garage.svc.cluster.local:3900` in-cluster and `s3.${SECRET_DOMAIN}` /
+`<bucket>.s3.${SECRET_DOMAIN}` on the LAN. Each advertises its own LAN address for RPC so this node
+can dial it back:
+
+| Gateway | RPC address |
+| ------- | ----------- |
+| edge-a  | `192.168.1.154:3901` |
+| edge-b  | `192.168.1.155:3901` |
+
 | Port | What |
 | ---- | ---- |
-| 3900 | S3 API — barman writes here, also `s3.${SECRET_DOMAIN}` via envoy-internal |
-| 3901 | RPC (cluster mesh; single node today) |
+| 3900 | S3 API — barman writes here, and the gateways forward to it |
+| 3901 | RPC — the gateways' link to this node, in both directions |
 | 3903 | Admin API — the operator's only channel |
 
 ## First-time setup
@@ -37,6 +48,10 @@ in `kubernetes/apps/garage/` and applied by
    docker exec garage /garage layout apply --version 1
    docker exec garage /garage status                        # node now shows capacity
    ```
+
+   This assigns the NAS's own role only. garage-operator adds and removes the gateways'
+   capacity-less roles itself, committing further layout versions, so `garage layout show` lists
+   versions this README never applied. Always apply `<current version + 1>`.
 
    `-c` is a byte size, suffixes `B KB MB GB TB PB` (decimal) or `KiB MiB GiB TiB` (binary) —
    a bare `2T` does not parse. It is the weight Garage spreads partitions by, not a quota: with
@@ -75,8 +90,9 @@ Do not create or delete buckets and keys by hand: the operator reconciles them f
 
 ## Upgrades
 
-Renovate opens PRs against the `dxflrs/garage` tag in `docker-compose.yaml`. Bumping it here does
-not deploy anything — pull the new tag on the NAS afterwards:
+Renovate opens PRs against the `dxflrs/garage` tag in `docker-compose.yaml` and, separately, in
+`kubernetes/apps/garage/garage/app/gateway.yaml`. Keep the two on the same version. Bumping it here
+does not deploy anything — pull the new tag on the NAS afterwards:
 
 ```sh
 docker compose pull && docker compose up -d
