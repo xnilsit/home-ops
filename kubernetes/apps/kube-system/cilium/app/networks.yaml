@@ -26,10 +26,12 @@ spec:
   # Only the 10G ports; the 1G onboard NICs carry no f<n> function suffix.
   interfaces:
     - ^enp[0-9]+s[0-9]+f[0-9]+(np[0-9]+)?$
-  # The srv nodes only. kube-wrk-01's sole NIC is a 1G enp2s0 that the regex
-  # above rejects, yet without this it still stands for the leader lease - and a
-  # VIP whose lease it wins is answered by nobody on the LAN.
+  # kube-wrk-01's sole NIC is a 1G enp2s0 that the regex above rejects, yet
+  # without this it still stands for the leader lease - and a VIP whose lease it
+  # wins is answered by nobody on the LAN.
   nodeSelector:
     matchExpressions:
-      - key: node-role.kubernetes.io/control-plane
-        operator: Exists
+      - key: kubernetes.io/hostname
+        operator: NotIn
+        values:
+          - kube-wrk-01
