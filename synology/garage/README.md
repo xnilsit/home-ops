@@ -5,9 +5,8 @@ cluster's own Ceph RGW. Buckets, keys and permissions are **not** managed here �
 in `kubernetes/apps/garage/` and applied by
 [garage-operator](https://github.com/rajsinghtech/garage-operator) through Garage's Admin API.
 
-Cluster clients do not talk to the NAS directly. Two edge gateways run in the cluster
-(`GarageCluster` `edge-a` and `edge-b`): Garage nodes with a capacity-less role that store nothing
-and forward every request here over RPC. They are reached at
+Two edge gateways run in the cluster (`GarageCluster` `edge-a` and `edge-b`): Garage nodes with a
+capacity-less role that store nothing and forward every request here over RPC. They are reached at
 `garage.garage.svc.cluster.local:3900` in-cluster and `s3.${SECRET_DOMAIN}` /
 `<bucket>.s3.${SECRET_DOMAIN}` on the LAN. Each advertises its own LAN address for RPC so this node
 can dial it back:
@@ -19,7 +18,7 @@ can dial it back:
 
 | Port | What |
 | ---- | ---- |
-| 3900 | S3 API — only the gateways and ad-hoc LAN tooling use it directly |
+| 3900 | S3 API — barman writes here, and the gateways forward to it |
 | 3901 | RPC — the gateways' link to this node, in both directions |
 | 3903 | Admin API — the operator's only channel |
 

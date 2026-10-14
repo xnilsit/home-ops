@@ -86,7 +86,7 @@ items:
                 - name: RCLONE_CONFIG_GARAGE_PROVIDER
                   value: Other
                 - name: RCLONE_CONFIG_GARAGE_ENDPOINT
-                  value: "http://garage.garage.svc.cluster.local:3900"
+                  value: "http://192.168.0.200:3900"
                 # Garage rejects a SigV4 scope with the wrong region outright.
                 - name: RCLONE_CONFIG_GARAGE_REGION
                   value: eu-central-1

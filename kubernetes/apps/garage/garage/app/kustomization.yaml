@@ -11,10 +11,6 @@ resources:
   - ./garagereferencegrant.yaml
   - ./garagebucket.yaml
   - ./garagekey.yaml
-  # The edge gateways every S3 client goes through
-  - ./gateway.yaml
-  - ./service.yaml
-  - ./httproute.yaml
   - ./vmscrapeconfig.yaml
   - ./grafanadashboard.yaml
 configMapGenerator:

@@ -40,7 +40,7 @@ spec:
                 fs.writeFileSync("/app/data/storage-config.json", JSON.stringify({
                   backends: [
                     { name: "rgw", ...s3(process.env.BUCKET_NAME, process.env.RGW_ENDPOINT, "us-east-1", process.env.RGW_KEY_ID, process.env.RGW_KEY) },
-                    { name: "garage", ...s3("trek", "http://garage.garage.svc.cluster.local:3900", "eu-central-1", process.env.GARAGE_KEY_ID, process.env.GARAGE_KEY) },
+                    { name: "garage", ...s3("trek", "http://192.168.0.200:3900", "eu-central-1", process.env.GARAGE_KEY_ID, process.env.GARAGE_KEY) },
                     { name: "mirrored", type: "mirror", options: { primary: "rgw", replicas: ["garage"] } },
                   ],
                   // Every category, the two photo caches included: upstream

@@ -9,9 +9,9 @@ spec:
   configuration:
     # Bucket name must match the GarageBucket in kubernetes/apps/garage
     destinationPath: s3://${APP}-backup/
-    # The Garage edge gateways in front of the NAS, deliberately not
+    # Garage on the NAS, deliberately by IP rather than through
     # s3.${SECRET_DOMAIN}: backups must not depend on the ingress path.
-    endpointURL: http://garage.garage.svc.cluster.local:3900
+    endpointURL: http://192.168.0.200:3900
     s3Credentials:
       accessKeyId:
         name: garage-${APP}-backup

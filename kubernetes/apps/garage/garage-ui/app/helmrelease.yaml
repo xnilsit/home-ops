@@ -21,10 +21,9 @@ spec:
         # /auth/oidc/callback, which is the redirect URI tofu/authentik lists.
         root_url: https://garage.${SECRET_DOMAIN}
       garage:
-        # The edge gateways, like every other consumer: this must not depend on
-        # the ingress path. The admin API stays on the NAS, the node the `nas`
-        # handle manages.
-        endpoint: http://garage.garage.svc.cluster.local:3900
+        # The NAS by IP, like every other consumer: this must not depend on the
+        # ingress path.
+        endpoint: http://192.168.0.200:3900
         region: eu-central-1
         admin_endpoint: http://192.168.0.200:3903
         existingSecret:
