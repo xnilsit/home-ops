@@ -112,3 +112,56 @@ spec:
   wait: false
   interval: 1h
   timeout: 5m
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: kopiur-ui-oidc
+  namespace: flux-system
+spec:
+  targetNamespace: storage
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: kopiur
+  path: ./kubernetes/apps/storage/kopiur/oidc-ui
+  dependsOn:
+    # The kopiur-ui Service the route points at
+    - name: kopiur
+      namespace: flux-system
+    # The SecurityPolicy needs the envoy gateway CRDs
+    - name: envoy-gateway
+      namespace: flux-system
+    # kopiur-oidc is pulled from the Secret the tofu module writes
+    - name: authentik-oidc
+      namespace: flux-system
+    # Owns the ClusterSecretStore the credential ExternalSecrets read through
+    - name: external-secrets-stores
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: kopiur
+      OIDC_HOST: kopiur.${SECRET_DOMAIN}
+      OIDC_ROUTE: kopiur-ui
+  healthChecks:
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: SecurityPolicy
+      name: kopiur-oidc
+      namespace: storage
+  healthCheckExprs:
+    # SecurityPolicy reports Gateway API PolicyStatus - status.ancestors[] - not
+    # the flat status.conditions kstatus reads. With no ancestors yet neither
+    # expr matches, which is the InProgress that lets Flux retry while ESO
+    # is still filling in the Secret.
+    - apiVersion: gateway.envoyproxy.io/v1alpha1
+      kind: SecurityPolicy
+      failed: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'False'))
+      current: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'True'))
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # wait: false, since wait: true would ignore the healthCheckExprs above.
+  wait: false
+  interval: 1h
+  timeout: 5m
