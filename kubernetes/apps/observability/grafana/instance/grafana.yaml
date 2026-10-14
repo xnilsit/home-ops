@@ -119,7 +119,7 @@ spec:
             # Writes an empty lookup if the download fails, so grafana still
             # starts.
             - name: geonames-gazetteer
-              image: registry.nilsit.de/mirror.gcr.io/curlimages/curl:8.22.0
+              image: registry.nilsit.de/mirror.gcr.io/curlimages/curl:8.23.0
               command:
                 - "/bin/sh"
                 - "-c"
