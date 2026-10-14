@@ -14,14 +14,23 @@ spec:
   dependsOn:
     - name: garage-operator
       namespace: flux-system
-    # The HTTPRoute's Backend needs the envoy gateway CRDs and envoy-internal
+    # The HTTPRoute needs envoy-internal
     - name: envoy-gateway
+      namespace: flux-system
+    # The edge gateways' metadata PVCs are ceph-block
+    - name: rook-ceph-cluster
       namespace: flux-system
   healthChecks:
     - apiVersion: garage.rajsingh.info/v1beta2
       kind: GarageCluster
       name: nas
       namespace: garage
+    # Every S3 client points at these, so the apps that dependsOn garage must
+    # not start before a gateway can serve.
+    - <<: &gateway {apiVersion: garage.rajsingh.info/v1beta2, kind: GarageCluster, namespace: garage}
+      name: edge-a
+    - <<: *gateway
+      name: edge-b
     - <<: &key {apiVersion: garage.rajsingh.info/v1beta1, kind: GarageKey, namespace: garage}
       name: cnpg-backup
     - <<: *key
@@ -36,7 +45,8 @@ spec:
       name: tofu-state
   healthCheckExprs:
     # A management handle reports Running once the NAS Admin API answers - there
-    # are no pods for it to derive readiness from. Buckets and keys do not start
+    # are no pods for it to derive readiness from. An edge gateway reports it
+    # once its pod is Ready, which only means S3 is bound. Buckets and keys do not start
     # reconciling before that, so gating on it is what makes `dependsOn: garage`
     # in the database Kustomizations mean "credentials exist".
     - apiVersion: garage.rajsingh.info/v1beta2
