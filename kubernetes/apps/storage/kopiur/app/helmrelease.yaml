@@ -44,6 +44,37 @@ spec:
           enabled: true
           matchLabels:
             dashboards: grafana
+    # kopiur's own console, at kopiur.${SECRET_DOMAIN} behind ../oidc-ui.
+    ui:
+      enabled: true
+      auth:
+        # Anonymous rather than header mode: the SecurityPolicy only logs the
+        # user in and forwards no identity, and the authentik app admits the
+        # home-ops group alone - so everyone who gets through is the same
+        # person. The impersonate rule is pinned by name to this one user.
+        anonymous:
+          enabled: true
+          user: home-ops
+      rbac:
+        # View and operate: snapshots, restores, suspend, maintenance. The file
+        # browser (browseRole) stays off - it hands out repository credentials.
+        bindings:
+          - role: user
+            users:
+              - home-ops
+      # Anonymous mode trusts every caller, so only envoy-internal may reach
+      # the app port. The ops port (/metrics, /healthz) stays cluster-wide.
+      networkPolicy:
+        enabled: true
+        proxySelector:
+          namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: envoy-internal
+      serviceMonitor:
+        enabled: true
     # Storage control plane, same tier as snapshot-controller
     priorityClassName: cluster-infra
     resources:

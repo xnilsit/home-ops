@@ -318,6 +318,15 @@ locals {
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/kopia.svg"
       groups       = ["home-ops"]
     }
+    # kopiur's own console. It reads no identity from the gateway, so this group
+    # is the only thing deciding who acts as its single anonymous user.
+    kopiur = {
+      display_name = "Kopiur"
+      description  = "Backup operator console."
+      hostnames    = ["kopiur.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/kopia.svg"
+      groups       = ["home-ops"]
+    }
     # The Zigbee frontend; no auth of its own.
     zigbee2mqtt = {
       display_name = "Zigbee2MQTT"

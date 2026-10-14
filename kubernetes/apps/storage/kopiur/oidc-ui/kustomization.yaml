@@ -1,0 +1,11 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ./httproute.yaml
+components:
+  # Same pair as ../oidc, for the route above. Its own directory because APP
+  # and OIDC_ROUTE are per-Kustomization substitutions.
+  - ../../../../components/oidc
+  - ../../../../components/oidc-probe
