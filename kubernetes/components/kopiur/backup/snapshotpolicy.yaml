@@ -54,5 +54,8 @@ spec:
       capacity: ${KOPIUR_CAPACITY:=5Gi}
       storageClassName: ceph-block
     # Catches the silent success of a snapshot that captured nothing. An app
-    # whose volume is legitimately empty overrides it.
-    successExpr: "${KOPIUR_VERIFY_EXPR:=stats.files > 0 && stats.errors == 0}"
+    # whose volume is legitimately empty overrides it. Quick verify takes
+    # stats.files from the manifest's fileCount, which is 0 when every file was
+    # cached from the previous snapshot, so it also accepts stats.bytes there.
+    # Deep verify reports bytes as 0 but counts the restored files.
+    successExpr: "${KOPIUR_VERIFY_EXPR:=(stats.files > 0 || stats.bytes > 0) && stats.errors == 0}"
