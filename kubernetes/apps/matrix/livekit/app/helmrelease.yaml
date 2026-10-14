@@ -82,7 +82,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/ghcr.io/element-hq/lk-jwt-service
-              tag: 0.8.0
+              tag: 0.9.0
             env:
               LIVEKIT_URL: wss://livekit.${SECRET_DOMAIN}
               # Users of this homeserver may create rooms; everyone else may
