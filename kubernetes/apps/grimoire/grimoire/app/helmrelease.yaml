@@ -55,8 +55,8 @@ spec:
                 cpu: 10m
               limits:
                 memory: 128Mi
-          # Seeds the break-glass admin on a fresh volume, and assembles a
-          # tessdata dir: the image ships only eng.
+          # Seeds the break-glass admin on a fresh volume, creates the library's
+          # top-level folders, and assembles a tessdata dir: the image ships only eng.
           prepare:
             image: *image
             command:
@@ -65,6 +65,7 @@ spec:
             args:
               - |
                 [ -e /data/grimoire.db ] || cp /seed/users.json /data/users.json
+                mkdir -p /library/books /library/maps /library/tokens /library/audio /library/models
                 mkdir -p /data/tessdata
                 cp -r /usr/share/tesseract-ocr/5/tessdata/. /data/tessdata/
                 [ -e /data/tessdata/deu.traineddata ] || python -c '
@@ -179,6 +180,8 @@ spec:
         existingClaim: grimoire-library
         advancedMounts:
           grimoire:
+            prepare:
+              - path: /library
             app:
               - path: /library
       seed:

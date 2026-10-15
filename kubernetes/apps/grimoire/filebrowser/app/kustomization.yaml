@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Provisions the database PVC (named ${APP}) and snapshots it to the NAS.
+  - ../../../../components/kopiur/backup
+resources:
+  - ./externalsecret-oidc.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml
+configMapGenerator:
+  - name: grimoire-filebrowser-config
+    files:
+      - config.yaml=./resources/config.yaml
+    options:
+      # Named in the HelmRelease values, which kustomize does not rewrite.
+      disableNameSuffixHash: true
