@@ -1,0 +1,47 @@
+---
+http:
+  port: 8080
+  # Envoy sets X-Forwarded-*; the OIDC callback is derived from them.
+  trustProxyHeaders: true
+server:
+  disableUpdateCheck: true
+  cacheDir: /cache
+  database:
+    path: /data/database.sqlite
+  sources:
+    - path: /library
+      name: Library
+      config:
+        defaultEnabled: true
+        # What every OIDC-created user starts with. Admins are not seeded with
+        # delete; grant it per admin in User management.
+        defaultPermissions:
+          view: true
+          download: true
+          modify: true
+          create: true
+          delete: false
+          configured: true
+auth:
+  methods:
+    # Off, so the login page goes straight to authentik.
+    password:
+      enabled: false
+    oidc:
+      enabled: true
+      issuerUrl: ${AUTHENTIK_URL}/application/o/home-ops-grimoire-filebrowser/
+      logoutRedirectUrl: ${AUTHENTIK_URL}/application/o/home-ops-grimoire-filebrowser/end-session/
+      groupsClaim: groups
+      adminGroup: grimoire-admin
+      userGroups:
+        - grimoire-dm
+        - grimoire-admin
+frontend:
+  name: Grimoire Files
+  disableDefaultLinks: true
+  externalLinks:
+    - text: Grimoire
+      url: https://grimoire.${SECRET_DOMAIN}
+userDefaults:
+  account:
+    disableUpdateNotifications: true

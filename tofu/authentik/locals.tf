@@ -112,6 +112,21 @@ locals {
       ]
     }
 
+    # Quoted: an HCL object key cannot carry a hyphen unquoted.
+    "grimoire-filebrowser" = {
+      display_name = "Grimoire Files"
+      description  = "Upload and organise the Grimoire library."
+      hostnames    = ["grimoire-files.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/filebrowser-quantum.svg"
+      # Players browse through Grimoire itself. grimoire-admin is also its adminGroup.
+      groups = ["grimoire-dm", "grimoire-admin"]
+      # FileBrowser keys users on preferred_username; `sub` is unused.
+      gateway_callback = false
+      extra_redirect_uris = [
+        "https://grimoire-files.${var.domain}/api/auth/oidc/callback",
+      ]
+    }
+
     # Delegated authentication for the homeserver: Matrix clients do OAuth
     # against continuwuity, which sends the user on to here.
     continuwuity = {
