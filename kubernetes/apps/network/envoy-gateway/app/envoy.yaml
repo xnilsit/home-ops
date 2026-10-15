@@ -342,8 +342,7 @@ spec:
       trustedCIDRs:
         - "10.42.0.0/16"
         - "fd2e:9a41:6b8c:4200::/56"
-  # Drops client-supplied geo headers before the geoip filter sets its own, and
-  # identity headers before a jwt claimToHeaders adds its own copy alongside.
+  # Drops client-supplied geo headers before the geoip filter sets its own.
   headers:
     earlyRequestHeaders:
       remove:
@@ -352,8 +351,6 @@ spec:
         - x-geo-city
         - x-geo-asn
         - x-geo-asn-org
-        - x-idp-user
-        - x-idp-group
   http2:
     onInvalidMessage: TerminateStream
   http3: {}

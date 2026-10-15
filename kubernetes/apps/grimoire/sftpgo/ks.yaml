@@ -3,33 +3,30 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: &app grimoire-copyparty
+  name: &app grimoire-sftpgo
   namespace: flux-system
 spec:
   targetNamespace: grimoire
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
-  path: ./kubernetes/apps/grimoire/copyparty/app
+  path: ./kubernetes/apps/grimoire/sftpgo/app
   dependsOn:
     # The library PVC it shares with Grimoire
     - name: grimoire-library
       namespace: flux-system
-    # Writes the grimoire-copyparty-oidc Secret the SecurityPolicy reads
+    # Writes the grimoire-sftpgo-oidc Secret the ExternalSecret reads
     - name: authentik-oidc
       namespace: flux-system
-    # The OIDC credential comes through the tofu-controller store
+    # The OIDC credential comes through the tofu-controller store, and the
+    # admin password is minted by an ESO generator
     - name: external-secrets-stores
       namespace: flux-system
     - name: envoy-gateway
       namespace: flux-system
-    - name: rook-ceph-cluster
-      namespace: flux-system
   postBuild:
     substitute:
       APP: *app
-      OIDC_HOST: grimoire-files.${SECRET_DOMAIN}
-      OIDC_ROUTE: *app
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease

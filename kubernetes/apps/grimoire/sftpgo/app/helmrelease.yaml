@@ -1,0 +1,141 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: grimoire-sftpgo
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: grimoire-sftpgo
+  interval: 1h
+  values:
+    controllers:
+      grimoire-sftpgo:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: registry.nilsit.de/ghcr.io/drakkan/sftpgo
+              tag: v2.7.6-distroless-slim
+            env:
+              TZ: Europe/Berlin
+              # Web client only: no SFTP, no WebAdmin, no REST API.
+              SFTPGO_SFTPD__BINDINGS__0__PORT: "0"
+              SFTPGO_HTTPD__BINDINGS__0__PORT: &port 8080
+              SFTPGO_HTTPD__BINDINGS__0__ENABLE_WEB_ADMIN: "false"
+              SFTPGO_HTTPD__BINDINGS__0__ENABLE_REST_API: "false"
+              # 8: the web client's password form.
+              SFTPGO_HTTPD__BINDINGS__0__DISABLED_LOGIN_METHODS: "8"
+              SFTPGO_HTTPD__BINDINGS__0__BRANDING__WEB_CLIENT__NAME: &name Grimoire Files
+              SFTPGO_HTTPD__BINDINGS__0__BRANDING__WEB_CLIENT__SHORT_NAME: *name
+              # Envoy's x-forwarded-* are trusted from pods only; X-Forwarded-Proto
+              # is what marks the session cookies Secure.
+              SFTPGO_HTTPD__BINDINGS__0__PROXY_ALLOWED: 10.42.0.0/16,fd2e:9a41:6b8c:4200::/56
+              SFTPGO_HTTPD__BINDINGS__0__CLIENT_IP_PROXY_HEADER: X-Forwarded-For
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__CONFIG_URL: ${AUTHENTIK_URL}/application/o/home-ops-grimoire-sftpgo/
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__REDIRECT_BASE_URL: https://grimoire-files.${SECRET_DOMAIN}
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__CLIENT_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: &oidcSecret grimoire-sftpgo-oidc
+                    key: client-id
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__CLIENT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: *oidcSecret
+                    key: client-secret
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__USERNAME_FIELD: preferred_username
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__SCOPES: openid,profile,email,grimoire_role
+              # Handed to the grimoire-account action, which names the user's group after it.
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__CUSTOM_FIELDS: grimoire_role
+              # Groups and the IdP login rule. Mode 0 updates them on every start.
+              SFTPGO_LOADDATA_FROM: /config/sftpgo.json
+              SFTPGO_LOADDATA_MODE: "0"
+              SFTPGO_DATA_PROVIDER__CREATE_DEFAULT_ADMIN: "true"
+              SFTPGO_DEFAULT_ADMIN_USERNAME: admin
+              SFTPGO_DEFAULT_ADMIN_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: grimoire-sftpgo-admin
+                    key: password
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness: *probes
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 20m
+                memory: 64Mi
+              limits:
+                memory: 512Mi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        # Grimoire's uid, so uploads stay readable and movable from both apps.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    persistence:
+      data:
+        type: configMap
+        name: grimoire-sftpgo-data
+        globalMounts:
+          - path: /config
+            readOnly: true
+      library:
+        existingClaim: grimoire-library
+        globalMounts:
+          - path: /library
+      # The bolt data provider. Accounts are rebuilt at each login and the groups
+      # at each start, so nothing here needs to survive a restart.
+      state:
+        type: emptyDir
+        globalMounts:
+          - path: /var/lib/sftpgo
+      srv:
+        type: emptyDir
+        globalMounts:
+          - path: /srv/sftpgo
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+    service:
+      app:
+        controller: grimoire-sftpgo
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /healthz
+        hostnames:
+          - "grimoire-files.${SECRET_DOMAIN}"
+        # Same gateway as Grimoire, off the Cloudflare tunnel.
+        parentRefs:
+          - name: envoy-external-direct
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
