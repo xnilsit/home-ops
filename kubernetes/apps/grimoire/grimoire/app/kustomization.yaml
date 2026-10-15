@@ -1,0 +1,49 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Dedicated Dragonfly (${APP}-dragonfly) for the page cache and OIDC login state.
+  - ../../../../components/dragonfly
+  # Provisions the data PVC (named ${APP}) and snapshots it to the NAS.
+  - ../../../../components/kopiur/backup
+resources:
+  - ./dragonfly-password.yaml
+  - ./externalsecret-oidc.yaml
+  - ./secret.sops.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml
+patches:
+  # Only a cache: evict under maxmemory, and never snapshot to Garage or to disk.
+  - patch: |-
+      - op: add
+        path: /spec/args/-
+        value: --cache_mode=true
+      - op: add
+        path: /spec/args/-
+        value: --dbfilename=
+      - op: remove
+        path: /spec/snapshot
+    target:
+      group: dragonflydb.io
+      kind: Dragonfly
+  # Grimoire logs VALKEY_URL with the password in it, so it gets its own
+  # rather than the shared one.
+  - patch: |-
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      metadata:
+        name: ${APP}-dragonfly-auth
+      spec:
+        secretStoreRef: null
+        refreshInterval: "0"
+        target:
+          template:
+            data:
+              password: "{{ .password }}"
+        dataFrom:
+          - sourceRef:
+              generatorRef:
+                apiVersion: generators.external-secrets.io/v1alpha1
+                kind: Password
+                name: ${APP}-dragonfly-password

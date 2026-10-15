@@ -243,6 +243,31 @@ spec:
             ctl:requestBodyAccess=Off,
             ctl:ruleRemoveById=920420"
 
+          # Grimoire's API uses PUT/PATCH/DELETE throughout.
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^grimoire\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10030,phase:1,pass,nolog,t:none,
+            setvar:'tx.allowed_methods=GET HEAD POST OPTIONS PUT PATCH DELETE'"
+
+          # Grimoire wiki, template and session-note Markdown. One rule per
+          # field: coraza applies only the last ruleRemoveTargetByTag of a rule.
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^grimoire\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10031,phase:1,pass,nolog,t:none,
+            ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.body"
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^grimoire\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10032,phase:1,pass,nolog,t:none,
+            ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.content"
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^grimoire\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10033,phase:1,pass,nolog,t:none,
+            ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.internal_content"
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^grimoire\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10034,phase:1,pass,nolog,t:none,
+            ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.external_content"
+
           - Include @owasp_crs/*.conf
 
           # Scores any backend 5xx, and one alone exceeds the outbound threshold.

@@ -31,6 +31,10 @@ module "app" {
   # time, and local.apps is the for_each map, whose values must stay knowable.
   extra_property_mappings = concat(
     each.key == "immich" ? [authentik_property_mapping_provider_scope.immich_quota.id] : [],
+    each.key == "grimoire" ? [
+      authentik_property_mapping_provider_scope.grimoire_role.id,
+      authentik_property_mapping_provider_scope.grimoire_permissions.id,
+    ] : [],
     try(each.value.email_verified, false) ? [authentik_property_mapping_provider_scope.email_verified_email.id] : [],
   )
 }

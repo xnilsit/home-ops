@@ -1,0 +1,100 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app grimoire-library
+  namespace: flux-system
+spec:
+  targetNamespace: grimoire
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/grimoire/grimoire/library
+  dependsOn:
+    # The PVC is provisioned through kopiur's Restore populator
+    - name: kopiur-repository
+      namespace: flux-system
+    # CephFS RWX for the library
+    - name: rook-ceph-cluster
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: *app
+      KOPIUR_ACCESSMODES: ReadWriteMany
+      KOPIUR_STORAGECLASS: ceph-filesystem
+      KOPIUR_SNAPSHOTCLASS: csi-ceph-filesystem
+      KOPIUR_CAPACITY: 50Gi
+      KOPIUR_CRON: "H */6 * * *"
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: false
+  interval: 1h
+  timeout: 10m
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app grimoire
+  namespace: flux-system
+spec:
+  targetNamespace: grimoire
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/grimoire/grimoire/app
+  dependsOn:
+    # The library PVC the app mounts
+    - name: grimoire-library
+      namespace: flux-system
+    # Writes the grimoire-oidc Secret the ExternalSecret reads
+    - name: authentik-oidc
+      namespace: flux-system
+    # The OIDC credential comes through the tofu-controller store, and the
+    # Dragonfly password is minted by an ESO generator
+    - name: external-secrets-stores
+      namespace: flux-system
+    # Owns the store the Dragonfly component's Garage credentials come through
+    - name: external-secrets-stores-garage
+      namespace: flux-system
+    - name: garage
+      namespace: flux-system
+    - name: dragonfly-operator
+      namespace: flux-system
+    - name: envoy-gateway
+      namespace: flux-system
+    # The data PVC is provisioned through kopiur's Restore populator
+    - name: kopiur-repository
+      namespace: flux-system
+    # ceph-block for the data PVC
+    - name: rook-ceph-cluster
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: *app
+      # SQLite, the search index and thumbnails; the library has its own volume.
+      KOPIUR_CAPACITY: 10Gi
+  healthChecks:
+    - apiVersion: dragonflydb.io/v1alpha1
+      kind: Dragonfly
+      name: grimoire-dragonfly
+      namespace: grimoire
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: *app
+      namespace: grimoire
+  healthCheckExprs:
+    - apiVersion: dragonflydb.io/v1alpha1
+      kind: Dragonfly
+      current: has(status.phase) && status.phase in ['Ready', 'ready']
+      inProgress: has(status.phase) && status.phase in ['ResourcesCreated', 'Configuring', 'RollingUpdate']
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: false
+  interval: 1h
+  timeout: 15m

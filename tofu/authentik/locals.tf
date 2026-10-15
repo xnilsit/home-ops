@@ -98,6 +98,20 @@ locals {
       ]
     }
 
+    grimoire = {
+      display_name = "Grimoire"
+      description  = "TTRPG library and campaigns."
+      hostnames    = ["grimoire.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/grimoire.svg"
+      # Role and permissions come from these groups' attributes, not their names.
+      groups = ["grimoire", "grimoire-dm", "grimoire-admin"]
+      # Grimoire links an account to `sub` once, so it only has to be stable.
+      gateway_callback = false
+      extra_redirect_uris = [
+        "https://grimoire.${var.domain}/api/auth/openid/callback",
+      ]
+    }
+
     # Delegated authentication for the homeserver: Matrix clients do OAuth
     # against continuwuity, which sends the user on to here.
     continuwuity = {
