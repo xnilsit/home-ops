@@ -23,6 +23,17 @@ locals {
     "outline" = {}
     # Matrix login; members get @<username> on the homeserver on first login.
     "matrix" = {}
+    # Grimoire login. `grimoire` is the role and permissions object the
+    # grimoire_* scopes in property-mappings.tf hand out; the highest role wins.
+    "grimoire" = {
+      grimoire = { role = "player", permissions = { viewNSFW = false, campaignAccess = true, apiKeys = false } }
+    }
+    "grimoire-dm" = {
+      grimoire = { role = "gm", permissions = { viewNSFW = true, campaignAccess = true, apiKeys = false } }
+    }
+    "grimoire-admin" = {
+      grimoire = { role = "admin", permissions = { viewNSFW = true, campaignAccess = true, apiKeys = true } }
+    }
   }
 }
 

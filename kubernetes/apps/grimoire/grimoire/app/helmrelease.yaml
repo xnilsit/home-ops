@@ -1,0 +1,219 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: grimoire
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: grimoire
+  interval: 1h
+  values:
+    controllers:
+      grimoire:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # SQLite in WAL mode on an RWO volume: two pods must never hold it at once.
+        strategy: Recreate
+        initContainers:
+          # Grimoire only connects to Valkey at startup and falls back to
+          # per-worker memory for good if that fails, which breaks OIDC logins.
+          wait-dragonfly:
+            image: &image
+              repository: registry.nilsit.de/docker.io/hunterreadca/grimoire
+              tag: 1.8.0
+            command:
+              - "python"
+              - "-c"
+            args:
+              - |
+                import os, time, redis
+                client = redis.from_url(os.environ["VALKEY_URL"])
+                while True:
+                    try:
+                        client.ping()
+                        break
+                    except redis.exceptions.RedisError as e:
+                        print(f"waiting for dragonfly: {e}", flush=True)
+                        time.sleep(2)
+            env: &dragonflyEnv
+              DRAGONFLY_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: grimoire-dragonfly-auth
+                    key: password
+              VALKEY_URL:
+                value: redis://:$(DRAGONFLY_PASSWORD)@grimoire-dragonfly:6379/0
+                dependsOn: DRAGONFLY_PASSWORD
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources: &initResources
+              requests:
+                cpu: 10m
+              limits:
+                memory: 128Mi
+          # Seeds the break-glass admin on a fresh volume, and assembles a
+          # tessdata dir: the image ships only eng.
+          prepare:
+            image: *image
+            command:
+              - "sh"
+              - "-ec"
+            args:
+              - |
+                [ -e /data/grimoire.db ] || cp /seed/users.json /data/users.json
+                mkdir -p /data/tessdata
+                cp -r /usr/share/tesseract-ocr/5/tessdata/. /data/tessdata/
+                [ -e /data/tessdata/deu.traineddata ] || python -c '
+                import os, urllib.request
+                urllib.request.urlretrieve(
+                    "https://github.com/tesseract-ocr/tessdata_fast/raw/4.1.0/deu.traineddata",
+                    "/data/tessdata/deu.traineddata.tmp",
+                )
+                os.rename("/data/tessdata/deu.traineddata.tmp", "/data/tessdata/deu.traineddata")
+                '
+            securityContext: *securityContext
+            resources: *initResources
+        containers:
+          app:
+            image: *image
+            env:
+              <<: *dragonflyEnv
+              TZ: Europe/Berlin
+              BASE_URL: https://grimoire.${SECRET_DOMAIN}
+              DATA_PATH: /data
+              LIBRARY_PATH: /library
+              WORKERS: "2"
+              OCR_LANGUAGES: eng+deu
+              TESSDATA_PREFIX: /data/tessdata
+              ALLOW_PASSWORD_AUTHENTICATION: "false"
+              OIDC_ENABLED: "true"
+              OIDC_ISSUER_URL: ${AUTHENTIK_URL}/application/o/home-ops-grimoire/
+              # Pinned fields are not filled in from discovery.
+              OIDC_AUTHORIZATION_ENDPOINT: ${AUTHENTIK_URL}/application/o/authorize/
+              OIDC_TOKEN_ENDPOINT: ${AUTHENTIK_URL}/application/o/token/
+              OIDC_USERINFO_ENDPOINT: ${AUTHENTIK_URL}/application/o/userinfo/
+              OIDC_JWKS_URI: ${AUTHENTIK_URL}/application/o/home-ops-grimoire/jwks/
+              OIDC_END_SESSION_ENDPOINT: ${AUTHENTIK_URL}/application/o/home-ops-grimoire/end-session/
+              OIDC_SIGNING_ALG: RS256
+              OIDC_CLIENT_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: &oidcSecret grimoire-oidc
+                    key: client-id
+              OIDC_CLIENT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: *oidcSecret
+                    key: client-secret
+              # Claims from the grimoire_* scope mappings, re-applied at every login.
+              OIDC_GROUPS_CLAIM: grimoire_role
+              OIDC_PERMISSIONS_CLAIM: grimoire_permissions
+              OIDC_AUTO_REGISTER: "true"
+              OIDC_AUTO_LAUNCH: "true"
+              OIDC_BUTTON_TEXT: Sign in with authentik
+            probes:
+              # TCP only: /api/health also fails while Dragonfly restarts, which
+              # Grimoire rides out on its own.
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: &port 9481
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/health
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              # Covers the migrations and the user seed on first start.
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/health
+                    port: *port
+                  periodSeconds: 10
+                  failureThreshold: 60
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 100m
+                memory: 512Mi
+              limits:
+                memory: 3Gi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        # What kopiur's mover reads both volumes as.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    persistence:
+      data:
+        # Provisioned by components/kopiur/backup through its Restore populator.
+        existingClaim: grimoire
+        advancedMounts:
+          grimoire:
+            prepare:
+              - path: /data
+            app:
+              - path: /data
+      library:
+        # CephFS, provisioned by the grimoire-library Kustomization.
+        existingClaim: grimoire-library
+        advancedMounts:
+          grimoire:
+            app:
+              - path: /library
+      seed:
+        type: secret
+        name: grimoire-seed
+        advancedMounts:
+          grimoire:
+            prepare:
+              - path: /seed
+                readOnly: true
+      tmp:
+        type: emptyDir
+        advancedMounts:
+          grimoire:
+            app:
+              - path: /tmp
+    service:
+      app:
+        controller: grimoire
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /api/health
+        hostnames:
+          - "grimoire.${SECRET_DOMAIN}"
+        # envoy-external-direct: PDF uploads past the Cloudflare tunnel's 100 MB.
+        parentRefs:
+          - name: envoy-external-direct
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port

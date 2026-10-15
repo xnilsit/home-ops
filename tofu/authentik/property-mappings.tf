@@ -33,3 +33,46 @@ resource "authentik_property_mapping_provider_scope" "email_verified_email" {
     }
   EOT
 }
+
+locals {
+  # The `grimoire` attribute of the user's highest-ranked group in groups.tf.
+  # Picked explicitly rather than through group_attributes(), whose merge order
+  # would decide which of two grimoire groups wins.
+  grimoire_attributes = <<-EOT
+    rank = {"player": 1, "gm": 2, "admin": 3}
+    best = None
+    for group in request.user.all_groups():
+        attrs = group.attributes.get("grimoire")
+        if attrs and (best is None or rank[attrs["role"]] > rank[best["role"]]):
+            best = attrs
+  EOT
+}
+
+# Grimoire requests each claim as a scope of the same name, so scope_name and
+# the claim key must match OIDC_GROUPS_CLAIM and OIDC_PERMISSIONS_CLAIM.
+resource "authentik_property_mapping_provider_scope" "grimoire_role" {
+  name        = "${var.name_prefix}-grimoire-role"
+  scope_name  = "grimoire_role"
+  description = "Grimoire role: player, gm or admin."
+
+  expression = <<-EOT
+    ${local.grimoire_attributes}
+    if best is None:
+        return {}
+    return {"grimoire_role": best["role"]}
+  EOT
+}
+
+resource "authentik_property_mapping_provider_scope" "grimoire_permissions" {
+  name        = "${var.name_prefix}-grimoire-permissions"
+  scope_name  = "grimoire_permissions"
+  description = "Grimoire viewNSFW, campaignAccess and apiKeys flags."
+
+  # A missing claim denies the login outright, admins included.
+  expression = <<-EOT
+    ${local.grimoire_attributes}
+    if best is None:
+        return {}
+    return {"grimoire_permissions": best["permissions"]}
+  EOT
+}
