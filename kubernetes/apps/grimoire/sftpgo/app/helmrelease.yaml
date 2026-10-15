@@ -16,9 +16,10 @@ spec:
           reloader.stakater.com/auto: "true"
         initContainers:
           # The OIDC button's label is only in the UI translations; relabel it
-          # in a copy of the static files the app then serves.
+          # in a copy of the static files the app then serves. -slim for its
+          # shell; the sftpgo Renovate group moves both tags together.
           static:
-            image: &image
+            image:
               repository: registry.nilsit.de/ghcr.io/drakkan/sftpgo
               tag: v2.7.6-slim
             command:
@@ -40,7 +41,9 @@ spec:
                 memory: 64Mi
         containers:
           app:
-            image: *image
+            image:
+              repository: registry.nilsit.de/ghcr.io/drakkan/sftpgo
+              tag: v2.7.6-distroless-slim
             env:
               TZ: Europe/Berlin
               SFTPGO_HTTPD__STATIC_FILES_PATH: /static

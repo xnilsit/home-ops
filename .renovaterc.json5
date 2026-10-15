@@ -117,6 +117,16 @@
       minimumGroupSize: 2,
     },
     {
+      description: "SFTPGo Group: the -slim init container copies static files the -distroless-slim app serves",
+      groupName: "sftpgo",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["ghcr.io/drakkan/sftpgo"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+      minimumGroupSize: 2,
+    },
+    {
       description: "Kubernetes Group: kubectl is pinned to the cluster version",
       groupName: "kubernetes",
       matchManagers: ["mise"],
