@@ -268,8 +268,8 @@ spec:
             "id:10034,phase:1,pass,nolog,t:none,
             ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.external_content"
 
-          # copyparty: PUT uploads, and up2k chunks are raw file bytes, sent
-          # without a usable Content-Type. Headers and URI are still inspected.
+          # SFTPGo's web client: DELETE, and uploads are the raw file as the
+          # request body. Headers and URI are still inspected.
           - >-
             SecRule REQUEST_HEADERS:Host "@rx ^grimoire-files\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
             "id:10035,phase:1,pass,nolog,t:none,
@@ -278,11 +278,17 @@ spec:
             ctl:ruleRemoveById=920340,
             ctl:ruleRemoveById=920420"
 
-          # A rename or move carries the destination file name in ?move=.
+          # Library file and folder names travel in ?path= and, for a rename or
+          # move, ?target=. One rule per field: coraza applies only the last
+          # ruleRemoveTargetByTag of a rule.
           - >-
             SecRule REQUEST_HEADERS:Host "@rx ^grimoire-files\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
             "id:10036,phase:1,pass,nolog,t:none,
-            ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:move"
+            ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:path"
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^grimoire-files\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10037,phase:1,pass,nolog,t:none,
+            ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:target"
 
           - Include @owasp_crs/*.conf
 

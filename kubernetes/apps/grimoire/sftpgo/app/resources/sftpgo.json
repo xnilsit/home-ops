@@ -1,0 +1,66 @@
+{
+  "version": 17,
+  "groups": [
+    {
+      "name": "gm",
+      "description": "grimoire-dm: upload, rename, move, copy, create folders",
+      "user_settings": {
+        "home_dir": "/library",
+        "permissions": {
+          "/": [
+            "list",
+            "download",
+            "upload",
+            "rename",
+            "create_dirs",
+            "copy"
+          ]
+        }
+      }
+    },
+    {
+      "name": "admin",
+      "description": "grimoire-admin: everything",
+      "user_settings": {
+        "home_dir": "/library",
+        "permissions": {
+          "/": [
+            "*"
+          ]
+        }
+      }
+    }
+  ],
+  "event_actions": [
+    {
+      "name": "grimoire-account",
+      "type": 13,
+      "description": "Create or update the account on every login, in the group named by grimoire_role",
+      "options": {
+        "idp_config": {
+          "mode": 0,
+          "template_user": "{\"username\":\"{{.Name}}\",\"status\":1,\"home_dir\":\"/library\",\"permissions\":{\"/\":[\"list\"]},\"groups\":[{\"name\":\"{{.IDPFieldgrimoire_role}}\",\"type\":1}],\"filters\":{\"web_client\":[\"shares-disabled\",\"mfa-disabled\",\"password-change-disabled\",\"password-reset-disabled\",\"api-key-auth-change-disabled\",\"publickey-change-disabled\",\"tls-cert-change-disabled\",\"info-change-disabled\"]}}"
+        }
+      }
+    }
+  ],
+  "event_rules": [
+    {
+      "name": "grimoire-idp-login",
+      "status": 1,
+      "trigger": 7,
+      "conditions": {
+        "idp_login_event": 1
+      },
+      "actions": [
+        {
+          "name": "grimoire-account",
+          "order": 1,
+          "relation_options": {
+            "execute_sync": true
+          }
+        }
+      ]
+    }
+  ]
+}
