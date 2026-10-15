@@ -14,13 +14,36 @@ spec:
       grimoire-sftpgo:
         annotations:
           reloader.stakater.com/auto: "true"
+        initContainers:
+          # The OIDC button's label is only in the UI translations; relabel it
+          # in a copy of the static files the app then serves.
+          static:
+            image: &image
+              repository: registry.nilsit.de/ghcr.io/drakkan/sftpgo
+              tag: v2.7.6-slim
+            command:
+              - "sh"
+              - "-ec"
+            args:
+              - |
+                cp -r /usr/share/sftpgo/static/. /static/
+                sed -i -E 's/("signin_openid": )"[^"]*"/\1"Sign in with ${AUTHENTIK_URL#https://}"/' \
+                  /static/locales/*/translation.json
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 64Mi
         containers:
           app:
-            image:
-              repository: registry.nilsit.de/ghcr.io/drakkan/sftpgo
-              tag: v2.7.6-distroless-slim
+            image: *image
             env:
               TZ: Europe/Berlin
+              SFTPGO_HTTPD__STATIC_FILES_PATH: /static
               # Web client only: no SFTP, no WebAdmin, no REST API.
               SFTPGO_SFTPD__BINDINGS__0__PORT: "0"
               SFTPGO_HTTPD__BINDINGS__0__PORT: &port 8080
@@ -72,10 +95,7 @@ spec:
                   timeoutSeconds: 3
                   failureThreshold: 3
               readiness: *probes
-            securityContext:
-              allowPrivilegeEscalation: false
-              readOnlyRootFilesystem: true
-              capabilities: {drop: ["ALL"]}
+            securityContext: *securityContext
             resources:
               requests:
                 cpu: 20m
@@ -113,6 +133,11 @@ spec:
         type: emptyDir
         globalMounts:
           - path: /srv/sftpgo
+      # The relabelled copy of the static files.
+      static:
+        type: emptyDir
+        globalMounts:
+          - path: /static
       tmp:
         type: emptyDir
         globalMounts:
