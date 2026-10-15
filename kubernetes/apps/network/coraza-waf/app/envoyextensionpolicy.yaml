@@ -268,6 +268,16 @@ spec:
             "id:10034,phase:1,pass,nolog,t:none,
             ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.external_content"
 
+          # Grimoire's MCP endpoint: JSON-RPC whose arguments are free-text
+          # questions and Markdown. Gated by an API key; headers and URI are
+          # still inspected.
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^grimoire\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10038,phase:1,pass,nolog,t:none,chain"
+          - >-
+            SecRule REQUEST_FILENAME "@streq /mcp"
+            "t:none,ctl:requestBodyAccess=Off"
+
           # SFTPGo's web client: DELETE, and uploads are the raw file as the
           # request body. Headers and URI are still inspected.
           - >-

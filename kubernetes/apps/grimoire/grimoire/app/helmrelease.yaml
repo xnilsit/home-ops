@@ -22,7 +22,7 @@ spec:
           wait-dragonfly:
             image: &image
               repository: registry.nilsit.de/docker.io/hunterreadca/grimoire
-              tag: 1.8.0
+              tag: 1.9.0
             command:
               - "python"
               - "-c"
@@ -115,7 +115,13 @@ spec:
               OIDC_PERMISSIONS_CLAIM: grimoire_permissions
               OIDC_AUTO_REGISTER: "true"
               OIDC_AUTO_LAUNCH: "true"
-              OIDC_BUTTON_TEXT: Sign in with authentik
+              OIDC_BUTTON_TEXT: Sign in with ${AUTHENTIK_URL#https://}
+              # /mcp for AI assistants, authenticated with a user's API key.
+              MCP_ENABLED: "true"
+            envFrom:
+              # GRIMOIRE_CODEX_DB_API_TOKEN
+              - secretRef:
+                  name: grimoire-env
             probes:
               # TCP only: /api/health also fails while Dragonfly restarts, which
               # Grimoire rides out on its own.

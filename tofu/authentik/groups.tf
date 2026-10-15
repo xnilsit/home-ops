@@ -29,7 +29,7 @@ locals {
       grimoire = { role = "player", permissions = { viewNSFW = false, campaignAccess = true, apiKeys = false } }
     }
     "grimoire-dm" = {
-      grimoire = { role = "gm", permissions = { viewNSFW = true, campaignAccess = true, apiKeys = false } }
+      grimoire = { role = "gm", permissions = { viewNSFW = true, campaignAccess = true, apiKeys = true } }
     }
     "grimoire-admin" = {
       grimoire = { role = "admin", permissions = { viewNSFW = true, campaignAccess = true, apiKeys = true } }
