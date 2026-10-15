@@ -113,18 +113,18 @@ locals {
     }
 
     # Quoted: an HCL object key cannot carry a hyphen unquoted.
-    "grimoire-filebrowser" = {
+    # Behind components/oidc. copyparty has no OIDC of its own: the gateway
+    # copies preferred_username and grimoire_role out of the access token into
+    # the headers it trusts.
+    "grimoire-copyparty" = {
       display_name = "Grimoire Files"
       description  = "Upload and organise the Grimoire library."
       hostnames    = ["grimoire-files.${var.domain}"]
-      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/filebrowser-quantum.svg"
-      # Players browse through Grimoire itself. grimoire-admin is also its adminGroup.
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/copyparty.svg"
+      # Players browse through Grimoire itself.
       groups = ["grimoire-dm", "grimoire-admin"]
-      # FileBrowser keys users on preferred_username; `sub` is unused.
-      gateway_callback = false
-      extra_redirect_uris = [
-        "https://grimoire-files.${var.domain}/api/auth/oidc/callback",
-      ]
+      # Puts grimoire_role in the access token envoy verifies, not only behind userinfo.
+      include_claims_in_id_token = true
     }
 
     # Delegated authentication for the homeserver: Matrix clients do OAuth

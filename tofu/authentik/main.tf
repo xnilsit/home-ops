@@ -35,6 +35,7 @@ module "app" {
       authentik_property_mapping_provider_scope.grimoire_role.id,
       authentik_property_mapping_provider_scope.grimoire_permissions.id,
     ] : [],
+    each.key == "grimoire-copyparty" ? [authentik_property_mapping_provider_scope.grimoire_role.id] : [],
     try(each.value.email_verified, false) ? [authentik_property_mapping_provider_scope.email_verified_email.id] : [],
   )
 }

@@ -3,7 +3,7 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
-  name: grimoire-filebrowser
+  name: grimoire-copyparty
 spec:
   interval: 15m
   layerSelector:

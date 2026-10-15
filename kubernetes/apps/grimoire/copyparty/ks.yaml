@@ -3,19 +3,19 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: &app grimoire-filebrowser
+  name: &app grimoire-copyparty
   namespace: flux-system
 spec:
   targetNamespace: grimoire
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
-  path: ./kubernetes/apps/grimoire/filebrowser/app
+  path: ./kubernetes/apps/grimoire/copyparty/app
   dependsOn:
     # The library PVC it shares with Grimoire
     - name: grimoire-library
       namespace: flux-system
-    # Writes the grimoire-filebrowser-oidc Secret the ExternalSecret reads
+    # Writes the grimoire-copyparty-oidc Secret the SecurityPolicy reads
     - name: authentik-oidc
       namespace: flux-system
     # The OIDC credential comes through the tofu-controller store
@@ -23,16 +23,13 @@ spec:
       namespace: flux-system
     - name: envoy-gateway
       namespace: flux-system
-    # The database PVC is provisioned through kopiur's Restore populator
-    - name: kopiur-repository
-      namespace: flux-system
     - name: rook-ceph-cluster
       namespace: flux-system
   postBuild:
     substitute:
       APP: *app
-      # Users, their permissions and settings; the file index is rebuilt on start.
-      KOPIUR_CAPACITY: 1Gi
+      OIDC_HOST: grimoire-files.${SECRET_DOMAIN}
+      OIDC_ROUTE: *app
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease
