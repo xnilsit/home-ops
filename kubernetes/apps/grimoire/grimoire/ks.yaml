@@ -75,6 +75,7 @@ spec:
   postBuild:
     substitute:
       APP: *app
+      DRAGONFLY_REPLICAS: "2"
       # SQLite, the search index and thumbnails; the library has its own volume.
       KOPIUR_CAPACITY: 10Gi
   healthChecks:
