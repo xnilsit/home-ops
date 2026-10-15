@@ -118,6 +118,10 @@ spec:
               OIDC_BUTTON_TEXT: Sign in with ${AUTHENTIK_URL#https://}
               # /mcp for AI assistants, authenticated with a user's API key.
               MCP_ENABLED: "true"
+            envFrom:
+              # GRIMOIRE_CODEX_DB_API_TOKEN
+              - secretRef:
+                  name: grimoire-env
             probes:
               # TCP only: /api/health also fails while Dragonfly restarts, which
               # Grimoire rides out on its own.
