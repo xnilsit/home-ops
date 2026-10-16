@@ -1,0 +1,31 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kured
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: kured
+  interval: 1h
+  values:
+    configuration:
+      # Written by transactional-update once a new snapshot is ready
+      rebootSentinel: /run/reboot-needed
+      period: 10m
+      startTime: "02:00"
+      endTime: "05:00"
+      timeZone: ${TIMEZONE}
+      drainTimeout: 15m
+    # Talos nodes are rebooted by tuppr
+    nodeSelector:
+      home-ops/os: microos
+    tolerations:
+      - key: kubernetes.io/arch
+        operator: Equal
+        value: arm64
+        effect: NoSchedule
+    metrics:
+      create: true
+    service:
+      create: true

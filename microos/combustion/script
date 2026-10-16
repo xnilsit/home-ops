@@ -1,0 +1,29 @@
+#!/bin/bash
+# combustion: network
+set -euxo pipefail
+exec > >(exec tee -a /dev/tty0) 2>&1
+
+echo kube-wrk-02 > /etc/hostname
+
+id nilsit >/dev/null 2>&1 || useradd -m nilsit
+install -d -m 700 -o nilsit /home/nilsit/.ssh
+install -m 600 -o nilsit authorized_keys /home/nilsit/.ssh/authorized_keys
+echo 'nilsit ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/nilsit
+chmod 440 /etc/sudoers.d/nilsit
+systemctl enable sshd.service
+
+sed -i 's/^SELINUX=.*/SELINUX=permissive/' /etc/selinux/config
+
+# /var (containerd, kubelet, logs) lives on the NVMe so the SD card only takes snapshot writes
+if grep -q '/var/lib/overlay' /etc/fstab; then
+  echo "/etc is an overlay backed by /var, leaving /var on the SD card"
+elif ! grep -q '^LABEL=pi-var' /etc/fstab; then
+  mount LABEL=pi-var /mnt
+  cp -a /var/. /mnt/
+  rm -f /mnt/lib/YaST2/reconfig_system
+  umount /mnt
+  sed -i -E 's|^([^#].*\s/var\s.*)$|# \1|' /etc/fstab
+  echo 'LABEL=pi-var /var ext4 defaults,noatime,x-initrd.mount 0 2' >> /etc/fstab
+fi
+
+exec 1>&- 2>&-; wait

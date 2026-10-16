@@ -1,0 +1,35 @@
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.crt
+authorization:
+  mode: Webhook
+cgroupDriver: systemd
+clusterDNS:
+  - 10.43.0.10
+  - fd2e:9a41:6b8c:4300::a
+clusterDomain: cluster.local
+containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
+failSwapOn: false
+registerWithTaints:
+  # Only arm64-ready workloads that opt in run here
+  - key: kubernetes.io/arch
+    value: arm64
+    effect: NoSchedule
+rotateCertificates: true
+seccompDefault: true
+serializeImagePulls: false
+shutdownGracePeriod: 30s
+shutdownGracePeriodCriticalPods: 10s
+systemReserved:
+  cpu: 50m
+  ephemeral-storage: 256Mi
+  memory: 384Mi
+  pid: "100"
+tlsMinVersion: VersionTLS13

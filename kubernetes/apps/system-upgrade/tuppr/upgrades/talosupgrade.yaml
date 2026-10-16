@@ -9,6 +9,13 @@ spec:
     version: v1.14.3
   policy:
     rebootMode: powercycle
+  # MicroOS nodes update themselves and are rebooted by kured
+  nodeSelector:
+    matchExpressions:
+      - key: home-ops/os
+        operator: NotIn
+        values:
+          - "microos"
   healthChecks:
     - apiVersion: ceph.rook.io/v1
       kind: CephCluster

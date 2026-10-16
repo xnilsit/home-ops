@@ -8,6 +8,9 @@ mod? bootstrap 'bootstrap'
 [group: 'kubernetes']
 mod? kube 'kubernetes'
 
+[group: 'microos']
+mod? microos 'microos'
+
 [group: 'talos']
 mod? talos 'talos'
 
