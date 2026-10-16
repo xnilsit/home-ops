@@ -20,7 +20,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/dock.mau.dev/mautrix/whatsapp
-              tag: v0.2609.0
+              tag: v0.2610.0
             command:
               - /usr/bin/mautrix-whatsapp
             args:
