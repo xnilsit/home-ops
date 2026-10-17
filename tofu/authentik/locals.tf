@@ -242,6 +242,13 @@ locals {
       # 192.168.0.200:5000 is Synology DSM.
       icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/synology.svg"
       groups = ["home-ops"]
+      sub_mode                   = "user_username"
+      include_claims_in_id_token = true
+      gateway_callback           = false
+      extra_redirect_uris = [
+        "https://oni.${var.domain}/oauth2/callback",
+        "https://oni.${var.domain}/oidc/callback",
+      ]
     }
     openspeedtest = {
       display_name = "OpenSpeedTest"
