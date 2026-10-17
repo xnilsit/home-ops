@@ -247,7 +247,7 @@ locals {
       gateway_callback           = false
       extra_redirect_uris = [
         "https://oni.${var.domain}/oauth2/callback",
-        "https://oni.${var.domain}/oidc/callback",
+        "https://oni.${var.domain}",
       ]
     }
     openspeedtest = {
