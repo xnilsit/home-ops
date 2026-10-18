@@ -20,3 +20,23 @@ spec:
     rpcSecretRef:
       name: garage-credentials
       key: rpc-secret
+---
+# Same handle, reached through ./service.yaml on either storage node. Replaces
+# `nas` once the buckets and keys are moved over: connectTo cannot be retargeted
+# in place.
+apiVersion: garage.rajsingh.info/v1beta2
+kind: GarageCluster
+metadata:
+  name: garage
+spec:
+  connectTo:
+    adminApiEndpoint: http://garage-storage.garage.svc.cluster.local:3903
+    adminTokenSecretRef:
+      name: garage-credentials
+      key: admin-token
+  network:
+    # Must be the same rpc_secret as `nas`, or adopted GarageKeys derive
+    # different key material.
+    rpcSecretRef:
+      name: garage-credentials
+      key: rpc-secret
