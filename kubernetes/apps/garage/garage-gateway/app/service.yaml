@@ -1,7 +1,7 @@
 ---
-# S3 across both edge gateways - what every in-cluster client and the
-# s3.${SECRET_DOMAIN} route point at. The operator's own <cr>-gateway Services
-# each select one gateway only.
+# S3 and the Admin API across both edge gateways - what every in-cluster client,
+# garage-ui and the s3.${SECRET_DOMAIN} route point at. The operator's own
+# <cr>-gateway Services each select one gateway only.
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,6 +12,7 @@ spec:
     garage.rajsingh.info/tier: gateway
   ports:
     - {name: s3-api, port: 3900, targetPort: 3900}
+    - {name: admin, port: 3903, targetPort: 3903}
 ---
 # One LAN address per gateway identity, the rpc_public_addr in ./gateway.yaml.
 # The NAS cannot route to pod IPs, and without these it could never dial a

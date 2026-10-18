@@ -22,11 +22,10 @@ spec:
         root_url: https://garage.${SECRET_DOMAIN}
       garage:
         # The edge gateways, like every other consumer: this must not depend on
-        # the ingress path. The admin API stays on the NAS, the node the `nas`
-        # handle manages.
+        # the ingress path or on any one storage node being up.
         endpoint: http://garage.garage.svc.cluster.local:3900
         region: eu-central-1
-        admin_endpoint: http://192.168.0.200:3903
+        admin_endpoint: http://garage.garage.svc.cluster.local:3903
         existingSecret:
           # Read straight out of the Secret the garage Kustomization owns - same
           # namespace, so nothing is copied.
