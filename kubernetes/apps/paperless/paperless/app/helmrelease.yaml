@@ -16,11 +16,26 @@ spec:
           reloader.stakater.com/auto: "true"
         # Webserver, Celery worker, beat and consumer in one pod on an RWO volume.
         strategy: Recreate
-        containers:
-          app:
-            image:
+        initContainers:
+          # s6 refuses a /run it does not own; an emptyDir root is root-owned.
+          run-dir:
+            image: &image
               repository: registry.nilsit.de/ghcr.io/paperless-ngx/paperless-ngx
               tag: 3.3.2
+            command:
+              - "mkdir"
+              - "-p"
+              - "/vol/run"
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              limits:
+                memory: 32Mi
+        containers:
+          app:
+            image: *image
             env:
               PAPERLESS_URL: https://paperless.${SECRET_DOMAIN_ALT}
               PAPERLESS_PORT: &port 8000
@@ -105,10 +120,7 @@ spec:
                         value: localhost
                   periodSeconds: 10
                   failureThreshold: 60
-            securityContext: &securityContext
-              allowPrivilegeEscalation: false
-              readOnlyRootFilesystem: true
-              capabilities: {drop: ["ALL"]}
+            securityContext: *securityContext
             resources:
               requests:
                 cpu: 100m
@@ -239,8 +251,11 @@ spec:
         type: emptyDir
         advancedMounts:
           paperless:
+            run-dir:
+              - path: /vol
             app:
               - path: /run
+                subPath: run
       tmp:
         type: emptyDir
         advancedMounts:
