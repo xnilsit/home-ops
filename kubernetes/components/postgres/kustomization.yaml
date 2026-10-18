@@ -42,6 +42,7 @@ resources:
   # before the Cluster can archive.
   - ./garagebucket.yaml
   - ./garagekey.yaml
+  - ./garagereferencegrant.yaml
   - ./objectstore.yaml
   - ./cluster.yaml
   - ./scheduledbackup.yaml

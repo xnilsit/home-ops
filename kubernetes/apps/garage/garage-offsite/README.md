@@ -5,6 +5,11 @@ through an rclone `crypt` layer. Each Garage bucket becomes a top-level
 directory. Contents are encrypted, while object names stay readable and carry
 a `.bin` suffix.
 
+The `offsite-backup` key reads every bucket through `allBuckets`. A bucket
+outside the `garage` namespace also needs a GarageReferenceGrant from
+`GarageKey` in `garage`, or its controller revokes that read. Buckets from
+`kubernetes/components/postgres` bring their own.
+
 ## B2 setup
 
 The B2 side lives outside git:
