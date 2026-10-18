@@ -2,6 +2,7 @@
   "annotations": {
     "list": []
   },
+  "description": "Garage cluster: the storage nodes on the NAS and Unraid, and the edge gateways in the cluster.",
   "editable": true,
   "graphTooltip": 1,
   "links": [],
@@ -9,7 +10,7 @@
     {
       "id": 1,
       "type": "row",
-      "title": "Cluster",
+      "title": "Overview",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -22,161 +23,8 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Healthy",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 0,
-        "y": 1
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {},
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 1,
-                  "text": "No"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 0,
-                  "text": "Yes"
-                }
-              }
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "cluster_healthy{job=\"garage\"}",
-          "range": true,
-          "instant": false,
-          "refId": "A",
-          "legendFormat": "healthy"
-        }
-      ],
-      "description": "cluster_healthy: every partition has all its nodes up. Goes to 0 before cluster_available does, so it is the earlier warning of the two."
-    },
-    {
-      "id": 3,
-      "type": "stat",
-      "title": "Available",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 3,
-        "y": 1
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {},
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 1,
-                  "text": "No"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 0,
-                  "text": "Yes"
-                }
-              }
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "cluster_available{job=\"garage\"}",
-          "range": true,
-          "instant": false,
-          "refId": "A",
-          "legendFormat": "available"
-        }
-      ],
-      "description": "cluster_available: every partition still has a read/write quorum. 0 means the S3 API is failing requests."
-    },
-    {
-      "id": 4,
-      "type": "stat",
-      "title": "Partitions all-OK",
+      "title": "Cluster",
+      "description": "Worst view across all nodes. Healthy: every partition has all its nodes up. Degraded: some copies are missing but every partition still has quorum. Unavailable: some partitions lost quorum, so reads or writes fail.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -184,14 +32,96 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 6,
+        "x": 0,
         "y": 1
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "custom": {},
-          "decimals": 1,
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "2": {
+                  "text": "Healthy",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "Degraded",
+                  "color": "orange",
+                  "index": 1
+                },
+                "0": {
+                  "text": "Unavailable",
+                  "color": "red",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "min(cluster_healthy{job=\"garage\"}) + min(cluster_available{job=\"garage\"})",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Partitions with quorum",
+      "description": "Share of partitions that can still reach write quorum, from the node with the worst view.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 4,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -200,23 +130,20 @@
                 "value": null
               },
               {
-                "color": "yellow",
-                "value": 99
-              },
-              {
                 "color": "green",
-                "value": 100
+                "value": 0.999
               }
             ]
-          }
+          },
+          "decimals": 0
         },
         "overrides": []
       },
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
+        "justifyMode": "center",
+        "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -224,7 +151,9 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
       },
       "targets": [
         {
@@ -233,19 +162,86 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "100 * cluster_partitions_all_ok{job=\"garage\"} / cluster_partitions{job=\"garage\"}",
-          "range": true,
-          "instant": false,
-          "refId": "A",
-          "legendFormat": "all ok"
+          "expr": "min(cluster_partitions_quorum{job=\"garage\"} / cluster_partitions{job=\"garage\"})",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "refId": "A"
         }
-      ],
-      "description": "Share of the 256 partitions whose nodes are all up. The quorum share is plotted next to it."
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Partitions all-OK",
+      "description": "Share of partitions with every replica's node up.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 7,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0.999
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "min(cluster_partitions_all_ok{job=\"garage\"} / cluster_partitions{job=\"garage\"})",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "refId": "A"
+        }
+      ]
     },
     {
       "id": 5,
       "type": "stat",
       "title": "Nodes",
+      "description": "Peers connected, from the node with the fewest, against all peers any node knows. Includes the gateways.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -259,8 +255,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "custom": {},
-          "decimals": 0,
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -274,10 +269,10 @@
         "overrides": []
       },
       "options": {
-        "colorMode": "value",
+        "colorMode": "none",
         "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
+        "justifyMode": "center",
+        "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -285,7 +280,9 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "value_and_name",
+        "wideLayout": true,
+        "showPercentChange": false
       },
       "targets": [
         {
@@ -294,11 +291,11 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "cluster_connected_nodes{job=\"garage\"}",
-          "range": true,
-          "instant": false,
-          "refId": "A",
-          "legendFormat": "connected"
+          "expr": "min(cluster_connected_nodes{job=\"garage\"})",
+          "legendFormat": "connected",
+          "range": false,
+          "instant": true,
+          "refId": "A"
         },
         {
           "datasource": {
@@ -306,11 +303,11 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "cluster_known_nodes{job=\"garage\"}",
-          "range": true,
-          "instant": false,
-          "refId": "B",
-          "legendFormat": "known"
+          "expr": "max(cluster_known_nodes{job=\"garage\"})",
+          "legendFormat": "known",
+          "range": false,
+          "instant": true,
+          "refId": "B"
         }
       ]
     },
@@ -318,6 +315,7 @@
       "id": 6,
       "type": "stat",
       "title": "Storage nodes",
+      "description": "Nodes with a storage role that are up, against all storage roles in the layout.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -331,8 +329,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "custom": {},
-          "decimals": 0,
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -346,10 +343,10 @@
         "overrides": []
       },
       "options": {
-        "colorMode": "value",
+        "colorMode": "none",
         "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
+        "justifyMode": "center",
+        "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -357,7 +354,9 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "value_and_name",
+        "wideLayout": true,
+        "showPercentChange": false
       },
       "targets": [
         {
@@ -366,11 +365,11 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "cluster_storage_nodes_ok{job=\"garage\"}",
-          "range": true,
-          "instant": false,
-          "refId": "A",
-          "legendFormat": "ok"
+          "expr": "min(cluster_storage_nodes_ok{job=\"garage\"})",
+          "legendFormat": "up",
+          "range": false,
+          "instant": true,
+          "refId": "A"
         },
         {
           "datasource": {
@@ -378,32 +377,33 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "cluster_storage_nodes{job=\"garage\"}",
-          "range": true,
-          "instant": false,
-          "refId": "B",
-          "legendFormat": "total"
+          "expr": "max(cluster_storage_nodes{job=\"garage\"})",
+          "legendFormat": "in layout",
+          "range": false,
+          "instant": true,
+          "refId": "B"
         }
       ]
     },
     {
       "id": 7,
       "type": "stat",
-      "title": "Version",
+      "title": "Replication",
+      "description": "replication_factor. Every node must run the same value.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
+        "w": 2,
         "x": 18,
         "y": 1
       },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "custom": {},
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -417,10 +417,10 @@
         "overrides": []
       },
       "options": {
-        "colorMode": "value",
+        "colorMode": "none",
         "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
+        "justifyMode": "center",
+        "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -428,7 +428,9 @@
           "fields": "",
           "values": false
         },
-        "textMode": "name"
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
       },
       "targets": [
         {
@@ -437,33 +439,33 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "garage_build_info{job=\"garage\"}",
+          "expr": "max(garage_replication_factor{job=\"garage\"})",
+          "legendFormat": "",
           "range": false,
           "instant": true,
-          "refId": "A",
-          "legendFormat": "{{version}}"
+          "refId": "A"
         }
       ]
     },
     {
       "id": 8,
       "type": "stat",
-      "title": "Replication factor",
+      "title": "Version",
+      "description": "Garage versions running, one entry per distinct version. More than one means an upgrade is half done.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 21,
+        "w": 4,
+        "x": 20,
         "y": 1
       },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "custom": {},
-          "decimals": 0,
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -477,10 +479,10 @@
         "overrides": []
       },
       "options": {
-        "colorMode": "value",
+        "colorMode": "none",
         "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
+        "justifyMode": "center",
+        "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -488,7 +490,9 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "name",
+        "wideLayout": true,
+        "showPercentChange": false
       },
       "targets": [
         {
@@ -497,19 +501,18 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "garage_replication_factor{job=\"garage\"}",
-          "range": true,
-          "instant": false,
-          "refId": "A",
-          "legendFormat": "factor"
+          "expr": "count by (version) (garage_build_info{job=\"garage\"})",
+          "legendFormat": "{{version}}",
+          "range": false,
+          "instant": true,
+          "refId": "A"
         }
-      ],
-      "description": "1 on this cluster: Garage keeps a single copy. The redundancy story is the Ceph RGW cold copy, not Garage."
+      ]
     },
     {
       "id": 9,
       "type": "row",
-      "title": "Capacity",
+      "title": "Nodes",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -521,122 +524,224 @@
     },
     {
       "id": 10,
-      "type": "gauge",
-      "title": "Disk used",
+      "type": "table",
+      "title": "Layout",
+      "description": "Roles in the current layout, as one storage node sees them. Gateways have zone `cluster` and no capacity. A gateway missing here has no role yet and answers S3 requests with 403.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
         "h": 7,
-        "w": 6,
+        "w": 10,
         "x": 0,
         "y": 6
       },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "decimals": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (id, role_zone, role_capacity, role_gateway) (cluster_layout_node_connected{job=\"garage\", pod=\"\"})",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "refId": "A",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (id) (cluster_layout_node_disconnected_time{job=\"garage\", pod=\"\"})",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "refId": "B",
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "id": 0,
+              "role_zone": 1,
+              "role_gateway": 2,
+              "role_capacity": 3,
+              "Value #A": 4,
+              "Value #B": 5
+            },
+            "renameByName": {
+              "id": "Node ID",
+              "role_zone": "Zone",
+              "role_gateway": "Role",
+              "role_capacity": "Capacity",
+              "Value #A": "Connected",
+              "Value #B": "Disconnected"
+            }
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
               {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 75
-              },
-              {
-                "color": "red",
-                "value": 90
+                "targetField": "Capacity",
+                "destinationType": "number"
               }
             ]
           }
         },
-        "overrides": []
-      },
-      "options": {
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "100 * (1 - garage_local_disk_avail{job=\"garage\"} / garage_local_disk_total{job=\"garage\"})",
-          "range": true,
-          "instant": false,
-          "refId": "A",
-          "legendFormat": "{{volume}}"
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Zone"
+              }
+            ]
+          }
         }
       ],
-      "description": "data and metadata read the same figures: /volume1/garage/data and /volume1/docker/garage/meta are the same filesystem on the NAS."
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Role"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "storage",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "gateway",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Capacity"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decbytes"
+              },
+              {
+                "id": "noValue",
+                "value": "-"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Connected"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "No",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Yes",
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Disconnected"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "noValue",
+                "value": "-"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
     },
     {
       "id": 11,
-      "type": "timeseries",
-      "title": "Disk free",
+      "type": "table",
+      "title": "Storage nodes",
+      "description": "Per storage node. Disk figures are the filesystems behind Garage's data and metadata directories, not Garage's own usage. A node still receiving its copy shows a resync queue and fewer objects than its peer.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
-        "h": 8,
-        "w": 9,
-        "x": 6,
+        "h": 7,
+        "w": 14,
+        "x": 10,
         "y": 6
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "fillOpacity": 0,
-            "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          },
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": [
-            "lastNotNull",
-            "min"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
       },
       "targets": [
         {
@@ -645,11 +750,12 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "garage_local_disk_avail{job=\"garage\"}",
-          "range": true,
-          "instant": false,
+          "expr": "max by (instance) (1 - garage_local_disk_avail{job=\"garage\", pod=\"\", volume=\"data\"} / garage_local_disk_total{job=\"garage\", pod=\"\", volume=\"data\"})",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
           "refId": "A",
-          "legendFormat": "{{volume}} free"
+          "format": "table"
         },
         {
           "datasource": {
@@ -657,85 +763,283 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "garage_local_disk_total{job=\"garage\"}",
-          "range": true,
-          "instant": false,
+          "expr": "max by (instance) (garage_local_disk_avail{job=\"garage\", pod=\"\", volume=\"data\"})",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
           "refId": "B",
-          "legendFormat": "{{volume}} total"
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (instance) (garage_local_disk_avail{job=\"garage\", pod=\"\", volume=\"metadata\"})",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "refId": "C",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (instance) (table_size{job=\"garage\", pod=\"\", table_name=\"object\"})",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "refId": "D",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (instance) (block_resync_queue_length{job=\"garage\", pod=\"\"})",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "refId": "E",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (instance) (block_resync_errored_blocks{job=\"garage\", pod=\"\"})",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "refId": "F",
+          "format": "table"
         }
-      ]
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "instance": "Node",
+              "Value #A": "Data disk used",
+              "Value #B": "Data free",
+              "Value #C": "Metadata free",
+              "Value #D": "Objects",
+              "Value #E": "Resync queue",
+              "Value #F": "Errored blocks"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Node"
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Data disk used"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.75
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.9
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Data free"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Metadata free"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Objects"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Resync queue"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Errored blocks"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
     },
     {
       "id": 12,
-      "type": "timeseries",
-      "title": "Table size",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 9,
-        "x": 15,
-        "y": 6
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "fillOpacity": 0,
-            "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          },
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "table_size{job=\"garage\"}",
-          "range": true,
-          "instant": false,
-          "refId": "A",
-          "legendFormat": "{{table_name}}"
-        }
-      ],
-      "description": "Rows per Garage table. object/version/block_ref track object count; there are no per-bucket metrics in Garage 2.3.0 - use the garage admin console for that."
-    },
-    {
-      "id": 13,
       "type": "row",
-      "title": "S3 API",
+      "title": "Capacity",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -746,35 +1050,35 @@
       "panels": []
     },
     {
-      "id": 14,
+      "id": 13,
       "type": "timeseries",
-      "title": "Request rate by endpoint",
+      "title": "Data disk free",
+      "description": "Free space on each storage node's data filesystem. With two copies over two zones, usable space is the smaller of the two.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 8,
         "x": 0,
         "y": 14
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
+          "unit": "bytes",
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "linear",
             "lineWidth": 1,
-            "fillOpacity": 10,
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
             "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": true,
-            "axisSoftMin": 0,
+            "spanNulls": false,
             "stacking": {
-              "mode": "normal",
+              "mode": "none",
               "group": "A"
-            }
+            },
+            "axisSoftMin": 0
           },
           "color": {
             "mode": "palette-classic"
@@ -785,12 +1089,14 @@
       "options": {
         "legend": {
           "displayMode": "table",
-          "placement": "bottom",
+          "placement": "right",
           "showLegend": true,
           "calcs": [
             "lastNotNull",
-            "max"
-          ]
+            "min"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
         },
         "tooltip": {
           "mode": "multi",
@@ -804,44 +1110,113 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by(api_endpoint) (rate(api_s3_request_counter{job=\"garage\"}[$__rate_interval]))",
+          "expr": "max by (instance) (garage_local_disk_avail{job=\"garage\", pod=\"\", volume=\"data\"})",
+          "legendFormat": "{{instance}}",
           "range": true,
           "instant": false,
-          "refId": "A",
-          "legendFormat": "{{api_endpoint}}"
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Metadata disk free",
+      "description": "Free space under each storage node's sqlite metadata directory.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 14
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "min"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (instance) (garage_local_disk_avail{job=\"garage\", pod=\"\", volume=\"metadata\"})",
+          "legendFormat": "{{instance}}",
+          "range": true,
+          "instant": false,
+          "refId": "A"
         }
       ]
     },
     {
       "id": 15,
       "type": "timeseries",
-      "title": "Error rate by endpoint and status",
+      "title": "Objects per storage node",
+      "description": "Rows in the object table. Both nodes hold every object, so the lines meet once a new node has caught up.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
+        "w": 8,
+        "x": 16,
         "y": 14
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
+          "unit": "short",
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "linear",
             "lineWidth": 1,
-            "fillOpacity": 10,
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
             "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": true,
-            "axisSoftMin": 0,
+            "spanNulls": false,
             "stacking": {
-              "mode": "normal",
+              "mode": "none",
               "group": "A"
-            }
+            },
+            "axisSoftMin": 0
           },
           "color": {
             "mode": "palette-classic"
@@ -852,12 +1227,13 @@
       "options": {
         "legend": {
           "displayMode": "table",
-          "placement": "bottom",
+          "placement": "right",
           "showLegend": true,
           "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+            "lastNotNull"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
         },
         "tooltip": {
           "mode": "multi",
@@ -871,188 +1247,170 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by(api_endpoint, status_code) (rate(api_s3_error_counter{job=\"garage\"}[$__rate_interval]))",
+          "expr": "max by (instance) (table_size{job=\"garage\", pod=\"\", table_name=\"object\"})",
+          "legendFormat": "{{instance}}",
           "range": true,
           "instant": false,
-          "refId": "A",
-          "legendFormat": "{{api_endpoint}} {{status_code}}"
-        }
-      ],
-      "description": "404s on GetObject are normal for backup tools probing for a manifest; 403s mean a key lost its bucket permission."
-    },
-    {
-      "id": 16,
-      "type": "timeseries",
-      "title": "Latency quantiles, all endpoints",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 22
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "fillOpacity": 0,
-            "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          },
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": []
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.50, sum by(le) (rate(api_s3_request_duration_bucket{job=\"garage\"}[$__rate_interval])))",
-          "range": true,
-          "instant": false,
-          "refId": "A",
-          "legendFormat": "p50"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.90, sum by(le) (rate(api_s3_request_duration_bucket{job=\"garage\"}[$__rate_interval])))",
-          "range": true,
-          "instant": false,
-          "refId": "B",
-          "legendFormat": "p90"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum by(le) (rate(api_s3_request_duration_bucket{job=\"garage\"}[$__rate_interval])))",
-          "range": true,
-          "instant": false,
-          "refId": "C",
-          "legendFormat": "p99"
+          "refId": "A"
         }
       ]
     },
     {
-      "id": 17,
-      "type": "timeseries",
-      "title": "Mean latency by endpoint",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 22
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "fillOpacity": 0,
-            "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          },
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "sum by(api_endpoint) (rate(api_s3_request_duration_sum{job=\"garage\"}[$__rate_interval]))\n  / sum by(api_endpoint) (rate(api_s3_request_duration_count{job=\"garage\"}[$__rate_interval]))",
-          "range": true,
-          "instant": false,
-          "refId": "A",
-          "legendFormat": "{{api_endpoint}}"
-        }
-      ],
-      "description": "PutObject and CompleteMultipartUpload dominate during backup windows; a climbing UploadPart mean usually means the NAS disks, not Garage."
-    },
-    {
-      "id": 18,
+      "id": 16,
       "type": "row",
-      "title": "Blocks",
+      "title": "S3 API",
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 30
+        "y": 22
       },
       "panels": []
     },
     {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Requests by endpoint",
+      "description": "S3 requests per second, all nodes.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 23
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 60,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (api_endpoint) (rate(api_s3_request_counter{job=\"garage\"}[$__rate_interval]))",
+          "legendFormat": "{{api_endpoint}}",
+          "range": true,
+          "instant": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Errors by endpoint and status",
+      "description": "S3 error responses per second. 404 from HeadObject is normal client behaviour; 403 from a gateway usually means it has no layout role, 503 means no quorum.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 23
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 60,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (api_endpoint, status_code) (rate(api_s3_error_counter{job=\"garage\"}[$__rate_interval])) > 0",
+          "legendFormat": "{{api_endpoint}} {{status_code}}",
+          "range": true,
+          "instant": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
       "id": 19,
       "type": "timeseries",
-      "title": "Block throughput",
+      "title": "Requests by node",
+      "description": "Which node served S3. In-cluster clients go through the edge gateways; anything on a storage node came straight from the LAN.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -1065,20 +1423,19 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "Bps",
+          "unit": "reqps",
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "linear",
             "lineWidth": 1,
-            "fillOpacity": 10,
+            "fillOpacity": 40,
+            "gradientMode": "opacity",
             "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": true,
-            "axisSoftMin": 0,
+            "spanNulls": false,
             "stacking": {
-              "mode": "none",
+              "mode": "normal",
               "group": "A"
-            }
+            },
+            "axisSoftMin": 0
           },
           "color": {
             "mode": "palette-classic"
@@ -1088,13 +1445,15 @@
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
+          "displayMode": "table",
+          "placement": "right",
           "showLegend": true,
           "calcs": [
-            "lastNotNull",
+            "mean",
             "max"
-          ]
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
         },
         "tooltip": {
           "mode": "multi",
@@ -1108,30 +1467,19 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "rate(block_bytes_read{job=\"garage\"}[$__rate_interval])",
+          "expr": "sum by (node) (label_replace(label_replace(rate(api_s3_request_counter{job=\"garage\"}[$__rate_interval]), \"node\", \"$1\", \"instance\", \"(.+)\"), \"node\", \"$1\", \"pod\", \"(.+)-gateway-0\"))",
+          "legendFormat": "{{node}}",
           "range": true,
           "instant": false,
-          "refId": "A",
-          "legendFormat": "read"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "rate(block_bytes_written{job=\"garage\"}[$__rate_interval])",
-          "range": true,
-          "instant": false,
-          "refId": "B",
-          "legendFormat": "written"
+          "refId": "A"
         }
       ]
     },
     {
       "id": 20,
       "type": "timeseries",
-      "title": "Resync queue",
+      "title": "Latency quantiles",
+      "description": "S3 request duration over all endpoints and nodes.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -1144,20 +1492,19 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "unit": "s",
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "linear",
             "lineWidth": 1,
             "fillOpacity": 0,
+            "gradientMode": "opacity",
             "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": true,
-            "axisSoftMin": 0,
+            "spanNulls": false,
             "stacking": {
               "mode": "none",
               "group": "A"
-            }
+            },
+            "axisSoftMin": 0
           },
           "color": {
             "mode": "palette-classic"
@@ -1167,13 +1514,15 @@
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
+          "displayMode": "table",
+          "placement": "right",
           "showLegend": true,
           "calcs": [
-            "lastNotNull",
+            "mean",
             "max"
-          ]
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
         },
         "tooltip": {
           "mode": "multi",
@@ -1187,11 +1536,11 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "block_resync_queue_length{job=\"garage\"}",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(api_s3_request_duration_bucket{job=\"garage\"}[$__rate_interval])))",
+          "legendFormat": "p50",
           "range": true,
           "instant": false,
-          "refId": "A",
-          "legendFormat": "queue length"
+          "refId": "A"
         },
         {
           "datasource": {
@@ -1199,19 +1548,31 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "block_resync_errored_blocks{job=\"garage\"}",
+          "expr": "histogram_quantile(0.9, sum by (le) (rate(api_s3_request_duration_bucket{job=\"garage\"}[$__rate_interval])))",
+          "legendFormat": "p90",
           "range": true,
           "instant": false,
-          "refId": "B",
-          "legendFormat": "errored blocks"
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(api_s3_request_duration_bucket{job=\"garage\"}[$__rate_interval])))",
+          "legendFormat": "p99",
+          "range": true,
+          "instant": false,
+          "refId": "C"
         }
-      ],
-      "description": "A non-zero errored-blocks count that does not drain is the signal to run `garage block list-errors` on the NAS."
+      ]
     },
     {
       "id": 21,
       "type": "timeseries",
-      "title": "Block refcount entries and RAM buffer",
+      "title": "Mean latency by endpoint",
+      "description": "Mean S3 request duration per endpoint.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -1224,50 +1585,37 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "unit": "s",
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "linear",
             "lineWidth": 1,
             "fillOpacity": 0,
+            "gradientMode": "opacity",
             "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": true,
-            "axisSoftMin": 0,
+            "spanNulls": false,
             "stacking": {
               "mode": "none",
               "group": "A"
-            }
+            },
+            "axisSoftMin": 0
           },
           "color": {
             "mode": "palette-classic"
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "write buffer free"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "bytes"
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
+          "displayMode": "table",
+          "placement": "right",
           "showLegend": true,
-          "calcs": []
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
         },
         "tooltip": {
           "mode": "multi",
@@ -1281,30 +1629,18 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "block_rc_size{job=\"garage\"}",
+          "expr": "sum by (api_endpoint) (rate(api_s3_request_duration_sum{job=\"garage\"}[$__rate_interval])) / sum by (api_endpoint) (rate(api_s3_request_duration_count{job=\"garage\"}[$__rate_interval]))",
+          "legendFormat": "{{api_endpoint}}",
           "range": true,
           "instant": false,
-          "refId": "A",
-          "legendFormat": "refcount entries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "block_ram_buffer_free_kb{job=\"garage\"} * 1024",
-          "range": true,
-          "instant": false,
-          "refId": "B",
-          "legendFormat": "write buffer free"
+          "refId": "A"
         }
       ]
     },
     {
       "id": 22,
       "type": "row",
-      "title": "Tables, RPC and Admin API",
+      "title": "Blocks",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -1317,15 +1653,97 @@
     {
       "id": 23,
       "type": "timeseries",
-      "title": "Table queues",
+      "title": "Block throughput",
+      "description": "Block bytes written (up) and read (down) on each storage node, resync included.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 8,
         "x": 0,
+        "y": 40
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": null
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (instance) (rate(block_bytes_written{job=\"garage\", pod=\"\"}[$__rate_interval]))",
+          "legendFormat": "{{instance}} write",
+          "range": true,
+          "instant": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "-max by (instance) (rate(block_bytes_read{job=\"garage\", pod=\"\"}[$__rate_interval]))",
+          "legendFormat": "{{instance}} read",
+          "range": true,
+          "instant": false,
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "type": "timeseries",
+      "title": "Resync queue",
+      "description": "Blocks waiting to be fetched or offloaded. Grows after a layout change and drains as the node catches up; errored blocks are retried with backoff.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
         "y": 40
       },
       "fieldConfig": {
@@ -1333,33 +1751,50 @@
           "unit": "short",
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "linear",
             "lineWidth": 1,
             "fillOpacity": 0,
+            "gradientMode": "opacity",
             "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": true,
-            "axisSoftMin": 0,
+            "spanNulls": false,
             "stacking": {
               "mode": "none",
               "group": "A"
-            }
+            },
+            "axisSoftMin": 0
           },
           "color": {
             "mode": "palette-classic"
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".* errored"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {
           "displayMode": "table",
-          "placement": "bottom",
+          "placement": "right",
           "showLegend": true,
           "calcs": [
             "lastNotNull",
             "max"
-          ]
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
         },
         "tooltip": {
           "mode": "multi",
@@ -1373,11 +1808,11 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "table_gc_todo_queue_length{job=\"garage\"} > 0",
+          "expr": "max by (instance) (block_resync_queue_length{job=\"garage\", pod=\"\"})",
+          "legendFormat": "{{instance}} queued",
           "range": true,
           "instant": false,
-          "refId": "A",
-          "legendFormat": "gc {{table_name}}"
+          "refId": "A"
         },
         {
           "datasource": {
@@ -1385,191 +1820,44 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "table_merkle_updater_todo_queue_length{job=\"garage\"} > 0",
+          "expr": "max by (instance) (block_resync_errored_blocks{job=\"garage\", pod=\"\"})",
+          "legendFormat": "{{instance}} errored",
           "range": true,
           "instant": false,
-          "refId": "B",
-          "legendFormat": "merkle {{table_name}}"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "table_insert_queue_length{job=\"garage\"} > 0",
-          "range": true,
-          "instant": false,
-          "refId": "C",
-          "legendFormat": "insert {{table_name}}"
-        }
-      ],
-      "description": "Zero-valued series are filtered out. A merkle or insert queue that only grows means the node cannot keep up with writes."
-    },
-    {
-      "id": 24,
-      "type": "timeseries",
-      "title": "RPC rate by endpoint",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 40
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "fillOpacity": 0,
-            "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          },
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "sum by(rpc_endpoint) (rate(rpc_request_counter{job=\"garage\"}[$__rate_interval]))",
-          "range": true,
-          "instant": false,
-          "refId": "A",
-          "legendFormat": "{{rpc_endpoint}}"
-        }
-      ],
-      "description": "Single-node cluster, so this is all loopback RPC - useful as an internal activity trace, not as network load."
-    },
-    {
-      "id": 25,
-      "type": "timeseries",
-      "title": "Mean RPC duration by endpoint",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 48
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "fillOpacity": 0,
-            "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          },
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "expr": "sum by(rpc_endpoint) (rate(rpc_duration_sum{job=\"garage\"}[$__rate_interval]))\n  / sum by(rpc_endpoint) (rate(rpc_duration_count{job=\"garage\"}[$__rate_interval]))",
-          "range": true,
-          "instant": false,
-          "refId": "A",
-          "legendFormat": "{{rpc_endpoint}}"
+          "refId": "B"
         }
       ]
     },
     {
-      "id": 26,
+      "id": 25,
       "type": "timeseries",
-      "title": "Admin API rate and errors",
+      "title": "Resync rate",
+      "description": "Blocks processed by the resync workers per second.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 48
+        "w": 8,
+        "x": 16,
+        "y": 40
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
+          "unit": "ops",
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "linear",
             "lineWidth": 1,
             "fillOpacity": 0,
+            "gradientMode": "opacity",
             "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": true,
-            "axisSoftMin": 0,
+            "spanNulls": false,
             "stacking": {
               "mode": "none",
               "group": "A"
-            }
+            },
+            "axisSoftMin": 0
           },
           "color": {
             "mode": "palette-classic"
@@ -1580,11 +1868,14 @@
       "options": {
         "legend": {
           "displayMode": "table",
-          "placement": "bottom",
+          "placement": "right",
           "showLegend": true,
           "calcs": [
-            "lastNotNull"
-          ]
+            "mean",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
         },
         "tooltip": {
           "mode": "multi",
@@ -1598,26 +1889,488 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by(api_endpoint) (rate(api_admin_request_counter{job=\"garage\"}[$__rate_interval]))",
+          "expr": "max by (instance) (rate(block_resync_counter{job=\"garage\", pod=\"\"}[$__rate_interval]))",
+          "legendFormat": "{{instance}}",
           "range": true,
           "instant": false,
-          "refId": "A",
-          "legendFormat": "{{api_endpoint}}"
-        },
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "type": "row",
+      "title": "Tables, RPC and Admin API",
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
+      "panels": [
         {
+          "id": 26,
+          "type": "timeseries",
+          "title": "Table sync queues",
+          "description": "Non-empty table work queues per node. Merkle backlogs grow after a layout change while metadata syncs to the new layout version.",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "editorMode": "code",
-          "expr": "sum by(api_endpoint, status_code) (rate(api_admin_error_counter{job=\"garage\"}[$__rate_interval]))",
-          "range": true,
-          "instant": false,
-          "refId": "B",
-          "legendFormat": "error {{api_endpoint}} {{status_code}}"
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 49
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 0,
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "axisSoftMin": 0
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "sortBy": "Last *",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum by (node, table_name) (label_replace(label_replace(table_merkle_updater_todo_queue_length{job=\"garage\"}, \"node\", \"$1\", \"instance\", \"(.+)\"), \"node\", \"$1\", \"pod\", \"(.+)-gateway-0\")) > 0",
+              "legendFormat": "{{node}} {{table_name}} merkle",
+              "range": true,
+              "instant": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum by (node, table_name) (label_replace(label_replace(table_gc_todo_queue_length{job=\"garage\"}, \"node\", \"$1\", \"instance\", \"(.+)\"), \"node\", \"$1\", \"pod\", \"(.+)-gateway-0\")) > 0",
+              "legendFormat": "{{node}} {{table_name}} gc",
+              "range": true,
+              "instant": false,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum by (node, table_name) (label_replace(label_replace(table_insert_queue_length{job=\"garage\"}, \"node\", \"$1\", \"instance\", \"(.+)\"), \"node\", \"$1\", \"pod\", \"(.+)-gateway-0\")) > 0",
+              "legendFormat": "{{node}} {{table_name}} insert",
+              "range": true,
+              "instant": false,
+              "refId": "C"
+            }
+          ]
+        },
+        {
+          "id": 27,
+          "type": "timeseries",
+          "title": "Table rows",
+          "description": "Rows per metadata table, largest storage-node figure.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 49
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 0,
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "axisSoftMin": 0
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "calcs": [
+                "lastNotNull"
+              ],
+              "sortBy": "Last *",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "max by (table_name) (table_size{job=\"garage\", pod=\"\"})",
+              "legendFormat": "{{table_name}}",
+              "range": true,
+              "instant": false,
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 28,
+          "type": "timeseries",
+          "title": "RPC rate by endpoint",
+          "description": "Inter-node RPCs per second.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 57
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 40,
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "mode": "normal",
+                  "group": "A"
+                },
+                "axisSoftMin": 0
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "calcs": [
+                "mean",
+                "max"
+              ],
+              "sortBy": "Last *",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum by (rpc_endpoint) (rate(rpc_request_counter{job=\"garage\"}[$__rate_interval]))",
+              "legendFormat": "{{rpc_endpoint}}",
+              "range": true,
+              "instant": false,
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 29,
+          "type": "timeseries",
+          "title": "RPC errors and timeouts",
+          "description": "RPC failures per second by the node that saw them. A peer that is down shows up here on every other node.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 57
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 0,
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "axisSoftMin": 0
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "calcs": [
+                "mean",
+                "max"
+              ],
+              "sortBy": "Last *",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum by (node) (label_replace(label_replace(rate(rpc_netapp_error_counter{job=\"garage\"}[$__rate_interval]), \"node\", \"$1\", \"instance\", \"(.+)\"), \"node\", \"$1\", \"pod\", \"(.+)-gateway-0\")) > 0",
+              "legendFormat": "{{node}} error",
+              "range": true,
+              "instant": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum by (node) (label_replace(label_replace(rate(rpc_timeout_counter{job=\"garage\"}[$__rate_interval]), \"node\", \"$1\", \"instance\", \"(.+)\"), \"node\", \"$1\", \"pod\", \"(.+)-gateway-0\")) > 0",
+              "legendFormat": "{{node}} timeout",
+              "range": true,
+              "instant": false,
+              "refId": "B"
+            }
+          ]
+        },
+        {
+          "id": 30,
+          "type": "timeseries",
+          "title": "Mean RPC duration by endpoint",
+          "description": "Mean inter-node RPC duration.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 65
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 0,
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "axisSoftMin": 0
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "calcs": [
+                "mean",
+                "max"
+              ],
+              "sortBy": "Last *",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum by (rpc_endpoint) (rate(rpc_duration_sum{job=\"garage\"}[$__rate_interval])) / sum by (rpc_endpoint) (rate(rpc_duration_count{job=\"garage\"}[$__rate_interval]))",
+              "legendFormat": "{{rpc_endpoint}}",
+              "range": true,
+              "instant": false,
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "type": "timeseries",
+          "title": "Admin API",
+          "description": "Admin API requests per node: the operator, garage-ui and the metrics scrapes.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 65
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 0,
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "axisSoftMin": 0
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "calcs": [
+                "mean",
+                "max"
+              ],
+              "sortBy": "Last *",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum by (node) (label_replace(label_replace(rate(api_admin_request_counter{job=\"garage\"}[$__rate_interval]), \"node\", \"$1\", \"instance\", \"(.+)\"), \"node\", \"$1\", \"pod\", \"(.+)-gateway-0\"))",
+              "legendFormat": "{{node}}",
+              "range": true,
+              "instant": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum by (node) (label_replace(label_replace(rate(api_admin_error_counter{job=\"garage\"}[$__rate_interval]), \"node\", \"$1\", \"instance\", \"(.+)\"), \"node\", \"$1\", \"pod\", \"(.+)-gateway-0\")) > 0",
+              "legendFormat": "{{node}} errors",
+              "range": true,
+              "instant": false,
+              "refId": "B"
+            }
+          ]
         }
-      ],
-      "description": "garage-operator polls GetClusterStatus and the bucket/key endpoints on every reconcile. Errors here are the GarageCluster handle or a GarageKey breaking."
+      ]
     }
   ],
   "refresh": "1m",
