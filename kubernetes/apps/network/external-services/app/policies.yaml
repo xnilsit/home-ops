@@ -23,7 +23,7 @@ items:
       healthCheck: &healthCheck
         passive: {interval: 5s, baseEjectionTime: 30s, consecutive5XxErrors: 5, consecutiveGatewayErrors: 3, maxEjectionPercent: 100, alwaysEjectOneEndpoint: true}
       timeout: &timeout {tcp: {connectTimeout: 3s}}
-  # Unshared limit, so a client looping on the webgui keeps its budget elsewhere.
+  # No enforced rate limit for the unraid webgui.
   - apiVersion: gateway.envoyproxy.io/v1alpha1
     kind: BackendTrafficPolicy
     metadata:
@@ -37,21 +37,12 @@ items:
           name: unraid
       healthCheck: *healthCheck
       timeout: *timeout
+      # A merge cannot drop rateLimit, so a shadow-mode rule stands in for none.
       rateLimit:
         type: Global
         global:
           rules:
-            - clientSelectors:
-                - sourceCIDR:
-                    type: Distinct
-                    value: 0.0.0.0/0
-              limit:
+            - limit:
                 requests: 1200
                 unit: Minute
-            - clientSelectors:
-                - sourceCIDR:
-                    type: Distinct
-                    value: ::/0
-              limit:
-                requests: 1200
-                unit: Minute
+              shadowMode: true
