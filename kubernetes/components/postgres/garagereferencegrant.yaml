@@ -1,0 +1,15 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/garage.rajsingh.info/garagereferencegrant_v1beta1.json
+apiVersion: garage.rajsingh.info/v1beta1
+kind: GarageReferenceGrant
+metadata:
+  name: ${APP}-postgres-backup-offsite
+spec:
+  # Lets garage/offsite-backup's allBuckets read reach ./garagebucket.yaml.
+  # Without it the bucket controller revokes that read on every reconcile.
+  from:
+    - kind: GarageKey
+      namespace: garage
+  to:
+    - kind: GarageBucket
+      name: ${APP}-postgres-backup
