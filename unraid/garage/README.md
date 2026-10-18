@@ -18,12 +18,12 @@ or this box is down, reads keep working and writes fail.
 
 | On Unraid | In the container |
 | --------- | ---------------- |
-| `/mnt/user/garage-meta` | `/var/lib/garage/meta` |
+| `/mnt/cache/garage-meta` | `/var/lib/garage/meta` |
 | `/mnt/user/garage` | `/var/lib/garage/data` |
 
-`garage-meta` holds the sqlite database. Make it an exclusive share — a single pool as primary
-storage, no secondary storage — so `/mnt/user/garage-meta` is a bind mount rather than FUSE, which
-sqlite's WAL does not cope with well.
+`garage-meta` holds the sqlite database. It is a cache-only share on the `cache` pool, mounted by its
+pool path: exclusive shares are off, so `/mnt/user/garage-meta` would go through shfs (FUSE), which
+sqlite's WAL does not cope with well. Data blocks are fine on `/mnt/user`.
 
 ## Joining the cluster
 
@@ -33,7 +33,7 @@ Changing `replication_factor` is only possible by rebuilding the layout from scr
 node stopped. S3 is unavailable from step 2 to step 7; CNPG WAL archiving, kopiur and the other
 clients retry until it is back.
 
-1. On Unraid, create the shares `garage-meta` (exclusive, see above) and `garage`.
+1. On Unraid, create the shares `garage-meta` (cache-only on `cache`, see above) and `garage`.
 
 2. Take the gateways down and drop their identities. Their metadata PVCs hold only the node key and
    table copies, no blocks:

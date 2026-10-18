@@ -10,7 +10,8 @@ services:
     env_file: secret.sops.env
     volumes:
       - ./garage.toml:/etc/garage.toml:ro
-      - /mnt/user/garage-meta:/var/lib/garage/meta
+      # The pool path, not /mnt/user: sqlite's WAL on shfs (FUSE) is fragile
+      - /mnt/cache/garage-meta:/var/lib/garage/meta
       - /mnt/user/garage:/var/lib/garage/data
     logging:
       driver: json-file
