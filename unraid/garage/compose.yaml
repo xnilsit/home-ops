@@ -6,6 +6,10 @@ services:
     # Host networking keeps rpc_public_addr honest
     network_mode: host
     restart: unless-stopped
+    # Unraid's Docker tab: icon, and no template lookup or update check
+    labels:
+      net.unraid.docker.managed: doco-cd
+      net.unraid.docker.icon: https://cdn.jsdelivr.net/gh/selfhst/icons/png/garage.png
     # GARAGE_RPC_SECRET and GARAGE_ADMIN_TOKEN, decrypted by doco-cd
     env_file: secret.sops.env
     volumes:
