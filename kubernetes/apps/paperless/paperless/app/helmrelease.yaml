@@ -14,8 +14,6 @@ spec:
       paperless:
         annotations:
           reloader.stakater.com/auto: "true"
-        # Held at 0 until the Unraid data is restored into the database and volume.
-        replicas: 0
         # Webserver, Celery worker, beat and consumer in one pod on an RWO volume.
         strategy: Recreate
         containers:
@@ -277,3 +275,20 @@ spec:
         ports:
           http:
             port: *gotenbergPort
+    route:
+      app:
+        annotations:
+          # / 302s here for an anonymous client anyway. The DRF API under /api/
+          # would 403, so it is not an option.
+          gatus.home-operations.com/endpoint: |
+            path: /accounts/login/
+        hostnames:
+          - "paperless.${SECRET_DOMAIN_ALT}"
+        parentRefs:
+          - name: envoy-external
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
