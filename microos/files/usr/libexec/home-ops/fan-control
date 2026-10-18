@@ -1,0 +1,30 @@
+#!/bin/bash
+# On/off control for the Pi 5 fan header: this kernel has no RP1 PWM driver, so pwm-fan never binds.
+# FAN_PWM (RP1 line 45) is active low.
+set -euo pipefail
+
+on="${FAN_ON_MILLIC:-60000}"
+off="${FAN_OFF_MILLIC:-50000}"
+
+for chip in /sys/class/gpio/gpiochip*; do
+  [ "$(cat "$chip/label")" = pinctrl-rp1 ] && line=$(( $(cat "$chip/base") + 45 ))
+done
+pin="/sys/class/gpio/gpio${line}"
+[ -d "$pin" ] || echo "$line" > /sys/class/gpio/export
+echo out > "$pin/direction"
+
+trap 'echo 0 > "$pin/value"' EXIT
+echo 0 > "$pin/value"
+fan=on
+
+while :; do
+  temp="$(< /sys/class/thermal/thermal_zone0/temp)"
+  if [ "$fan" = off ] && [ "$temp" -ge "$on" ]; then
+    echo 0 > "$pin/value"
+    fan=on
+  elif [ "$fan" = on ] && [ "$temp" -le "$off" ]; then
+    echo 1 > "$pin/value"
+    fan=off
+  fi
+  sleep 5
+done

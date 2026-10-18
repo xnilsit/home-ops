@@ -10,8 +10,8 @@ spec:
   interval: 1h
   values:
     configuration:
-      # Written by transactional-update once a new snapshot is ready
-      rebootSentinel: /run/reboot-needed
+      # Written by transactional-update with REBOOT_METHOD=kured
+      rebootSentinel: /run/reboot-required
       period: 10m
       startTime: "02:00"
       endTime: "05:00"

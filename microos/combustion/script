@@ -5,8 +5,10 @@ exec > >(exec tee -a /dev/tty0) 2>&1
 
 echo kube-wrk-02 > /etc/hostname
 
-id nilsit >/dev/null 2>&1 || useradd -m nilsit
-install -d -m 700 -o nilsit /home/nilsit/.ssh
+# The transaction doesn't always have /home mounted, and a home written underneath it is hidden at runtime
+findmnt /home >/dev/null || mount /home
+id nilsit >/dev/null 2>&1 || useradd nilsit
+install -d -m 700 -o nilsit /home/nilsit /home/nilsit/.ssh
 install -m 600 -o nilsit authorized_keys /home/nilsit/.ssh/authorized_keys
 echo 'nilsit ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/nilsit
 chmod 440 /etc/sudoers.d/nilsit

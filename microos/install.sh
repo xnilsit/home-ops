@@ -13,8 +13,9 @@ zypper --non-interactive install --allow-vendor-change \
   containerd cri-tools haproxy kubernetes1.37-kubelet
 
 cp -r files/etc/. /etc/
+cp -r files/usr/. /usr/
 chmod 600 /etc/containerd/conf.d/*.toml
 
 grep -q 'registry.nilsit.de' /etc/hosts || echo '192.168.1.152 registry.nilsit.de' >> /etc/hosts
 
-systemctl enable containerd.service haproxy.service
+systemctl enable containerd.service haproxy.service rpi-fan.service
