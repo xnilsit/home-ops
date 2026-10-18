@@ -33,30 +33,6 @@ spec:
                   secretKeyRef:
                     name: *secret
                     key: APOCI_ADMIN_TOKEN
-              DOCKERHUB_TOKEN:
-                valueFrom:
-                  secretKeyRef:
-                    name: *secret
-                    key: DOCKERHUB_TOKEN
-              # Pulled as registry.${SECRET_DOMAIN}/<name>/<repo>:<tag>. private
-              # makes the registry token a requirement before anything is fetched.
-              APOCI_UPSTREAMS_REGISTRIES:
-                value: |
-                  [
-                  {"name": "docker.io", "endpoint": "https://registry-1.docker.io", "private": true, "username": "xnilsit", "password": "$(DOCKERHUB_TOKEN)"},
-                  {"name": "ghcr.io", "endpoint": "https://ghcr.io", "private": true},
-                  {"name": "quay.io", "endpoint": "https://quay.io", "private": true},
-                  {"name": "registry.k8s.io", "endpoint": "https://registry.k8s.io", "private": true},
-                  {"name": "mirror.gcr.io", "endpoint": "https://mirror.gcr.io", "private": true},
-                  {"name": "gcr.io", "endpoint": "https://gcr.io", "private": true},
-                  {"name": "public.ecr.aws", "endpoint": "https://public.ecr.aws", "private": true},
-                  {"name": "codeberg.org", "endpoint": "https://codeberg.org", "private": true},
-                  {"name": "dock.mau.dev", "endpoint": "https://dock.mau.dev", "private": true},
-                  {"name": "git.sable.moe", "endpoint": "https://git.sable.moe", "private": true},
-                  {"name": "forgejo.ellis.link", "endpoint": "https://forgejo.ellis.link", "private": true},
-                  {"name": "git.ow-ops.eu", "endpoint": "https://git.ow-ops.eu", "private": true}
-                  ]
-                dependsOn: DOCKERHUB_TOKEN
               APOCI_DB_DSN:
                 valueFrom:
                   secretKeyRef:
@@ -171,10 +147,48 @@ spec:
             ui:
               enabled: true
 
-            # Registries come from APOCI_UPSTREAMS_REGISTRIES, which replaces the whole list.
+            # Pulled as registry.${SECRET_DOMAIN}/<name>/<repo>:<tag>. private
+            # makes the registry token a requirement before anything is fetched.
             upstreams:
               enabled: true
               fetchTimeout: 60s
+              registries:
+                - name: docker.io
+                  endpoint: https://registry-1.docker.io
+                  private: true
+                - name: ghcr.io
+                  endpoint: https://ghcr.io
+                  private: true
+                - name: quay.io
+                  endpoint: https://quay.io
+                  private: true
+                - name: registry.k8s.io
+                  endpoint: https://registry.k8s.io
+                  private: true
+                - name: mirror.gcr.io
+                  endpoint: https://mirror.gcr.io
+                  private: true
+                - name: gcr.io
+                  endpoint: https://gcr.io
+                  private: true
+                - name: public.ecr.aws
+                  endpoint: https://public.ecr.aws
+                  private: true
+                - name: codeberg.org
+                  endpoint: https://codeberg.org
+                  private: true
+                - name: dock.mau.dev
+                  endpoint: https://dock.mau.dev
+                  private: true
+                - name: git.sable.moe
+                  endpoint: https://git.sable.moe
+                  private: true
+                - name: forgejo.ellis.link
+                  endpoint: https://forgejo.ellis.link
+                  private: true
+                - name: git.ow-ops.eu
+                  endpoint: https://git.ow-ops.eu
+                  private: true
     persistence:
       config:
         type: configMap
