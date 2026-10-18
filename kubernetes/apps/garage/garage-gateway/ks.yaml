@@ -14,7 +14,7 @@ spec:
   # Apart from garage so a gateway that will not come up does not hold back the
   # buckets, keys and everything that dependsOn them.
   dependsOn:
-    # The handle the gateways join: credentials and a reachable NAS Admin API
+    # Credentials and the garage-storage Service the gateways join through
     - name: garage
       namespace: flux-system
     # The metadata PVCs are ceph-block
