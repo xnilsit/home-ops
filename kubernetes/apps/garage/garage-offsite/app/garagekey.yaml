@@ -1,0 +1,21 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/garage.rajsingh.info/garagekey_v1beta1.json
+apiVersion: garage.rajsingh.info/v1beta1
+kind: GarageKey
+metadata:
+  name: offsite-backup
+spec:
+  clusterRef:
+    name: garage
+  neverExpires: true
+  secretTemplate:
+    name: garage-offsite-backup
+    accessKeyIdKey: AWS_ACCESS_KEY_ID
+    secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
+    # Same as the keys in ../../garage/app/garagekey.yaml: a management handle
+    # carries no region or S3 endpoint for the operator to derive.
+    includeRegion: false
+    includeEndpoint: false
+  # Read on every bucket, including ones created later.
+  allBuckets:
+    read: true
