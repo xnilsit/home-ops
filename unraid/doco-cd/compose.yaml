@@ -5,6 +5,10 @@ services:
   doco-cd:
     image: ghcr.io/kimdre/doco-cd:0.129.0
     restart: unless-stopped
+    # Unraid's Docker tab: icon, and no template lookup or update check
+    labels:
+      net.unraid.docker.managed: doco-cd
+      net.unraid.docker.icon: https://cdn.jsdelivr.net/gh/selfhst/icons/png/doco-cd.png
     environment:
       TZ: Europe/Berlin
       SELF_UPDATE_ENABLED: "true"
