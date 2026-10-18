@@ -1,11 +1,14 @@
 ---
-# Two edge gateways in front of the NAS: Garage nodes that join its cluster with
-# a capacity-less role, store no blocks and forward every S3 request over RPC.
-# The operator assigns that role in the NAS layout itself.
+# Two edge gateways in front of the storage nodes on the NAS and Unraid: Garage
+# nodes that join the cluster with a capacity-less role, store no blocks and
+# forward every S3 request over RPC. The operator assigns that role itself.
 #
 # Two CRs rather than one at replicas: 2 - an edge gateway renders one shared
 # garage.toml, so its rpc_public_addr can only name one identity. Each CR gets
-# its own LAN address from ./service.yaml so the NAS can dial it back.
+# its own LAN address from ./service.yaml so the storage nodes can dial it back.
+#
+# connectTo cannot be retargeted in place: changing it means deleting and
+# recreating the CR, one gateway at a time.
 apiVersion: v1
 kind: List
 items:
@@ -51,7 +54,8 @@ items:
           limits:
             memory: 1Gi
       connectTo:
-        adminApiEndpoint: http://192.168.0.200:3903
+        # Either storage node, see ../../garage/app/service.yaml
+        adminApiEndpoint: http://garage-storage.garage.svc.cluster.local:3903
         adminTokenSecretRef:
           name: garage-credentials
           key: admin-token
