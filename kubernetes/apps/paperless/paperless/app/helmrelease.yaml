@@ -1,0 +1,279 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: paperless
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: paperless
+  interval: 1h
+  values:
+    controllers:
+      paperless:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # Held at 0 until the Unraid data is restored into the database and volume.
+        replicas: 0
+        # Webserver, Celery worker, beat and consumer in one pod on an RWO volume.
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: registry.nilsit.de/ghcr.io/paperless-ngx/paperless-ngx
+              tag: 3.3.2
+            env:
+              PAPERLESS_URL: https://paperless.${SECRET_DOMAIN_ALT}
+              PAPERLESS_PORT: &port 8000
+              PAPERLESS_TIME_ZONE: Europe/Berlin
+              # Lets s6-overlay run with its state on the /run emptyDir.
+              S6_READ_ONLY_ROOT: "1"
+              # Fontconfig's cache, on the only writable path.
+              XDG_CACHE_HOME: /tmp/cache
+              PAPERLESS_DBENGINE: postgresql
+              PAPERLESS_DBHOST: paperless-postgres-rw
+              PAPERLESS_DBUSER:
+                valueFrom:
+                  secretKeyRef:
+                    name: &pgSecret paperless-postgres-app
+                    key: username
+              PAPERLESS_DBPASS:
+                valueFrom:
+                  secretKeyRef:
+                    name: *pgSecret
+                    key: password
+              PAPERLESS_DBNAME:
+                valueFrom:
+                  secretKeyRef:
+                    name: *pgSecret
+                    key: dbname
+              DRAGONFLY_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: paperless-dragonfly-auth
+                    key: password
+              PAPERLESS_REDIS:
+                value: redis://:$(DRAGONFLY_PASSWORD)@paperless-dragonfly:6379
+                dependsOn: DRAGONFLY_PASSWORD
+              PAPERLESS_TIKA_ENABLED: "true"
+              PAPERLESS_TIKA_ENDPOINT: http://paperless-tika:9998
+              PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://paperless-gotenberg:3000
+              PAPERLESS_WEBSERVER_WORKERS: "2"
+              PAPERLESS_TASK_WORKERS: "2"
+              PAPERLESS_THREADS_PER_WORKER: "2"
+              PAPERLESS_OCR_LANGUAGE: deu+eng
+              PAPERLESS_OCR_ROTATE_PAGES_THRESHOLD: "5"
+              PAPERLESS_FILENAME_FORMAT: "{created}-{correspondent}-{title}"
+              PAPERLESS_CONSUMER_RECURSIVE: "true"
+              PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS: "true"
+              # The consume folder is NFS, which delivers no inotify events.
+              PAPERLESS_CONSUMER_POLLING_INTERVAL: "60"
+              PAPERLESS_EMAIL_TASK_CRON: "*/2 * * * *"
+              PAPERLESS_EMAIL_HOST: mail.${SECRET_DOMAIN_ALT}
+              PAPERLESS_EMAIL_HOST_USER: paperless@${SECRET_DOMAIN_ALT}
+              PAPERLESS_APPS: allauth.socialaccount.providers.gitlab
+              PAPERLESS_SOCIAL_AUTO_SIGNUP: "true"
+            envFrom:
+              # PAPERLESS_SECRET_KEY, PAPERLESS_EMAIL_HOST_PASSWORD, PAPERLESS_SOCIALACCOUNT_PROVIDERS
+              - secretRef:
+                  name: paperless-secret
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /accounts/login/
+                    port: *port
+                    # ALLOWED_HOSTS comes from PAPERLESS_URL; localhost is always allowed.
+                    httpHeaders:
+                      - name: Host
+                        value: localhost
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+              # Covers migrations and the search index check on start.
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /accounts/login/
+                    port: *port
+                    httpHeaders:
+                      - name: Host
+                        value: localhost
+                  periodSeconds: 10
+                  failureThreshold: 60
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 100m
+                memory: 1Gi
+              limits:
+                memory: 4Gi
+      tika:
+        replicas: 2
+        strategy: RollingUpdate
+        podDisruptionBudget:
+          maxUnavailable: 1
+        pod:
+          # Replaces defaultPodOptions.securityContext rather than merging into it.
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 35002
+            runAsGroup: 35002
+            seccompProfile:
+              type: RuntimeDefault
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/controller: tika
+        containers:
+          app:
+            image:
+              repository: registry.nilsit.de/docker.io/apache/tika
+              tag: 4.1.0
+            probes:
+              liveness: &tikaProbes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /tika
+                    port: &tikaPort 9998
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *tikaProbes
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 50m
+                memory: 512Mi
+              limits:
+                memory: 2Gi
+      gotenberg:
+        replicas: 2
+        strategy: RollingUpdate
+        podDisruptionBudget:
+          maxUnavailable: 1
+        pod:
+          # Replaces defaultPodOptions.securityContext rather than merging into it.
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            seccompProfile:
+              type: RuntimeDefault
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/controller: gotenberg
+        containers:
+          app:
+            image:
+              repository: registry.nilsit.de/docker.io/gotenberg/gotenberg
+              tag: 8.38.1
+            command:
+              - gotenberg
+              - --chromium-disable-javascript=true
+              - --chromium-allow-list=file:///tmp/.*
+            probes:
+              liveness: &gotenbergProbes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: &gotenbergPort 3000
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *gotenbergProbes
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 50m
+                memory: 512Mi
+              limits:
+                memory: 2Gi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        # paperless in the image, and what kopiur's mover reads the volume as.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    persistence:
+      data:
+        # Provisioned by components/kopiur/backup through its Restore populator.
+        existingClaim: paperless
+        advancedMounts:
+          paperless:
+            app:
+              - path: /usr/src/paperless/data
+                subPath: data
+              - path: /usr/src/paperless/media
+                subPath: media
+      consume:
+        existingClaim: paperless-consume
+        advancedMounts:
+          paperless:
+            app:
+              - path: /usr/src/paperless/consume
+                subPath: import
+      run:
+        type: emptyDir
+        advancedMounts:
+          paperless:
+            app:
+              - path: /run
+      tmp:
+        type: emptyDir
+        advancedMounts:
+          paperless:
+            app:
+              - path: /tmp
+          tika:
+            app:
+              - path: /tmp
+          gotenberg:
+            app:
+              - path: /tmp
+      gotenberg-home:
+        type: emptyDir
+        advancedMounts:
+          gotenberg:
+            app:
+              - path: /home/gotenberg
+    service:
+      app:
+        controller: paperless
+        ports:
+          http:
+            port: *port
+      tika:
+        controller: tika
+        ports:
+          http:
+            port: *tikaPort
+      gotenberg:
+        controller: gotenberg
+        ports:
+          http:
+            port: *gotenbergPort

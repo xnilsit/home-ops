@@ -1,0 +1,38 @@
+---
+# The SMB-shared consume folder on Unraid, exported over NFS to 192.168.1.0/24.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/persistentvolume-v1.json
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: paperless-consume
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  # soft: an Unraid outage fails consumer I/O instead of hanging the pod.
+  mountOptions:
+    - nfsvers=4.2
+    - soft
+  nfs:
+    server: 192.168.0.250
+    path: /mnt/user/paperless
+  claimRef:
+    name: paperless-consume
+    namespace: paperless
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/persistentvolumeclaim-v1.json
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-consume
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: ""
+  volumeName: paperless-consume
