@@ -7,8 +7,7 @@ kind: HTTPRoute
 metadata:
   name: apoci-webfinger
   annotations:
-    gatus.home-operations.com/endpoint: |
-      path: /.well-known/webfinger?resource=acct:registry@${SECRET_DOMAIN}
+    gatus.home-operations.com/enabled: "false"
 spec:
   hostnames:
     - "${SECRET_DOMAIN}"
