@@ -35,21 +35,7 @@ items:
         - "searx.${SECRET_DOMAIN}"
       parentRefs: *external
       rules:
-        - {matches: *root, backendRefs: [{<<: *ref, name: containernursery}]}
-  - <<: *route
-    metadata:
-      name: paperless
-      annotations:
-        # / 302s here for an anonymous client anyway. The DRF API under /api/
-        # would 403, so it is not an option.
-        gatus.home-operations.com/endpoint: |
-          path: /accounts/login/
-    spec:
-      hostnames:
-        - "paperless.${SECRET_DOMAIN_ALT}"
-      parentRefs: *external
-      rules:
-        - {matches: *root, backendRefs: [{<<: *ref, name: paperless}],}
+        - {matches: *root, backendRefs: [{<<: *ref, name: containernursery}],}
 
   # ── envoy-external, behind OIDC — what sat behind traefik-forward-auth ──────
   # Each carries a SecurityPolicy in ./oidc.yaml. These were LAN-only on
