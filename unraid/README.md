@@ -41,8 +41,7 @@ Once, as root:
      -e SELF_UPDATE_ENABLED=true \
      -e DEPLOY_CONFIG_BASE_DIR=unraid/ \
      -e SOPS_AGE_KEY_FILE=/age.key \
-     -e POLL_CONFIG='- url: https://github.com/xnilsit/home-ops.git
-     reference: main' \
+     -e POLL_CONFIG='[{url: https://github.com/xnilsit/home-ops.git, reference: main}]' \
      ghcr.io/kimdre/doco-cd:0.129.0 apply-self --bootstrap
    ```
 
