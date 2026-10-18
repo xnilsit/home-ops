@@ -6,6 +6,7 @@ resources:
   # Order matters on first reconcile: the handle needs the credentials, and the
   # buckets and keys only start reconciling once the handle reaches Running.
   - ./secret.sops.yaml
+  - ./service.yaml
   - ./garagecluster.yaml
   # Lets an app namespace reference the handle above with its own bucket and key
   - ./garagereferencegrant.yaml

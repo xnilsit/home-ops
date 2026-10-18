@@ -1,0 +1,25 @@
+---
+# Admin API across both storage nodes, for the operator. Selectorless, the
+# EndpointSlice below holds their LAN addresses. Nothing health-checks them:
+# with one node down, connections to it are refused and the operator retries.
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-storage
+spec:
+  ports:
+    - {name: admin, port: 3903, targetPort: 3903, protocol: TCP}
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: garage-storage
+  labels:
+    kubernetes.io/service-name: garage-storage
+    endpointslice.kubernetes.io/managed-by: flux
+addressType: IPv4
+ports:
+  - {name: admin, port: 3903, protocol: TCP}
+endpoints:
+  - {addresses: ["192.168.0.200"], hostname: nas}
+  - {addresses: ["192.168.0.250"], hostname: unraid}

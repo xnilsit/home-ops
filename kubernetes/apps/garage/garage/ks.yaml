@@ -15,10 +15,10 @@ spec:
     - name: garage-operator
       namespace: flux-system
   healthChecks:
-    - apiVersion: garage.rajsingh.info/v1beta2
-      kind: GarageCluster
+    - <<: &handle {apiVersion: garage.rajsingh.info/v1beta2, kind: GarageCluster, namespace: garage}
       name: nas
-      namespace: garage
+    - <<: *handle
+      name: garage
     - <<: &key {apiVersion: garage.rajsingh.info/v1beta1, kind: GarageKey, namespace: garage}
       name: cnpg-backup
     - <<: *key
