@@ -31,16 +31,12 @@ can dial it back:
    mkdir -p /volume1/docker/garage/meta /volume1/garage/data
    ```
 
-2. Copy `garage.toml` and `docker-compose.yaml` to `/volume1/docker/garage/`.
+2. doco-cd deploys `compose.yaml` with `garage.toml` from this directory (see
+   `synology/README.md`). `secret.sops.env` holds the RPC secret and admin token, which must match
+   `kubernetes/apps/garage/garage/app/secret.sops.yaml` byte for byte, or the operator cannot talk
+   to Garage and derived GarageKeys break.
 
-3. Create `/volume1/docker/garage/.env` from `.env.example`. The values must match
-   `kubernetes/apps/garage/garage/app/secret.sops.yaml` exactly — decrypt it with
-   `sops -d` to read them rather than generating new ones.
-
-4. Start it, either `docker compose up -d` in that directory or by importing the directory as a
-   Container Manager project.
-
-5. Apply a layout. **Garage stores nothing until this is done** — a node with no role silently
+3. Apply a layout. **Garage stores nothing until this is done** — a node with no role silently
    rejects writes:
 
    ```sh
@@ -61,7 +57,7 @@ can dial it back:
    (`kubectl rook-ceph radosgw-admin bucket stats --bucket=cnpg-backup`) times roughly 3 for
    retention churn, and re-run `layout assign` plus `layout apply --version <n+1>` to change it.
 
-6. Check the Admin API answers from a cluster node, which is what the operator needs:
+4. Check the Admin API answers from a cluster node, which is what the operator needs:
 
    ```sh
    curl -sH "Authorization: Bearer $GARAGE_ADMIN_TOKEN" \
@@ -91,12 +87,8 @@ Do not create or delete buckets and keys by hand: the operator reconciles them f
 
 ## Upgrades
 
-Renovate opens PRs against the `dxflrs/garage` tag in `docker-compose.yaml` and, separately, in
-`kubernetes/apps/garage/garage/app/gateway.yaml`. Keep the two on the same version. Bumping it here
-does not deploy anything — pull the new tag on the NAS afterwards:
-
-```sh
-docker compose pull && docker compose up -d
-```
+Renovate opens PRs against the `dxflrs/garage` tag in `compose.yaml` and, separately, in
+`kubernetes/apps/garage/garage-gateway/app/gateway.yaml`. Keep the two on the same version. doco-cd
+rolls the NAS container once the bump is merged.
 
 Keep it at Garage 2.x: garage-operator's Admin API client targets v2.

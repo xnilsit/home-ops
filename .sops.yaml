@@ -7,6 +7,11 @@ creation_rules:
     encrypted_regex: "^(data|stringData)$"
     mac_only_encrypted: true
     age: "age1hxyyusztx42n4ympwpu8jwzyvegzd8ynzl3jeve952rewvrj2aesy3s74t"
+  # Also encrypted to the host's own key, which only its doco-cd holds.
+  - path_regex: synology/.*\.sops\.env
+    age: "age1hxyyusztx42n4ympwpu8jwzyvegzd8ynzl3jeve952rewvrj2aesy3s74t,age19z4rrlhzddm2gm5ww988a0cvc3dj5yrlpqs90ad4nwas8702uvaqne082z"
+  - path_regex: unraid/.*\.sops\.env
+    age: "age1hxyyusztx42n4ympwpu8jwzyvegzd8ynzl3jeve952rewvrj2aesy3s74t,age1zh75nyj5jd0jq5dqsy2apgemtasgcdr3m7ppysauqqu0npgslelsyajf2e"
 stores:
   yaml:
     indent: 2

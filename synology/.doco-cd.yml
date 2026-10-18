@@ -1,0 +1,10 @@
+---
+# yaml-language-server: $schema=https://doco.cd/latest/schemas/deploy.schema.json
+# Stacks the doco-cd on the Synology NAS deploys. working_dir is relative to
+# the repository root.
+name: doco-cd
+working_dir: synology/doco-cd
+timeout: 2m
+---
+name: garage
+working_dir: synology/garage
