@@ -14,10 +14,10 @@ items:
     spec: &spec
       image: registry.nilsit.de/docker.io/dxflrs/garage:v2.4.1
       zone: cluster
-      # Must equal the NAS's replication_factor: Garage refuses peers that
-      # disagree.
+      # Must equal the storage nodes' replication_factor: Garage refuses peers
+      # that disagree.
       replication:
-        factor: 1
+        factor: 2
       # Same engine as the NAS, for the same reason: no lmdb mmap or
       # unclean-shutdown failure modes.
       database:

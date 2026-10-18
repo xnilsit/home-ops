@@ -117,6 +117,16 @@
       minimumGroupSize: 2,
     },
     {
+      description: "Garage Group: the NAS, the Unraid node and the edge gateways must run the same version",
+      groupName: "garage",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["/dxflrs/garage$/"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+      minimumGroupSize: 2,
+    },
+    {
       description: "SFTPGo Group: the -slim init container copies static files the -distroless-slim app serves",
       groupName: "sftpgo",
       matchDatasources: ["docker"],

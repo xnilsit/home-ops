@@ -1,7 +1,8 @@
 # Garage on the Synology NAS
 
 S3-compatible object storage at `192.168.0.200`, holding the CNPG backups that used to live in the
-cluster's own Ceph RGW. Buckets, keys and permissions are **not** managed here — they are declared
+cluster's own Ceph RGW. It is one of two storage nodes: the Unraid server (`unraid/garage`) holds the
+second copy of every block. Buckets, keys and permissions are **not** managed here — they are declared
 in `kubernetes/apps/garage/` and applied by
 [garage-operator](https://github.com/rajsinghtech/garage-operator) through Garage's Admin API.
 
@@ -20,7 +21,7 @@ can dial it back:
 | Port | What |
 | ---- | ---- |
 | 3900 | S3 API — only the gateways and ad-hoc LAN tooling use it directly |
-| 3901 | RPC — the gateways' link to this node, in both directions |
+| 3901 | RPC — the gateways' and the Unraid node's link to this node, in both directions |
 | 3903 | Admin API — the operator's only channel |
 
 ## First-time setup
@@ -37,25 +38,26 @@ can dial it back:
    to Garage and derived GarageKeys break.
 
 3. Apply a layout. **Garage stores nothing until this is done** — a node with no role silently
-   rejects writes:
+   rejects writes. The layout needs both storage nodes, so bring up the Unraid node first; the full
+   sequence is in `unraid/garage/README.md`:
 
    ```sh
-   docker exec garage /garage status                        # note the node id
-   docker exec garage /garage layout assign -z nas -c 500GB <node-id>
+   docker exec garage /garage status                        # note both node ids
+   docker exec garage /garage layout assign -z nas -c 4TB <nas-node-id>
+   docker exec garage /garage layout assign -z unraid -c 4TB <unraid-node-id>
    docker exec garage /garage layout apply --version 1
-   docker exec garage /garage status                        # node now shows capacity
+   docker exec garage /garage status                        # both nodes now show capacity
    ```
 
-   This assigns the NAS's own role only. garage-operator adds and removes the gateways'
+   This assigns the storage roles only. garage-operator adds and removes the gateways'
    capacity-less roles itself, committing further layout versions, so `garage layout show` lists
    versions this README never applied. Always apply `<current version + 1>`.
 
    `-c` is a byte size, suffixes `B KB MB GB TB PB` (decimal) or `KiB MiB GiB TiB` (binary) —
    a bare `2T` does not parse. It is the weight Garage spreads partitions by, not a quota: with
-   one node every partition lands here whatever the number, and Garage keeps accepting writes
-   past it until `/volume1` is actually full. Size it off what the backups weigh
-   (`kubectl rook-ceph radosgw-admin bucket stats --bucket=cnpg-backup`) times roughly 3 for
-   retention churn, and re-run `layout assign` plus `layout apply --version <n+1>` to change it.
+   two copies over two zones every partition lands on both nodes whatever the number, and Garage
+   keeps accepting writes until a disk is actually full. Re-run `layout assign` plus
+   `layout apply --version <n+1>` to change it.
 
 4. Check the Admin API answers from a cluster node, which is what the operator needs:
 
@@ -87,8 +89,8 @@ Do not create or delete buckets and keys by hand: the operator reconciles them f
 
 ## Upgrades
 
-Renovate opens PRs against the `dxflrs/garage` tag in `compose.yaml` and, separately, in
-`kubernetes/apps/garage/garage-gateway/app/gateway.yaml`. Keep the two on the same version. doco-cd
-rolls the NAS container once the bump is merged.
+Renovate bumps the `dxflrs/garage` tag in `compose.yaml`, `unraid/garage/compose.yaml` and
+`kubernetes/apps/garage/garage-gateway/app/gateway.yaml` in one PR (the `garage` group). Once it is
+merged, the doco-cd on each storage node rolls its own container within a few minutes.
 
 Keep it at Garage 2.x: garage-operator's Admin API client targets v2.

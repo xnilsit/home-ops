@@ -7,6 +7,7 @@ included. They show up in the Docker tab without a template; change them here, n
 | Stack | What |
 | ----- | ---- |
 | `doco-cd/` | doco-cd itself. A bumped tag in its compose file makes it replace itself |
+| `garage/` | Garage storage node, see `garage/README.md` |
 
 ## Secrets
 
