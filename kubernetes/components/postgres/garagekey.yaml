@@ -6,7 +6,7 @@ metadata:
   name: ${APP}-postgres-backup
 spec:
   clusterRef:
-    name: nas
+    name: garage
     namespace: garage
   neverExpires: true
   secretTemplate:

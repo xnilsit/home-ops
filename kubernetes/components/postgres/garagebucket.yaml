@@ -8,7 +8,7 @@ spec:
   # The handle lives in `garage`; the GarageReferenceGrant there is what lets
   # this namespace point at it.
   clusterRef:
-    name: nas
+    name: garage
     namespace: garage
   # Retain, not the Delete default: removing the app must not take its backups
   # with it.
