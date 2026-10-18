@@ -12,7 +12,7 @@ items:
     metadata: {name: cnpg-backup}
     # Retain, not the Delete default: deleting the CR must not take the Postgres
     # backups with it.
-    spec: &spec {clusterRef: {name: nas}, deletionPolicy: Retain}
+    spec: &spec {clusterRef: {name: garage}, deletionPolicy: Retain}
   - <<: *bucket
     metadata: {name: timescale-backup}
     spec: *spec

@@ -15,10 +15,10 @@ spec:
     - name: garage-operator
       namespace: flux-system
   healthChecks:
-    - <<: &handle {apiVersion: garage.rajsingh.info/v1beta2, kind: GarageCluster, namespace: garage}
-      name: nas
-    - <<: *handle
+    - apiVersion: garage.rajsingh.info/v1beta2
+      kind: GarageCluster
       name: garage
+      namespace: garage
     - <<: &key {apiVersion: garage.rajsingh.info/v1beta1, kind: GarageKey, namespace: garage}
       name: cnpg-backup
     - <<: *key
@@ -32,10 +32,10 @@ spec:
     - <<: *key
       name: tofu-state
   healthCheckExprs:
-    # A management handle reports Running once the NAS Admin API answers - there
-    # are no pods for it to derive readiness from. Buckets and keys do not start
-    # reconciling before that, so gating on it is what makes `dependsOn: garage`
-    # in the database Kustomizations mean "credentials exist".
+    # A management handle reports Running once a storage node's Admin API
+    # answers - there are no pods for it to derive readiness from. Buckets and
+    # keys do not start reconciling before that, so gating on it is what makes
+    # `dependsOn: garage` in the database Kustomizations mean "credentials exist".
     - apiVersion: garage.rajsingh.info/v1beta2
       kind: GarageCluster
       failed: status.phase == 'Failed'

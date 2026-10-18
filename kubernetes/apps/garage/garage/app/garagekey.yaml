@@ -10,7 +10,7 @@ items:
   - <<: &key {apiVersion: garage.rajsingh.info/v1beta1, kind: GarageKey}
     metadata: {name: cnpg-backup}
     spec:
-      clusterRef: {name: nas}
+      clusterRef: {name: garage}
       neverExpires: true
       secretTemplate:
         <<: &template
@@ -33,7 +33,7 @@ items:
   - <<: *key
     metadata: {name: timescale-backup}
     spec:
-      clusterRef: {name: nas}
+      clusterRef: {name: garage}
       neverExpires: true
       secretTemplate:
         <<: *template
@@ -43,7 +43,7 @@ items:
   - <<: *key
     metadata: {name: immich-backup}
     spec:
-      clusterRef: {name: nas}
+      clusterRef: {name: garage}
       neverExpires: true
       secretTemplate:
         <<: *template
@@ -53,7 +53,7 @@ items:
   - <<: *key
     metadata: {name: trek}
     spec:
-      clusterRef: {name: nas}
+      clusterRef: {name: garage}
       neverExpires: true
       secretTemplate:
         <<: *template
@@ -65,7 +65,7 @@ items:
   - <<: *key
     metadata: {name: kopiur}
     spec:
-      clusterRef: {name: nas}
+      clusterRef: {name: garage}
       neverExpires: true
       secretTemplate:
         <<: *template
@@ -77,7 +77,7 @@ items:
   - <<: *key
     metadata: {name: dragonfly-backup}
     spec:
-      clusterRef: {name: nas}
+      clusterRef: {name: garage}
       neverExpires: true
       secretTemplate:
         # The anchor's key names are exactly what Dragonfly reads from its env.
@@ -88,7 +88,7 @@ items:
   - <<: *key
     metadata: {name: tofu-state}
     spec:
-      clusterRef: {name: nas}
+      clusterRef: {name: garage}
       neverExpires: true
       secretTemplate:
         <<: *template

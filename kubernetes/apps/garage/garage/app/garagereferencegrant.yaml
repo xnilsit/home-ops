@@ -6,7 +6,7 @@ metadata:
   name: cluster-handle
 spec:
   # Consent for an app namespace to point its own GarageBucket and GarageKey at
-  # the `nas` handle here - which is what kubernetes/components/postgres does,
+  # the `garage` handle here - which is what kubernetes/components/postgres does,
   # so a new CNPG cluster brings its own bucket and its own scoped key rather
   # than borrowing a key minted in this namespace.
   #
