@@ -46,14 +46,17 @@ Once, as root:
      ghcr.io/kimdre/doco-cd:0.129.0 apply-self --bootstrap
    ```
 
-3. `docker ps` shows `doco-cd-doco-cd-1`. `docker logs -f doco-cd-doco-cd-1` follows the
+3. `docker ps` shows `doco-cd-doco-cd-<n>`. `docker logs -f $(docker ps -aq -f label=com.docker.compose.service=doco-cd)` follows the
    deployments.
 
 ## Day-to-day
 
-- A merge to `main` reaches Unraid within 5 minutes. `docker restart doco-cd-doco-cd-1` polls
+doco-cd's container is `doco-cd-doco-cd-<n>`, and `<n>` goes up with every self-update, so the
+commands below select it by its Compose service label.
+
+- A merge to `main` reaches Unraid within 5 minutes. `docker restart $(docker ps -aq -f label=com.docker.compose.service=doco-cd)` polls
   immediately.
 - doco-cd does not restart a container that was stopped by hand; the next deployment that changes
   that stack does.
-- To keep doco-cd from touching anything during maintenance, `docker stop doco-cd-doco-cd-1`, and
+- To keep doco-cd from touching anything during maintenance, `docker stop $(docker ps -aq -f label=com.docker.compose.service=doco-cd)`, and
   `docker start` it afterwards.

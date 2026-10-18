@@ -48,7 +48,7 @@ clients retry until it is back.
    delete its layout:
 
    ```sh
-   docker stop doco-cd-doco-cd-1
+   docker stop $(docker ps -aq -f label=com.docker.compose.service=doco-cd)
    docker exec garage /garage meta snapshot
    docker stop garage
    cp -a /volume1/docker/garage/meta /volume1/docker/garage/meta.rf1
@@ -60,8 +60,8 @@ clients retry until it is back.
    starts it for the first time, dialling the NAS through `bootstrap_peers`:
 
    ```sh
-   docker start doco-cd-doco-cd-1      # NAS
-   docker restart doco-cd-doco-cd-1    # Unraid
+   docker start $(docker ps -aq -f label=com.docker.compose.service=doco-cd)      # NAS
+   docker restart $(docker ps -aq -f label=com.docker.compose.service=doco-cd)    # Unraid
    docker exec garage /garage status   # either node: both listed, no roles yet
    ```
 
