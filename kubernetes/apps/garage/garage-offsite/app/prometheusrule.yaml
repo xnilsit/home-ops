@@ -1,0 +1,20 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: garage-offsite-rules
+spec:
+  groups:
+    - name: garage-offsite
+      rules:
+        # KubeJobFailed does not fire for a CronJob that never runs.
+        - alert: GarageOffsiteBackupStale
+          annotations:
+            summary: >-
+              Garage has not been synced to B2 for {{ $value | humanizeDuration }}
+          expr: |-
+            time() - kube_cronjob_status_last_successful_time{namespace="garage", cronjob="garage-offsite"} > 26 * 3600
+          for: 15m
+          labels:
+            severity: warning

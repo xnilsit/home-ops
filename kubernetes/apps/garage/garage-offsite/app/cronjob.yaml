@@ -1,0 +1,107 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/cronjob-batch-v1.json
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: garage-offsite
+spec:
+  # Ahead of the CNPG (03:30-04:30) and kopiur (05:00 + 2h jitter) windows.
+  schedule: "45 1 * * *"
+  timeZone: "${TIMEZONE}"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: garage-offsite
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: rclone
+              image: registry.nilsit.de/mirror.gcr.io/rclone/rclone:1.75.2
+              command:
+                - "/bin/sh"
+                - "-c"
+              args:
+                - |
+                  set -eu
+                  # An empty listing would hide every object in B2.
+                  if ! rclone lsf garage: --dirs-only | grep -q .; then
+                    echo "Garage listed no buckets; refusing to sync"
+                    exit 1
+                  fi
+                  # One top-level directory per bucket. Removed objects are only
+                  # hidden; B2's lifecycle rule deletes them after 90 days.
+                  exec rclone sync garage: offsite: \
+                    --bwlimit 2.4M \
+                    --transfers 2 \
+                    --b2-upload-concurrency 1 \
+                    --fast-list \
+                    --stats 5m \
+                    --stats-one-line \
+                    --stats-log-level NOTICE
+              env:
+                - name: RCLONE_CONFIG_GARAGE_TYPE
+                  value: s3
+                - name: RCLONE_CONFIG_GARAGE_PROVIDER
+                  value: Other
+                - name: RCLONE_CONFIG_GARAGE_ENDPOINT
+                  value: "http://garage.garage.svc.cluster.local:3900"
+                # Garage rejects a SigV4 scope with the wrong region outright.
+                - name: RCLONE_CONFIG_GARAGE_REGION
+                  value: eu-central-1
+                - name: RCLONE_CONFIG_GARAGE_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef: {name: garage-offsite-backup, key: AWS_ACCESS_KEY_ID}
+                - name: RCLONE_CONFIG_GARAGE_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef: {name: garage-offsite-backup, key: AWS_SECRET_ACCESS_KEY}
+                - name: B2_BUCKET
+                  valueFrom:
+                    secretKeyRef: {name: garage-offsite, key: B2_BUCKET}
+                - name: RCLONE_CONFIG_B2_TYPE
+                  value: b2
+                - name: RCLONE_CONFIG_B2_ACCOUNT
+                  valueFrom:
+                    secretKeyRef: {name: garage-offsite, key: B2_ACCOUNT}
+                - name: RCLONE_CONFIG_B2_KEY
+                  valueFrom:
+                    secretKeyRef: {name: garage-offsite, key: B2_KEY}
+                - name: RCLONE_CONFIG_OFFSITE_TYPE
+                  value: crypt
+                - name: RCLONE_CONFIG_OFFSITE_REMOTE
+                  value: b2:$(B2_BUCKET)
+                # Object names stay readable in B2; contents are encrypted.
+                - name: RCLONE_CONFIG_OFFSITE_FILENAME_ENCRYPTION
+                  value: "off"
+                - name: RCLONE_CONFIG_OFFSITE_DIRECTORY_NAME_ENCRYPTION
+                  value: "false"
+                # Both are stored rclone-obscured, as rclone.conf expects them.
+                - name: RCLONE_CONFIG_OFFSITE_PASSWORD
+                  valueFrom:
+                    secretKeyRef: {name: garage-offsite, key: CRYPT_PASSWORD}
+                - name: RCLONE_CONFIG_OFFSITE_PASSWORD2
+                  valueFrom:
+                    secretKeyRef: {name: garage-offsite, key: CRYPT_PASSWORD2}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - "ALL"
+              resources:
+                requests:
+                  cpu: 50m
+                # One 96Mi B2 chunk buffered per transfer.
+                limits:
+                  memory: 512Mi
