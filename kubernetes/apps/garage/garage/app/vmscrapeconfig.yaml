@@ -6,9 +6,8 @@ metadata:
   name: garage
 spec:
   staticConfigs:
-    # Garage's Admin API port on the NAS, the same endpoint the GarageCluster
-    # handle talks to. No auth: garage.toml sets no metrics_token, so /metrics
-    # answers unauthenticated on the LAN.
+    # Garage's Admin API port on each storage node. No auth: garage.toml sets
+    # no metrics_token, so /metrics answers unauthenticated on the LAN.
     - targets:
         - "192.168.0.200:3903"
       labels:
@@ -17,5 +16,10 @@ spec:
         # job="garage", so this keeps them usable as a cross-check.
         job: garage
         instance: nas
+    - targets:
+        - "192.168.0.250:3903"
+      labels:
+        job: garage
+        instance: unraid
   path: /metrics
   scheme: HTTP

@@ -5,3 +5,6 @@
 name: doco-cd
 working_dir: unraid/doco-cd
 timeout: 2m
+---
+name: garage
+working_dir: unraid/garage

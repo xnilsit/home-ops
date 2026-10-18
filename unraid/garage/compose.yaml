@@ -1,0 +1,20 @@
+---
+services:
+  garage:
+    image: dxflrs/garage:v2.4.1
+    container_name: garage
+    # Host networking keeps rpc_public_addr honest
+    network_mode: host
+    restart: unless-stopped
+    # GARAGE_RPC_SECRET and GARAGE_ADMIN_TOKEN, decrypted by doco-cd
+    env_file: secret.sops.env
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      # The pool path, not /mnt/user: sqlite's WAL on shfs (FUSE) is fragile
+      - /mnt/cache/garage-meta:/var/lib/garage/meta
+      - /mnt/user/garage:/var/lib/garage/data
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

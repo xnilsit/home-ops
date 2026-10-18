@@ -9,9 +9,9 @@ data_dir = "/var/lib/garage/data"
 # unclean-shutdown failure modes - the right trade on a NAS holding backups.
 db_engine = "sqlite"
 
-# Single node - Garage itself holds exactly one copy. The redundancy story is
-# the Ceph RGW buckets this replaces, kept as a cold copy.
-replication_factor = 1
+# One copy here, one on the Unraid node (unraid/garage). Must equal every other
+# node's replication_factor: Garage refuses peers that disagree.
+replication_factor = 2
 
 rpc_bind_addr = "[::]:3901"
 rpc_public_addr = "192.168.0.200:3901"
