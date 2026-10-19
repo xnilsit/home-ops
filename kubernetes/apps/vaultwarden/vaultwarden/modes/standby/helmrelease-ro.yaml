@@ -17,7 +17,7 @@ spec:
           config:
             image:
               repository: registry.nilsit.de/docker.io/library/busybox
-              tag: "1.37"
+              tag: "1.38"
             command:
               - sh
               - -c
