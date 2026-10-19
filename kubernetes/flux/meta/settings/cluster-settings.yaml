@@ -19,6 +19,7 @@ data:
   # second, hand-written Service in front of the same RGW pods.
   CEPH_RGW_IP: 10.43.241.102
   # standby: follow rra-team's Vaultwarden. primary: take over from it.
+  # Procedure: kubernetes/apps/vaultwarden/vaultwarden/README.md
   VAULTWARDEN_MODE: standby
-  # demotionToken of rra-team's vaultwarden-db for a lossless switchover; empty means failover.
+  # Stays empty: rra-team cannot follow this cluster after a demotion (see README).
   VAULTWARDEN_PROMOTION_TOKEN: ""
