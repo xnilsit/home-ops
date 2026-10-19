@@ -133,7 +133,7 @@ spec:
           search.maxUniqueTimeseries: "600000"
           search.minStalenessInterval: 5m
         replicaCount: 1
-        retentionPeriod: "6w"
+        retentionPeriod: "60d"
         # Speeds up eviction only. The RWO ceph-block PVC still has to detach
         # from the dead node first, and k8s 1.36 has no force-detach timeout -
         # that needs the node.kubernetes.io/out-of-service taint or node delete.
