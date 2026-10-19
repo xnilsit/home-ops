@@ -5,6 +5,7 @@ kind: Kustomization
 resources:
   - ./dotdc-dashboards.yaml
   - ./etcd-dashboard.yaml
+  - ./flux-dashboards.yaml
 patches:
   - patch: |
       - op: add
