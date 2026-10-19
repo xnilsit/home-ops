@@ -6,3 +6,4 @@ resources:
   - ./gateway.yaml
   - ./service.yaml
   - ./httproute.yaml
+  - ./backendtrafficpolicy.yaml
