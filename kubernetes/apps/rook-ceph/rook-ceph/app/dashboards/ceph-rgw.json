@@ -22,7 +22,7 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Gateways reporting",
+      "title": "Gateways down",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -42,12 +42,12 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "green",
                 "value": null
               },
               {
-                "color": "green",
-                "value": 2
+                "color": "red",
+                "value": 1
               }
             ]
           }
@@ -75,14 +75,14 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "count(ceph_rgw_req{job=\"rook-ceph-exporter\"})",
+          "expr": "sum(kube_deployment_spec_replicas{namespace=\"rook-ceph\", deployment=~\"rook-ceph-rgw-.*\"})\n  - (count(ceph_rgw_req{job=\"rook-ceph-exporter\"}) or vector(0))",
           "range": false,
           "instant": true,
           "refId": "A",
-          "legendFormat": "gateways"
+          "legendFormat": "down"
         }
       ],
-      "description": "One series per RGW daemon, exported by the ceph-exporter running on the same node. instances: 2 in the CephObjectStore, so 2 is healthy."
+      "description": "RGW replicas Rook deploys minus RGW daemons with a ceph-exporter series."
     },
     {
       "id": 3,
@@ -399,14 +399,14 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum(ceph_pool_stored * on(pool_id) group_left(name)\n  ceph_pool_metadata{name=\"ceph-objectstore.rgw.buckets.data\"})",
+          "expr": "sum(ceph_pool_stored * on(pool_id) group_left(name)\n  ceph_pool_metadata{name=\"$objectstore.rgw.buckets.data\"})",
           "range": false,
           "instant": true,
           "refId": "A",
           "legendFormat": "stored"
         }
       ],
-      "description": "Logical bytes in the object store's data pool, before 3x replication."
+      "description": "Logical bytes in the object store's data pool, before replication or erasure coding."
     },
     {
       "id": 8,
@@ -486,7 +486,7 @@
           "legendFormat": "{{node}}"
         }
       ],
-      "description": "Labelled by the node whose ceph-exporter reports it. Both gateway pods carry ceph_daemon rgw.ceph.objectstore.a, so the node is the only thing that tells them apart."
+      "description": "Labelled by the node whose ceph-exporter reports it. All gateway pods of a store carry the same ceph_daemon, so the node is the only thing that tells them apart."
     },
     {
       "id": 10,
@@ -1088,7 +1088,7 @@
           "legendFormat": "{{node}} PUT"
         }
       ],
-      "description": "One gateway lagging the other usually means its node's OSDs, not RGW."
+      "description": "One gateway lagging the others usually means its node's OSDs, not RGW."
     },
     {
       "id": 16,
@@ -1305,7 +1305,7 @@
           "legendFormat": "transition noncurrent"
         }
       ],
-      "description": "Flat at zero unless a bucket carries a lifecycle rule. The rgw-benchmark bucket is the only one that ever has."
+      "description": "Flat at zero unless a bucket carries a lifecycle rule."
     },
     {
       "id": 19,
@@ -1444,14 +1444,14 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "label_replace(\n  ceph_pool_stored * on(pool_id) group_left(name)\n    ceph_pool_metadata{name=~\"ceph-objectstore\\\\..*|\\\\.rgw\\\\.root\"},\n  \"pool\", \"$1\", \"name\", \"ceph-objectstore\\\\.(.*)\")",
+          "expr": "label_replace(\n  ceph_pool_stored * on(pool_id) group_left(name)\n    ceph_pool_metadata{name=~\"$objectstore\\\\..*|\\\\.rgw\\\\.root\"},\n  \"pool\", \"$1\", \"name\", \"$objectstore\\\\.(.*)\")",
           "range": true,
           "instant": false,
           "refId": "A",
           "legendFormat": "{{pool}}"
         }
       ],
-      "description": "Logical bytes before replication. rgw.buckets.data holds the objects; the seven metadata pools stay small by design (pg_num pinned at 32)."
+      "description": "Logical bytes before replication or erasure coding. rgw.buckets.data holds the objects; the metadata pools stay small."
     },
     {
       "id": 22,
@@ -1510,7 +1510,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "label_replace(\n  ceph_pool_objects * on(pool_id) group_left(name)\n    ceph_pool_metadata{name=~\"ceph-objectstore\\\\..*|\\\\.rgw\\\\.root\"},\n  \"pool\", \"$1\", \"name\", \"ceph-objectstore\\\\.(.*)\")",
+          "expr": "label_replace(\n  ceph_pool_objects * on(pool_id) group_left(name)\n    ceph_pool_metadata{name=~\"$objectstore\\\\..*|\\\\.rgw\\\\.root\"},\n  \"pool\", \"$1\", \"name\", \"$objectstore\\\\.(.*)\")",
           "range": true,
           "instant": false,
           "refId": "A",
@@ -1542,6 +1542,26 @@
         "regex": "",
         "skipUrlSync": false,
         "type": "datasource"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(ceph_pool_metadata{name=~\".+[.]rgw[.]buckets[.]data\"}, name)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Object store",
+        "multi": false,
+        "name": "objectstore",
+        "options": [],
+        "query": "label_values(ceph_pool_metadata{name=~\".+[.]rgw[.]buckets[.]data\"}, name)",
+        "refresh": 1,
+        "regex": "/^(.+)[.]rgw[.]buckets[.]data$/",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
       }
     ]
   },
