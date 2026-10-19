@@ -763,6 +763,38 @@ url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/652706332"
 version = "2.9.1"
 backend = "pipx:makejinja"
 
+[[tools.popeye]]
+version = "0.22.1"
+backend = "aqua:derailed/popeye"
+
+[tools.popeye."platforms.linux-arm64"]
+checksum = "sha256:5188b0b521966113580f0fef7769173af6303061dee10df247536f9bb55fe988"
+url = "https://github.com/derailed/popeye/releases/download/v0.22.1/popeye_linux_arm64.tar.gz"
+
+[tools.popeye."platforms.linux-arm64-musl"]
+checksum = "sha256:5188b0b521966113580f0fef7769173af6303061dee10df247536f9bb55fe988"
+url = "https://github.com/derailed/popeye/releases/download/v0.22.1/popeye_linux_arm64.tar.gz"
+
+[tools.popeye."platforms.linux-x64"]
+checksum = "sha256:d58a3c0ba45805d452c32628320eecdcb5172fd5f42c82e12aeecc7a17eb930b"
+url = "https://github.com/derailed/popeye/releases/download/v0.22.1/popeye_linux_amd64.tar.gz"
+
+[tools.popeye."platforms.linux-x64-musl"]
+checksum = "sha256:d58a3c0ba45805d452c32628320eecdcb5172fd5f42c82e12aeecc7a17eb930b"
+url = "https://github.com/derailed/popeye/releases/download/v0.22.1/popeye_linux_amd64.tar.gz"
+
+[tools.popeye."platforms.macos-arm64"]
+checksum = "sha256:71dc8b8dc7d7cad60f9c377d4bb22a0ef5bac189c617951ebc20343f83a6704d"
+url = "https://github.com/derailed/popeye/releases/download/v0.22.1/popeye_darwin_arm64.tar.gz"
+
+[tools.popeye."platforms.macos-x64"]
+checksum = "sha256:3dafce865dd778e2501ccbfd53fcbeecfc3244a43d4d1b02446064e39ac58d4e"
+url = "https://github.com/derailed/popeye/releases/download/v0.22.1/popeye_darwin_amd64.tar.gz"
+
+[tools.popeye."platforms.windows-x64"]
+checksum = "sha256:fa5c155d65313e93985bdb7ed1a79fb0e310b7868848dfaf381ea081f349dacc"
+url = "https://github.com/derailed/popeye/releases/download/v0.22.1/popeye_windows_amd64.tar.gz"
+
 [[tools.python]]
 version = "3.15.0"
 backend = "core:python"
