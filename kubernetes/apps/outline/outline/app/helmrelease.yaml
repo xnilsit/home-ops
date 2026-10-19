@@ -31,7 +31,7 @@ spec:
           cors:
             image:
               repository: registry.nilsit.de/docker.io/amazon/aws-cli
-              tag: 2.38.1
+              tag: 2.38.2
             args:
               - s3api
               - put-bucket-cors
