@@ -116,14 +116,9 @@ rra-team cannot be re-cloned from here, so the database moves as a dump.
    archive into a non-empty prefix, so empty its Garage archive first;
    rra-team holds the data and its backups by now.
 
-   Through `s3.<SECRET_DOMAIN>` Envoy breaks the request signature
-   (`signed header accept-encoding is not present`), so go through a
-   port-forward:
-
    ```sh
-   kubectl --kubeconfig ~/dev/private/home-ops/kubeconfig -n garage port-forward svc/garage 13900:3900 &
    export RCLONE_CONFIG_G_TYPE=s3 RCLONE_CONFIG_G_PROVIDER=Other \
-     RCLONE_CONFIG_G_ENDPOINT=http://127.0.0.1:13900 RCLONE_CONFIG_G_REGION=eu-central-1 \
+     RCLONE_CONFIG_G_ENDPOINT=https://s3.<SECRET_DOMAIN> RCLONE_CONFIG_G_REGION=eu-central-1 \
      RCLONE_CONFIG_G_ACCESS_KEY_ID=$(khome get secret vaultwarden-postgres-backup -o jsonpath='{.data.AWS_ACCESS_KEY_ID}' | base64 -d) \
      RCLONE_CONFIG_G_SECRET_ACCESS_KEY=$(khome get secret vaultwarden-postgres-backup -o jsonpath='{.data.AWS_SECRET_ACCESS_KEY}' | base64 -d)
    rclone purge g:vaultwarden-postgres-backup/vaultwarden-postgres
