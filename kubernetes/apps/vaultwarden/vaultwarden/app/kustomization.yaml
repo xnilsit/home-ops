@@ -1,0 +1,59 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Archived to Garage once it is the designated primary of its own cluster.
+  - ../../../../components/postgres
+  # Provisions the /data PVC (named ${APP}) and snapshots it to the NAS.
+  - ../../../../components/kopiur/backup
+resources:
+  - ./secret.sops.yaml
+  - ./objectstore-rra-team.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml
+patches:
+  # Replica of rra-team's vaultwarden-db, fed from its B2 WAL archive. The modes
+  # set spec.replica.
+  - patch: |-
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      metadata:
+        name: ${APP}-postgres
+      spec:
+        bootstrap:
+          $patch: replace
+          recovery:
+            source: vaultwarden-db
+            database: vaultwarden
+            owner: vaultwarden
+            # Same password as rra-team, so the role works before and after promotion.
+            secret:
+              name: ${APP}-postgres-credentials
+        externalClusters:
+          - name: vaultwarden-db
+            plugin:
+              name: barman-cloud.cloudnative-pg.io
+              parameters:
+                barmanObjectName: vaultwarden-db-archive
+                serverName: vaultwarden-db
+          - name: ${APP}-postgres
+            plugin:
+              name: barman-cloud.cloudnative-pg.io
+              parameters:
+                barmanObjectName: ${APP}-postgres-store
+                serverName: ${APP}-postgres
+  # The sidecar also reads rra-team's archive on B2, which rejects the new
+  # default checksum headers.
+  - patch: |-
+      apiVersion: barmancloud.cnpg.io/v1
+      kind: ObjectStore
+      metadata:
+        name: ${APP}-postgres-store
+      spec:
+        instanceSidecarConfiguration:
+          env:
+            - name: AWS_REQUEST_CHECKSUM_CALCULATION
+              value: when_required
+            - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+              value: when_required

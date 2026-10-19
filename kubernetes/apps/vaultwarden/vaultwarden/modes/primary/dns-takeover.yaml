@@ -1,0 +1,72 @@
+---
+# Deletes the A/AAAA records rra-team's external-dns owns for the Vaultwarden
+# hostnames, so cloudflare-dns can publish this cluster's CNAMEs. Records whose
+# ownership TXT does not name rra-team's HTTPRoute are left alone.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/job-batch-v1.json
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vaultwarden-dns-takeover
+  annotations:
+    kustomize.toolkit.fluxcd.io/substitute: disabled
+    kustomize.toolkit.fluxcd.io/force: enabled
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: takeover
+          image: registry.nilsit.de/docker.io/library/python:3.13-alpine
+          env:
+            - name: ZONE
+              value: hoeller-en.de
+            - name: HOSTS
+              value: bitwarden.hoeller-en.de bw.hoeller-en.de vaultwarden.hoeller-en.de vw.hoeller-en.de
+            - name: OWNER
+              value: external-dns/owner=default,external-dns/resource=httproute/vaultwarden/vaultwarden
+          envFrom:
+            # CF_API_TOKEN
+            - secretRef:
+                name: vaultwarden-cloudflare
+          command:
+            - python
+            - -c
+            - |
+              import json, os, urllib.parse, urllib.request
+
+              def cf(method, path, **query):
+                  url = "https://api.cloudflare.com/client/v4" + path
+                  if query:
+                      url += "?" + urllib.parse.urlencode(query)
+                  req = urllib.request.Request(url, method=method, headers={
+                      "Authorization": "Bearer " + os.environ["CF_API_TOKEN"]})
+                  with urllib.request.urlopen(req) as resp:
+                      return json.load(resp)["result"]
+
+              zone = cf("GET", "/zones", name=os.environ["ZONE"])[0]["id"]
+              for host in os.environ["HOSTS"].split():
+                  for rtype in ("A", "AAAA"):
+                      owners = [r for r in cf("GET", f"/zones/{zone}/dns_records", type="TXT", name=f"{rtype.lower()}-{host}")
+                                if os.environ["OWNER"] in r["content"]]
+                      if not owners:
+                          print(f"{rtype} {host}: not owned by rra-team, skipped")
+                          continue
+                      for rec in cf("GET", f"/zones/{zone}/dns_records", type=rtype, name=host) + owners:
+                          cf("DELETE", f"/zones/{zone}/dns_records/{rec['id']}")
+                          print(f"deleted {rec['type']} {rec['name']}")
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          resources:
+            requests:
+              cpu: 10m
+            limits:
+              memory: 128Mi

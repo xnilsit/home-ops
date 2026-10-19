@@ -1,0 +1,39 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# home-ops is primary: vaultwarden-postgres is promoted, Vaultwarden serves the
+# hoeller-en.de hostnames, and rra-team's DNS records are taken over.
+#
+# Without VAULTWARDEN_PROMOTION_TOKEN (cluster-settings) the promotion is a
+# failover, and rra-team's vaultwarden-db has to be re-cloned from here.
+resources:
+  - ./secret.sops.yaml
+  - ./dns-takeover.yaml
+patches:
+  - patch: |-
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      metadata:
+        name: ${APP}-postgres
+      spec:
+        replica:
+          primary: ${APP}-postgres
+          source: vaultwarden-db
+          promotionToken: "${VAULTWARDEN_PROMOTION_TOKEN:=}"
+  - patch: |-
+      apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      metadata:
+        name: vaultwarden
+      spec:
+        values:
+          controllers:
+            vaultwarden:
+              replicas: 2
+            pull:
+              cronjob:
+                suspend: true
+          route:
+            app:
+              enabled: true

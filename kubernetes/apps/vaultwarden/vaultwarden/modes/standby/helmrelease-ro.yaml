@@ -1,0 +1,175 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/helmrelease-helm-v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: vaultwarden-ro
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: vaultwarden
+  interval: 1h
+  values:
+    controllers:
+      vaultwarden-ro:
+        initContainers:
+          # config.json overrides DOMAIN, so the copy gets its own.
+          config:
+            image:
+              repository: registry.nilsit.de/docker.io/library/busybox
+              tag: "1.37"
+            command:
+              - sh
+              - -c
+              - >-
+                sed -E 's#"domain": *"[^"]*"#"domain": "https://bw.${SECRET_DOMAIN}"#'
+                /data/config.json > /config/config.json
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+        containers:
+          app:
+            image:
+              repository: registry.nilsit.de/ghcr.io/dani-garcia/vaultwarden
+              tag: 1.37.4-alpine
+            env:
+              DOMAIN: https://bw.${SECRET_DOMAIN}
+              ROCKET_PORT: &port 8080
+              CONFIG_FILE: /config/config.json
+              ICON_CACHE_FOLDER: /tmp/icon_cache
+              TMP_FOLDER: /tmp/tmp
+              # No purges, reminders or other scheduled writes.
+              JOB_POLL_INTERVAL_MS: "0"
+              DATABASE_URL:
+                valueFrom:
+                  secretKeyRef:
+                    name: vaultwarden-ro-postgres-app
+                    key: uri
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /alive
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness: *probes
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 10m
+                memory: 64Mi
+              limits:
+                memory: 512Mi
+
+      refresh:
+        type: cronjob
+        cronjob:
+          schedule: "15 */3 * * *"
+          concurrencyPolicy: Forbid
+          successfulJobsHistory: 1
+          failedJobsHistory: 1
+        containers:
+          app:
+            image:
+              repository: registry.nilsit.de/ghcr.io/cloudnative-pg/postgresql
+              tag: ${PG_IMAGE_TAG}
+            command:
+              - sh
+              - -ec
+              # One transaction, so readers never see the tables empty.
+              - >-
+                pg_dump --format=custom "$${SOURCE_URI}" |
+                pg_restore --clean --if-exists --no-owner --no-privileges
+                --single-transaction --dbname="$${TARGET_URI}"
+            env:
+              SOURCE_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: vaultwarden-postgres-credentials
+                    key: password
+              SOURCE_URI:
+                value: postgresql://vaultwarden:$(SOURCE_PASSWORD)@vaultwarden-postgres-r:5432/vaultwarden
+                dependsOn: SOURCE_PASSWORD
+              TARGET_URI:
+                valueFrom:
+                  secretKeyRef:
+                    name: vaultwarden-ro-postgres-app
+                    key: uri
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 256Mi
+
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+
+    persistence:
+      data:
+        existingClaim: vaultwarden
+        advancedMounts:
+          vaultwarden-ro:
+            config:
+              - path: /data
+                readOnly: true
+            app:
+              - path: /data
+                readOnly: true
+      config:
+        type: emptyDir
+        advancedMounts:
+          vaultwarden-ro:
+            config:
+              - path: /config
+            app:
+              - path: /config
+      tmp:
+        type: emptyDir
+        advancedMounts:
+          vaultwarden-ro:
+            app:
+              - path: /tmp
+
+    service:
+      app:
+        controller: vaultwarden-ro
+        ports:
+          http:
+            port: *port
+
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /alive
+        hostnames:
+          - bw.${SECRET_DOMAIN}
+        parentRefs:
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        # Reads plus what login needs; anything else has no route and gets a 404.
+        rules:
+          - matches:
+              - {path: {type: PathPrefix, value: /}, method: GET}
+              - {path: {type: PathPrefix, value: /}, method: HEAD}
+              - {path: {type: PathPrefix, value: /identity/accounts/prelogin}, method: POST}
+              - {path: {type: Exact, value: /identity/connect/token}, method: POST}
+              - {path: {type: Exact, value: /api/two-factor/send-email-login}, method: POST}
+              - {path: {type: Exact, value: /notifications/hub/negotiate}, method: POST}
+            backendRefs:
+              - identifier: app
+                port: *port
