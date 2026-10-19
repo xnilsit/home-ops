@@ -9,6 +9,7 @@ components:
   - ../../../../components/dragonfly
   # Archived to Garage.
   - ../../../../components/postgres
+  - ../../../../components/postgres-recovery
 resources:
   - ./secret.sops.yaml
   - ./consume.yaml
