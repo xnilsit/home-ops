@@ -1,0 +1,19 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# rra-team is primary: vaultwarden-postgres follows its WAL archive, and a
+# read-only copy is served on bw.${SECRET_DOMAIN} (LAN only).
+resources:
+  - ./ro-postgres.yaml
+  - ./helmrelease-ro.yaml
+patches:
+  - patch: |-
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      metadata:
+        name: ${APP}-postgres
+      spec:
+        replica:
+          primary: vaultwarden-db
+          source: vaultwarden-db

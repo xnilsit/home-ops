@@ -1,0 +1,24 @@
+---
+# Writable scratch copy for vaultwarden-ro, which cannot start on a standby.
+# Overwritten from vaultwarden-postgres by the refresh CronJob; no backups.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: vaultwarden-ro-postgres
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:${PG_IMAGE_TAG}
+  storage:
+    size: 1Gi
+    storageClass: local-path
+  bootstrap:
+    initdb:
+      database: vaultwarden
+      owner: vaultwarden
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
