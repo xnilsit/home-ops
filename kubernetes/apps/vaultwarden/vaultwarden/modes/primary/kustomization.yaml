@@ -5,8 +5,7 @@ kind: Component
 # home-ops is primary: vaultwarden-postgres is promoted, Vaultwarden serves the
 # hoeller-en.de hostnames, and rra-team's DNS records are taken over.
 #
-# Without VAULTWARDEN_PROMOTION_TOKEN (cluster-settings) the promotion is a
-# failover, and rra-team's vaultwarden-db has to be re-cloned from here.
+# Switchover and failback procedure: ../../README.md
 resources:
   - ./secret.sops.yaml
   - ./dns-takeover.yaml
