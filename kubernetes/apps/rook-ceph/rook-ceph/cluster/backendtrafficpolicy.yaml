@@ -5,15 +5,14 @@ kind: BackendTrafficPolicy
 metadata:
   name: ceph-rgw
 spec:
-  # Inherits the rest of BackendTrafficPolicy/envoy in envoy-gateway/app/envoy.yaml.
-  # JSONMerge, not StrategicMerge: the latter appends rate limit rules to the
-  # gateway's, so its 1200/min would still apply; JSONMerge replaces the list.
-  # Gokapi's uploads alone send ~13 S3 parts/s.
-  mergeType: JSONMerge
+  # Replaces BackendTrafficPolicy/envoy in envoy-gateway/app/envoy.yaml for this
+  # route: its compressor strips Accept-Encoding upstream, which breaks SigV4
+  # signatures that cover it, and its 1200/min rate limit is too low here.
   targetRefs:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       name: ceph-rgw
+  # Gokapi's uploads alone send ~13 S3 parts/s.
   rateLimit:
     type: Global
     global:
@@ -32,3 +31,12 @@ spec:
           limit:
             requests: 6000
             unit: Minute
+  retry:
+    numRetries: 2
+    retryOn:
+      triggers:
+        - reset
+  tcpKeepalive: {}
+  timeout:
+    http:
+      requestTimeout: 0s
