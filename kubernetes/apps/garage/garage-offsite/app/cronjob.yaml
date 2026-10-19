@@ -42,10 +42,13 @@ spec:
                   fi
                   # One top-level directory per bucket. Removed objects are only
                   # hidden; B2's lifecycle rule deletes them after 90 days.
+                  # Each B2 upload costs a round trip of about 0.5s, so small
+                  # files need many transfers; --bwlimit caps them all together.
                   exec rclone sync garage: offsite: \
                     --bwlimit 2.4M \
-                    --transfers 2 \
+                    --transfers 16 \
                     --b2-upload-concurrency 1 \
+                    --b2-chunk-size 16M \
                     --fast-list \
                     --stats 5m \
                     --stats-one-line \
@@ -102,6 +105,6 @@ spec:
               resources:
                 requests:
                   cpu: 50m
-                # One 96Mi B2 chunk buffered per transfer.
+                # One 16Mi B2 chunk buffered per transfer.
                 limits:
                   memory: 512Mi
