@@ -21,7 +21,7 @@ spec:
           run-dir:
             image: &image
               repository: registry.nilsit.de/ghcr.io/paperless-ngx/paperless-ngx
-              tag: 3.3.2
+              tag: 3.3.3
             command:
               - "mkdir"
               - "-p"
