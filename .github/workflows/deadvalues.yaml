@@ -1,0 +1,64 @@
+---
+name: "Deadvalues"
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "kubernetes/**"
+      - ".deadvalues.yaml"
+      - ".mise.toml"
+      - ".github/workflows/deadvalues.yaml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  deadvalues:
+    name: Deadvalues
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'home-ops-runner' }}
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Pinned by SHA the action installs the latest release, so take the version from .mise.toml
+      - name: Read tool versions
+        id: version
+        run: |
+          set -euo pipefail
+          gh=$(grep -oP '^gh = "\K[^"]+' .mise.toml)
+          deadvalues=$(grep -oP '^"github:guarnz/deadvalues" = "\K[^"]+' .mise.toml)
+          echo "gh=${gh}" >> "${GITHUB_OUTPUT}"
+          echo "deadvalues=${deadvalues}" >> "${GITHUB_OUTPUT}"
+
+      # S3 on RGW on home-ops-runner; GitHub cache on hosted runners. Holds the mise binary and gh.
+      - name: Cache mise
+        uses: runs-on/cache@88d90644011a3a9957fd141a106f5a94f9794203 # v5.0.7
+        with:
+          path: ${{ runner.temp }}/mise
+          key: mise-gh-${{ runner.os }}-${{ runner.arch }}-${{ steps.version.outputs.gh }}
+
+      # The deadvalues action needs gh, which the actions-runner image lacks
+      - name: Setup gh
+        uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
+        with:
+          install_args: gh
+          mise_dir: ${{ runner.temp }}/mise
+          cache: false
+          env: false
+
+      - name: Run deadvalues
+        uses: guarnz/deadvalues@eac40e4919709b2450e1f7eae5d60d401a278fb5 # v0.1.7
+        with:
+          path: kubernetes
+          version: ${{ steps.version.outputs.deadvalues }}
