@@ -199,6 +199,14 @@
         commitMessageTopic: "{{{groupName}}} group",
       },
     },
+    {
+      description: "deadvalues Group: the GitHub Action and the mise CLI the workflow reads its version from",
+      groupName: "deadvalues",
+      matchPackageNames: ["guarnz/deadvalues"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
     // ---------------------------------------------------------------------
     // Disabled lookups
     // ---------------------------------------------------------------------

@@ -1,0 +1,54 @@
+---
+name: "Deadvalues"
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "kubernetes/**"
+      - ".deadvalues.yaml"
+      - ".mise.toml"
+      - ".github/workflows/deadvalues.yaml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  deadvalues:
+    name: Deadvalues
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'home-ops-runner' }}
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The deadvalues action needs gh, which the actions-runner image lacks
+      - name: Setup gh
+        uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
+        with:
+          install_args: gh
+          cache: false
+          env: false
+
+      # Pinned by SHA the action installs the latest release, so take the version from .mise.toml
+      - name: Read deadvalues version
+        id: version
+        run: |
+          set -euo pipefail
+          version=$(grep -oP '^"github:guarnz/deadvalues" = "\K[^"]+' .mise.toml)
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Run deadvalues
+        uses: guarnz/deadvalues@eac40e4919709b2450e1f7eae5d60d401a278fb5 # v0.1.7
+        with:
+          path: kubernetes
+          version: ${{ steps.version.outputs.version }}

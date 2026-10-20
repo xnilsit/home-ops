@@ -1,0 +1,9 @@
+---
+apiVersions:
+  - monitoring.coreos.com/v1/ServiceMonitor
+  - monitoring.coreos.com/v1/PodMonitor
+  - monitoring.coreos.com/v1/PrometheusRule
+flux:
+  substitute:
+    # Lives in the SOPS-encrypted cluster-secrets, garage-ui's schema rejects the bare ${AUTHENTIK_URL}
+    AUTHENTIK_URL: https://authentik.invalid
