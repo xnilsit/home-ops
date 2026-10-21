@@ -18,7 +18,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/docker.io/favonia/cloudflare-ddns
-              tag: 1.17.1
+              tag: 1.17.1@sha256:5e61736b982b87d84a1120b4767c4deff0f2cc55ca3ee9dcb1dc58623039b5cb
             env:
               # The A record every route on envoy-external-direct CNAMEs to.
               DOMAINS: home.${SECRET_DOMAIN}

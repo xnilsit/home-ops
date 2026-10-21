@@ -19,7 +19,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/docker.io/netbirdio/netbird
-              tag: 0.81.3
+              tag: 0.81.3@sha256:f8a4ea01da9f2351d5c9436209ee9caf35dd118fc9c1fc2ce7859f0c6e44781c
             # Carries NB_SETUP_KEY and NB_MANAGEMENT_URL.
             envFrom:
               - secretRef:

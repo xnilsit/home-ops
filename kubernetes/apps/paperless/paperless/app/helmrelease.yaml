@@ -21,7 +21,7 @@ spec:
           run-dir:
             image: &image
               repository: registry.nilsit.de/ghcr.io/paperless-ngx/paperless-ngx
-              tag: 3.3.3
+              tag: 3.3.3@sha256:dba0242c1df1843643df4eb50ce5639f3a7900f414879088fd5bed8eaf2d456d
             command:
               - "mkdir"
               - "-p"
@@ -151,7 +151,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/docker.io/apache/tika
-              tag: 4.1.0
+              tag: 4.1.0@sha256:06bcdbd09aca073293e5a171ad161418cc93c91d58d9e4e205064eade84889d4
             probes:
               liveness: &tikaProbes
                 enabled: true
@@ -195,7 +195,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/docker.io/gotenberg/gotenberg
-              tag: 8.38.1
+              tag: 8.38.1@sha256:aa552cc115db488e0f0bcb07446aac13071ad51505b642c84bb894500907b42b
             command:
               - gotenberg
               - --chromium-disable-javascript=true

@@ -58,7 +58,7 @@ spec:
         enabled: true
         image:
           repository: alpine/k8s
-          tag: "1.37.1"
+          tag: "1.37.1@sha256:712dc5385d1c1a3f83b747fa9e40f64d433a97f72ff42f9755ff7dd1f62846e4"
     operator:
       # -- By default, operator converts prometheus-operator objects.
       disable_prometheus_converter: false

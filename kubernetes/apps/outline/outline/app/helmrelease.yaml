@@ -31,7 +31,7 @@ spec:
           cors:
             image:
               repository: registry.nilsit.de/docker.io/amazon/aws-cli
-              tag: 2.38.2
+              tag: 2.38.2@sha256:5d39fd52f236ed01c5c25fba66c9aebcfc6cbb88e7bb1b727c5fe1f150540597
             args:
               - s3api
               - put-bucket-cors
@@ -66,7 +66,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/docker.io/outlinewiki/outline
-              tag: 1.11.0
+              tag: 1.11.0@sha256:08ee9ffdb847e1bd35ded30ee832090dd06a7f93f67422687db59e70bc7f5393
             env:
               URL: https://outline.${SECRET_DOMAIN}
               PORT: &port 3000

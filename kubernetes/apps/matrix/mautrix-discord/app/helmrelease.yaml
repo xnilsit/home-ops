@@ -22,7 +22,7 @@ spec:
           config:
             image: &image
               repository: registry.nilsit.de/dock.mau.dev/mautrix/discord
-              tag: v0.7.7
+              tag: v0.7.7@sha256:065405ca2f961b2687ca577c4eb65592c139d641342a9611d98b5394f30cf84a
             command:
               - /bin/sh
               - -c
