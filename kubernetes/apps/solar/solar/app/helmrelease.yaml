@@ -20,7 +20,7 @@ spec:
           passwd-hash:
             image:
               repository: &mosquittoImage docker.io/library/eclipse-mosquitto
-              tag: &mosquittoTag 2.1.2-alpine
+              tag: &mosquittoTag 2.1.2-alpine@sha256:38c0da4f2ef84284d47b3b3eeea1cb3bdeabe81ee10caf0cd5c5ff61ee3ea408
             command:
               - "sh"
               - "-c"
@@ -76,7 +76,7 @@ spec:
           app:
             image: &deyeImage
               repository: registry.nilsit.de/ghcr.io/kbialek/deye-inverter-mqtt
-              tag: 2026.10.2
+              tag: 2026.10.2@sha256:b98b45039f101fdddf3eaa27ab5312ec144c24902779cbc0006df2d145de0cd7
             env:
               <<: &deyeEnv
                 DEYE_DATA_READ_INTERVAL: "30"
@@ -117,7 +117,7 @@ spec:
           app:
             image: &exporterImage
               repository: registry.nilsit.de/ghcr.io/hikhvar/mqtt2prometheus
-              tag: v0.1.8-RC2
+              tag: v0.1.8-RC2@sha256:8e166d36feaa5ddcad703eef3a2c5167a154d6eef306a40fe6509861580c0714
             args:
               - "-config"
               - "/config/mqtt2prometheus.yaml"

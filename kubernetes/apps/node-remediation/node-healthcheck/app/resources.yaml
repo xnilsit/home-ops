@@ -902,7 +902,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-          image: registry.nilsit.de/quay.io/medik8s/node-healthcheck-operator:v5.8.0
+          image: registry.nilsit.de/quay.io/medik8s/node-healthcheck-operator:v5.8.0@sha256:5ea61c103808d865d9c96d5e33d36bf911a706aa307beca115d3e334f5701153
           lifecycle:
             postStart:
               exec:

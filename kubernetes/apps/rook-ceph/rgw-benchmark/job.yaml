@@ -33,7 +33,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: warp
-          image: mirror.gcr.io/minio/warp:v1.3.1
+          image: mirror.gcr.io/minio/warp:v1.3.1@sha256:72ae1b02216b51bd102b73a6923b597c092a5acc7a655c936c2f31bee897a7c5
           # The image entrypoint is /warp, which takes a single subcommand. warp
           # has no notion of a size sweep, so the loop lives here - the image is
           # alpine-based, so it has a shell to run it with.

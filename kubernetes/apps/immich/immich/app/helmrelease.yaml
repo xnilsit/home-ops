@@ -29,7 +29,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/ghcr.io/immich-app/immich-server
-              tag: &serverTag v3.3.4
+              tag: &serverTag v3.3.4@sha256:f6475c58b07a8d89ec845aa8782731d36656c3c17d943e0a101dc6ed99a2e53f
             env:
               DB_HOSTNAME: &dbHost immich-rw
               DB_PORT: &dbPort 5432
