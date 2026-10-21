@@ -18,7 +18,7 @@ ARG PG_MAJOR=18
 # Debian codename must match the operand image (trixie -> ~debian13 packages)
 ARG DISTRO=trixie
 # renovate: datasource=github-releases depName=timescale/timescaledb
-ARG TS_VERSION=2.30.2
+ARG TS_VERSION=2.31.0
 # Deployed version, passed by CI; its .so keeps sessions working until ALTER EXTENSION runs
 ARG TS_PREV_VERSION=
 # renovate: datasource=github-releases depName=timescale/timescaledb-toolkit
