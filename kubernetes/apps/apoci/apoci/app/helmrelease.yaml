@@ -21,7 +21,7 @@ spec:
           app:
             image:
               repository: git.ow-ops.eu/ow-ops/apoci
-              tag: 0.0.57
+              tag: 0.0.57@sha256:99af34a259d0ee4c217919471e4a3b95e6874465dee97499292a956e20bbffcf
             env:
               APOCI_REGISTRY_TOKEN:
                 valueFrom:

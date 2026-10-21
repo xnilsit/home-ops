@@ -21,7 +21,7 @@ spec:
           static:
             image:
               repository: registry.nilsit.de/ghcr.io/drakkan/sftpgo
-              tag: v2.7.6-slim
+              tag: v2.7.6-slim@sha256:fd1f7e2d5b8809e9856f74a2ec336b7a1bf38cd44f8334a3aa72bb5b55cccf43
             command:
               - "sh"
               - "-ec"
@@ -43,7 +43,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/ghcr.io/drakkan/sftpgo
-              tag: v2.7.6-distroless-slim
+              tag: v2.7.6-distroless-slim@sha256:483f4ff2e6b6c659b7ec5b4beaa11506665fde1a4528cdeb6b4f4b624c0fff6e
             env:
               TZ: Europe/Berlin
               SFTPGO_HTTPD__STATIC_FILES_PATH: /static
