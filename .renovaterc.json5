@@ -217,6 +217,12 @@
       enabled: false,
     },
     {
+      description: "dvinyl's grants Job takes its tag from PG_IMAGE_TAG in ks.yaml, the kubernetes manager sees no tag and would pin latest's digest",
+      matchManagers: ["kubernetes"],
+      matchPackageNames: ["ghcr.io/ferretdb/postgres-documentdb"],
+      enabled: false,
+    },
+    {
       description: "node-healthcheck-operator v5.x tags are rebuilt from upstream main and their old digests are deleted",
       matchDatasources: ["docker"],
       matchPackageNames: ["quay.io/medik8s/node-healthcheck-operator"],
