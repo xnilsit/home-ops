@@ -217,6 +217,22 @@
       enabled: false,
     },
     // ---------------------------------------------------------------------
+    // Digests
+    // ---------------------------------------------------------------------
+    {
+      description: "Pin container images without a digest, flux is left out as it would write the digest into an OCIRepository ref.tag",
+      matchDatasources: ["docker"],
+      matchManagers: ["helm-values", "kubernetes", "docker-compose", "dockerfile"],
+      pinDigests: true,
+    },
+    {
+      description: "Don't chase a new digest for an unchanged tag, version bumps still carry the new digest. lancachenet only publish latest, so the digest is all that can move",
+      matchDatasources: ["docker"],
+      matchUpdateTypes: ["digest"],
+      matchPackageNames: ["!/lancachenet//"],
+      enabled: false,
+    },
+    // ---------------------------------------------------------------------
     // Auto-merge
     // ---------------------------------------------------------------------
     {
