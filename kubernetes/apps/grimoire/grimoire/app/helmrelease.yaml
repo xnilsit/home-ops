@@ -22,7 +22,7 @@ spec:
           wait-dragonfly:
             image: &image
               repository: registry.nilsit.de/docker.io/hunterreadca/grimoire
-              tag: 1.9.0@sha256:524ce51a6ff7df38417bc1d51d733805ca11c016f0996e80fd0dd5aac76d3c34
+              tag: 1.9.1@sha256:cce96e90ac5309efcd3b635986dd60e0feb3d53cc38e76308ef7d2dceaace0d8
             command:
               - "python"
               - "-c"
