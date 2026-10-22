@@ -210,43 +210,43 @@ url_api = "https://api.github.com/repos/cli/cli/releases/assets/662956535"
 provenance = "github-attestations"
 
 [[tools."github:guarnz/deadvalues"]]
-version = "0.1.7"
+version = "0.1.8"
 backend = "github:guarnz/deadvalues"
 
 [tools."github:guarnz/deadvalues"."platforms.linux-arm64"]
-checksum = "sha256:3b9ae28141f824d5fba2e4ad05d05b3cd15cc978120d320fa090fd6eaa7b1c14"
-url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.7/deadvalues_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/657853020"
+checksum = "sha256:fadae8e28722afd7aded5c10888b6190bef81371a950445f5e5f58c36e56305a"
+url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.8/deadvalues_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/666745487"
 
 [tools."github:guarnz/deadvalues"."platforms.linux-arm64-musl"]
-checksum = "sha256:3b9ae28141f824d5fba2e4ad05d05b3cd15cc978120d320fa090fd6eaa7b1c14"
-url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.7/deadvalues_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/657853020"
+checksum = "sha256:fadae8e28722afd7aded5c10888b6190bef81371a950445f5e5f58c36e56305a"
+url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.8/deadvalues_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/666745487"
 
 [tools."github:guarnz/deadvalues"."platforms.linux-x64"]
-checksum = "sha256:a5e08ae01d0b8a62f4351ba2b653abf5cb76e194adfdd809d61241680fa74bae"
-url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.7/deadvalues_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/657852955"
+checksum = "sha256:d55b62972e5dadf3c1976557ce5a743878f78a153b6ade1f0dbb771923da9c39"
+url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.8/deadvalues_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/666745486"
 
 [tools."github:guarnz/deadvalues"."platforms.linux-x64-musl"]
-checksum = "sha256:a5e08ae01d0b8a62f4351ba2b653abf5cb76e194adfdd809d61241680fa74bae"
-url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.7/deadvalues_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/657852955"
+checksum = "sha256:d55b62972e5dadf3c1976557ce5a743878f78a153b6ade1f0dbb771923da9c39"
+url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.8/deadvalues_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/666745486"
 
 [tools."github:guarnz/deadvalues"."platforms.macos-arm64"]
-checksum = "sha256:ed8a74e4a616178e86379714dc77cb368c0860a7eafe5052f41fbf0e2f84f9d0"
-url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.7/deadvalues_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/657852962"
+checksum = "sha256:10ccbc5c49e3898dcca4ee2be90c008c2c29c9d7857bc8c2e0321a0d1538a6a6"
+url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.8/deadvalues_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/666745603"
 
 [tools."github:guarnz/deadvalues"."platforms.macos-x64"]
-checksum = "sha256:17662fd44c5324a9da9ed6f35540dd1aaf27d59a9a356bd5fc8ca9d59e642e07"
-url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.7/deadvalues_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/657853016"
+checksum = "sha256:a01d04805fa49af8293c67a71caf7880957dc817dae8e9f4b3190ad1abc1b6ab"
+url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.8/deadvalues_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/666745485"
 
 [tools."github:guarnz/deadvalues"."platforms.windows-x64"]
-checksum = "sha256:8b786f4d8e23c4ce2b1693f81dc82097c921e2e3a783eb61a2dfd440c1336146"
-url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.7/deadvalues_windows_amd64.zip"
-url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/657852961"
+checksum = "sha256:85a9c11a13c89c1e0222711d2a0886ba816de3d2bb38b0e142efb1756c4c4a9f"
+url = "https://github.com/guarnz/deadvalues/releases/download/v0.1.8/deadvalues_windows_amd64.zip"
+url_api = "https://api.github.com/repos/guarnz/deadvalues/releases/assets/666745613"
 
 [[tools."github:home-operations/flate"]]
 version = "0.6.5"
