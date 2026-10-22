@@ -4,7 +4,8 @@ services:
   # container_name or ports, so an update can start the successor first.
   doco-cd:
     image: ghcr.io/kimdre/doco-cd:0.129.1@sha256:9c6e7f0040056465cdbc762b608c8893c64e691d464e34928c14338a6eaf6b8f
-    restart: unless-stopped
+    # Starts with the Docker daemon after an array stop; its first poll restarts the other stacks
+    restart: always
     # Unraid's Docker tab: icon, and no template lookup or update check
     labels:
       net.unraid.docker.managed: doco-cd
