@@ -81,6 +81,7 @@ jobs:
           push: ${{ github.event_name != 'workflow_dispatch' || inputs.push }}
           tags: ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
           provenance: true
-          sbom: true
+          # The SBOM scan unpacks the whole image, slow on buildkitd's native snapshotter under gVisor.
+          sbom: false
           cache-from: ${{ env.BUILDKIT_CACHE }}
           cache-to: ${{ env.BUILDKIT_CACHE }},mode=max
