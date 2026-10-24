@@ -1,5 +1,5 @@
 ---
-# Daemon pod: reached only through envoy-internal; DNS, API server and public IPv4 out.
+# Daemon pod: reached only through envoy-internal; DNS, API server, VictoriaMetrics and public IPv4 out.
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -32,6 +32,16 @@ spec:
       toPorts:
         - ports:
             - port: "6443"
+              protocol: TCP
+    # PromQL against VictoriaMetrics, for PVC usage and alert context.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: observability
+            app.kubernetes.io/name: vmsingle
+            app.kubernetes.io/instance: vmetrics
+      toPorts:
+        - ports:
+            - port: "8428"
               protocol: TCP
     # "world" alone would include the LAN, so carve private ranges out.
     - toCIDRSet:
