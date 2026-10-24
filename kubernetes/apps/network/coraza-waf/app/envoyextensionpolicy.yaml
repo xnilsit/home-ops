@@ -69,6 +69,15 @@ spec:
             SecRule REQUEST_HEADERS:Host "@rx ^(?:konflate|flux-webhook)\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
             "t:none,ctl:ruleEngine=Off"
 
+          # Exempts in-cluster pods on the registry host, for the CI image
+          # pushes from the runners and buildkitd. Pod IPs can't arrive from outside.
+          - >-
+            SecRule REMOTE_ADDR "@ipMatch 10.42.0.0/16,fd2e:9a41:6b8c:4200::/56"
+            "id:10039,phase:1,pass,nolog,chain,skipAfter:END-LAN-EXEMPT"
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^registry\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "t:none,ctl:ruleEngine=Off"
+
           # Drops the RFI rule on konflate's MCP endpoint and avatar proxy.
           - >-
             SecRule REQUEST_HEADERS:Host "@rx ^konflate\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
