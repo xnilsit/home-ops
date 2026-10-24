@@ -241,7 +241,7 @@
       description: "Don't chase a new digest for an unchanged tag, version bumps still carry the new digest. lancachenet only publish latest, so the digest is all that can move",
       matchDatasources: ["docker"],
       matchUpdateTypes: ["digest"],
-      matchPackageNames: ["!/lancachenet//", "!ghcr.io/xnilsit/paseo"],
+      matchPackageNames: ["!/lancachenet//", "!registry.nilsit.de/nilsit.de/paseo"],
       enabled: false,
     },
     // ---------------------------------------------------------------------
@@ -261,7 +261,7 @@
     {
       description: "Auto-merge Paseo image rebuilds, containers/paseo pushes each one under the same tag",
       matchDatasources: ["docker"],
-      matchPackageNames: ["ghcr.io/xnilsit/paseo"],
+      matchPackageNames: ["registry.nilsit.de/nilsit.de/paseo"],
       matchUpdateTypes: ["digest"],
       automerge: true,
       schedule: ["at any time"],
