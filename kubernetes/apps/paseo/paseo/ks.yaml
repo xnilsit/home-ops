@@ -28,8 +28,6 @@ spec:
       APP: *app
       # Paseo state, the Claude Code login and the cloned repos; caches live on paseo-cache.
       KOPIUR_CAPACITY: 20Gi
-      # renovate: datasource=docker depName=ghcr.io/xnilsit/paseo versioning=regex:^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-(?<build>\d+)$
-      PASEO_IMAGE_TAG: 0.13.0-1
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease

@@ -39,15 +39,15 @@ jobs:
         with:
           persist-credentials: false
 
-      # <paseo version>-<run number>: the run number orders rebuilds of the same Paseo release.
+      # Rebuilds of the same Paseo release move the tag; the cluster pins the digest and Renovate bumps it.
       - name: Derive Tag From Dockerfile
         id: meta
         run: |
           set -euo pipefail
           paseo=$(grep -oP '^ARG BASE=ghcr\.io/getpaseo/paseo:\K[0-9.]+' containers/paseo/Dockerfile)
           [ -n "$paseo" ] || { echo "::error::failed to parse the Paseo version"; exit 1; }
-          echo "tag=${paseo}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
-          echo "Building ${paseo}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_STEP_SUMMARY"
+          echo "tag=${paseo}" >> "$GITHUB_OUTPUT"
+          echo "Building ${paseo}" >> "$GITHUB_STEP_SUMMARY"
 
       # In-cluster rootless buildkitd over mTLS; the runner has no Docker daemon.
       - name: Set Up Buildx

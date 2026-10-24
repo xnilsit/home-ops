@@ -42,6 +42,10 @@ RUN set -eux; \
     install -m 0755 "${mise}" /usr/local/bin/mise; \
     rm -rf /tmp/*
 
+# Agent shells are non-interactive, so mise is reached through its shims rather than `mise activate`.
+ENV MISE_DATA_DIR=/home/paseo/.cache/mise
+ENV PATH="${MISE_DATA_DIR}/shims:${PATH}"
+
 RUN set -eux; \
     npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"; \
     npm cache clean --force; \
