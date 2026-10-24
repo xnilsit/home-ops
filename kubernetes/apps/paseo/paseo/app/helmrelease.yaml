@@ -24,7 +24,7 @@ spec:
             image:
               repository: ghcr.io/xnilsit/paseo
               # Rebuilt under the same tag by .github/workflows/paseo-image.yaml, the digest selects the build.
-              tag: 0.13.0@sha256:eddd28cda241631f8b74e22369b04901d747781888df1ae61ca2071a6cc9bc63
+              tag: 0.13.0@sha256:36b83d9b171fb39283fc08c9620122fcad8c30e6eae35102ddcfc79fd0fc2929
             env:
               PASEO_HOSTNAMES: &host "paseo.${SECRET_DOMAIN}"
               # Voice models are re-downloadable, so they stay off the backed-up volume.
