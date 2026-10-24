@@ -33,8 +33,7 @@ spec:
               - "--tlskey"
               - "/certs/tls.key"
               - "--oci-worker-no-process-sandbox"
-              # gVisor has no nested overlayfs.
-              - "--oci-worker-snapshotter=native"
+              - "--oci-worker-snapshotter=overlayfs"
             # AWS SDK default chain for the s3 cache backend, from the OBC Secret.
             envFrom:
               - secretRef:
@@ -53,9 +52,10 @@ spec:
                   periodSeconds: 30
               readiness: *probes
             securityContext:
-              # Rootless BuildKit needs unconfined seccomp and AppArmor for its user namespace.
+              # Rootless BuildKit needs its user and mount namespaces, which RuntimeDefault denies.
               seccompProfile:
-                type: Unconfined
+                type: Localhost
+                localhostProfile: kguardian/actions-runner-system/buildkitd.json
               appArmorProfile:
                 type: Unconfined
             resources:
@@ -72,7 +72,8 @@ spec:
               globalMounts:
                 - path: /home/user/.local/share/buildkit
     defaultPodOptions:
-      runtimeClassName: gvisor
+      # runc, not gVisor: gVisor has no nested overlayfs, and the native snapshotter
+      # copies the whole rootfs per layer. ./seccompprofile.yaml narrows the kernel instead.
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
