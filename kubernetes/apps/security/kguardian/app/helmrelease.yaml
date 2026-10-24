@@ -62,6 +62,11 @@ spec:
     evaluator:
       enabled: true
 
+    # Writes SeccompProfile CRs to kguardian/<namespace>/<name>.json under the
+    # kubelet seccomp root on every node; buildkitd references one.
+    seccomp:
+      distribute: true
+
   postRenderers:
     # The chart's ServiceMonitor selects app.kubernetes.io/name, which its own
     # Service does not carry, so the scrape pool discovers nothing.
