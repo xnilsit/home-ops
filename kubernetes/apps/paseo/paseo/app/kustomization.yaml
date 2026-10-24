@@ -1,0 +1,14 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Provisions the home PVC (named ${APP}) and snapshots it to the NAS.
+  - ../../../../components/kopiur/backup
+resources:
+  - ./rbac.yaml
+  - ./ciliumnetworkpolicy.yaml
+  # PASEO_PASSWORD, GH_TOKEN
+  - ./secret.sops.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml
