@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       push:
-        description: "Push the image to GHCR"
+        description: "Push the image to apoci"
         type: boolean
         default: true
 
@@ -22,7 +22,8 @@ concurrency:
 permissions: {}
 
 env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/paseo
+  # In-cluster apoci; from the runners registry.nilsit.de resolves to envoy-external-direct's LAN address.
+  IMAGE: registry.nilsit.de/nilsit.de/paseo
   # Shared across buildkitd replicas; credentials come from buildkitd's env.
   BUILDKIT_CACHE: type=s3,bucket=buildkit-cache,name=paseo,region=us-east-1,endpoint_url=http://rook-ceph-rgw-ceph-objectstore.rook-ceph.svc:80,use_path_style=true
 
@@ -32,7 +33,6 @@ jobs:
     runs-on: home-ops-runner
     permissions:
       contents: read
-      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -60,13 +60,13 @@ jobs:
             cert=/home/runner/buildkit-certs/tls.crt
             key=/home/runner/buildkit-certs/tls.key
 
-      - name: Log In To GHCR
+      - name: Log In To apoci
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.push }}
         uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: registry.nilsit.de
+          username: registry
+          password: ${{ secrets.APOCI_REGISTRY_TOKEN }}
 
       - name: Build And Push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
