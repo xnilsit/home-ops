@@ -162,12 +162,14 @@ spec:
             "t:none,ctl:ruleRemoveById=920420"
 
           # The API uses PUT/PATCH/DELETE, the app's multipart boundary trips
-          # 921422, and thumbnail URLs carry a base64 thumbhash as c.
+          # 921422, the iOS app's uploads send Accept-Charset (920451), and
+          # thumbnail URLs carry a base64 thumbhash as c.
           - >-
             SecRule REQUEST_HEADERS:Host "@rx ^immich\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
             "id:10019,phase:1,pass,nolog,t:none,
             setvar:'tx.allowed_methods=GET HEAD POST OPTIONS PUT PATCH DELETE',
             ctl:ruleRemoveById=921422,
+            ctl:ruleRemoveById=920451,
             ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:c"
 
           # Gokapi's presigned download URLs carry the RFC 6266 filename
