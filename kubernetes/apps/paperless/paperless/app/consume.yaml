@@ -1,10 +1,11 @@
 ---
-# The SMB-shared consume folder on Unraid, exported over NFS to 192.168.1.0/24.
+# The SMB-shared scan inbox on Unraid, exported over NFS to 192.168.1.0/24.
+# Only the mover CronJob mounts it.
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/persistentvolume-v1.json
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: paperless-consume
+  name: paperless-import
 spec:
   capacity:
     storage: 1Gi
@@ -12,22 +13,24 @@ spec:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
-  # soft: an Unraid outage fails consumer I/O instead of hanging the pod.
+  # soft with a short timeo: an Unraid outage fails the mover's I/O after about a minute instead of hanging it.
   mountOptions:
     - nfsvers=4.2
     - soft
+    - timeo=100
+    - retrans=2
   nfs:
     server: 192.168.0.250
     path: /mnt/user/paperless
   claimRef:
-    name: paperless-consume
+    name: paperless-import
     namespace: paperless
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/persistentvolumeclaim-v1.json
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: paperless-consume
+  name: paperless-import
 spec:
   accessModes:
     - ReadWriteMany
@@ -35,4 +38,18 @@ spec:
     requests:
       storage: 1Gi
   storageClassName: ""
-  volumeName: paperless-consume
+  volumeName: paperless-import
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/persistentvolumeclaim-v1.json
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-staging
+spec:
+  # The consume folder: filled by the mover, emptied by paperless. Not backed up.
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: ceph-filesystem
