@@ -73,6 +73,15 @@ spec:
                 - path: /home/user/.local/share/buildkit
     defaultPodOptions:
       runtimeClassName: gvisor
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              # The 16-thread Ryzens (kube-srv-02, kube-wrk-01). Keyed off the
+              # amdgpu extension, the only stable label unique to them.
+              - matchExpressions:
+                  - key: extensions.talos.dev/amdgpu
+                    operator: Exists
       # Resolve external names without the cluster search list.
       dnsConfig:
         options:
