@@ -67,7 +67,7 @@ spec:
           volumeClaimTemplates:
             - name: state
               accessMode: ReadWriteOnce
-              size: 30Gi
+              size: 60Gi
               storageClass: ceph-block
               globalMounts:
                 - path: /home/user/.local/share/buildkit
