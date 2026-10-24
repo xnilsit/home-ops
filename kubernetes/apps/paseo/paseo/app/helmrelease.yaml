@@ -78,6 +78,8 @@ spec:
                 memory: 8Gi
     defaultPodOptions:
       runtimeClassName: gvisor
+      # The chart defaults to false; kubectl and flux use this token for paseo-read.
+      automountServiceAccountToken: true
       # The image is amd64-only.
       nodeSelector:
         kubernetes.io/arch: amd64
