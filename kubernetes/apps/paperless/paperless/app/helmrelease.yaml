@@ -80,7 +80,7 @@ spec:
               PAPERLESS_FILENAME_FORMAT: "{created}-{correspondent}-{title}"
               PAPERLESS_CONSUMER_RECURSIVE: "true"
               PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS: "true"
-              # The consume folder is NFS, which delivers no inotify events.
+              # CephFS delivers no inotify events for the mover's writes from another node.
               PAPERLESS_CONSUMER_POLLING_INTERVAL: "60"
               PAPERLESS_EMAIL_TASK_CRON: "*/2 * * * *"
               PAPERLESS_EMAIL_HOST: mail.${SECRET_DOMAIN_ALT}
@@ -127,6 +127,39 @@ spec:
                 memory: 1Gi
               limits:
                 memory: 4Gi
+      # Moves scans from the NFS inbox into the consume folder. A fresh pod per run
+      # remounts NFS, so an Unraid outage or stale handle never reaches paperless.
+      mover:
+        type: cronjob
+        cronjob:
+          schedule: "*/2 * * * *"
+          concurrencyPolicy: Forbid
+          successfulJobsHistory: 1
+          failedJobsHistory: 1
+          backoffLimit: 0
+          # Ends runs stuck mounting an unreachable NFS server.
+          activeDeadlineSeconds: 300
+        containers:
+          app:
+            image:
+              repository: registry.nilsit.de/docker.io/rclone/rclone
+              tag: 1.75.2@sha256:2687085f718d3c628f7fdfb77c52a1d344332aed543110bb88088f2c70d43eb5
+            args:
+              - move
+              - /import
+              - /consume
+              # Skips files a scanner may still be writing.
+              - --min-age=1m
+              # Paperless ignores hidden files, so they would pile up in the consume folder.
+              - --exclude=.*
+            env:
+              HOME: /tmp
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 256Mi
       tika:
         replicas: 2
         strategy: RollingUpdate
@@ -240,13 +273,22 @@ spec:
                 subPath: data
               - path: /usr/src/paperless/media
                 subPath: media
+      import:
+        existingClaim: paperless-import
+        advancedMounts:
+          mover:
+            app:
+              - path: /import
+                subPath: import
       consume:
-        existingClaim: paperless-consume
+        existingClaim: paperless-staging
         advancedMounts:
           paperless:
             app:
               - path: /usr/src/paperless/consume
-                subPath: import
+          mover:
+            app:
+              - path: /consume
       run:
         type: emptyDir
         advancedMounts:
@@ -266,6 +308,9 @@ spec:
             app:
               - path: /tmp
           gotenberg:
+            app:
+              - path: /tmp
+          mover:
             app:
               - path: /tmp
       gotenberg-home:
