@@ -14,6 +14,13 @@ ARG FLUX_VERSION=v2.9.6
 ARG GH_VERSION=v2.103.2
 # renovate: datasource=github-releases depName=jdx/mise
 ARG MISE_VERSION=v2026.10.18
+# renovate: datasource=npm depName=@opencode/cli
+ARG OPENCODE_VERSION=2.1.4
+# renovate: datasource=npm depName=opencode-with-claude
+ARG OPENCODE_WITH_CLAUDE_VERSION=1.11.2
+# Drives both the Claude Code plugin (repo tag) and @eleboucher/opencode-memini-v2 (same version on npm).
+# renovate: datasource=github-tags depName=eleboucher/memini
+ARG MEMINI_VERSION=v0.7.37
 
 USER root
 
@@ -47,6 +54,36 @@ ENV MISE_DATA_DIR=/home/paseo/.cache/mise
 ENV PATH="${MISE_DATA_DIR}/shims:${PATH}"
 
 RUN set -eux; \
-    npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"; \
+    npm install -g \
+        "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
+        "@opencode/cli@${OPENCODE_VERSION}" \
+        "opencode-with-claude@${OPENCODE_WITH_CLAUDE_VERSION}" \
+        "@eleboucher/opencode-memini-v2@${MEMINI_VERSION#v}"; \
     npm cache clean --force; \
-    claude --version; kubectl version --client; flux version --client; gh --version; mise --version
+    claude --version; opencode --version; kubectl version --client; flux version --client; gh --version; mise --version
+
+# OpenCode 2 loads a plugin directory through its own index.js or server.js, ignoring package.json main/exports.
+RUN set -eux; \
+    modules="$(npm root -g)"; \
+    mkdir -p /opt/opencode-plugins/opencode-with-claude /opt/opencode-plugins/memini; \
+    echo "export { default } from \"${modules}/opencode-with-claude/dist/index.js\";" > /opt/opencode-plugins/opencode-with-claude/index.js; \
+    echo "export { default } from \"${modules}/@eleboucher/opencode-memini-v2/dist/index.js\";" > /opt/opencode-plugins/memini/index.js
+
+# Meridian (behind opencode-with-claude) refuses to start without a machine-id, which gVisor does not provide.
+RUN od -An -tx1 -N16 /dev/urandom | tr -d ' \n' > /etc/machine-id
+
+# Paseo merges its bridge plugin into this, and opencode-with-claude points the placeholder baseURL at its Meridian port.
+ENV OPENCODE_CONFIG_CONTENT='{"plugins":["/opt/opencode-plugins/opencode-with-claude","/opt/opencode-plugins/memini"],"providers":{"anthropic":{"settings":{"baseURL":"http://127.0.0.1:3456/v1","apiKey":"dummy"}}}}'
+# The npm installs are read-only, plugins included.
+ENV OPENCODE_DISABLE_AUTOUPDATE=1
+ENV MEMINI_AUTO_UPDATE=false
+
+# Claude Code loads directory-marketplace plugins in place, so they live outside the ~/.claude volume.
+RUN set -eux; \
+    mkdir -p /opt/claude-plugins/memini /etc/claude-code/managed-settings.d; \
+    curl -fsSL "https://github.com/eleboucher/memini/archive/refs/tags/${MEMINI_VERSION}.tar.gz" \
+        | tar -xzf - -C /opt/claude-plugins/memini --strip-components=1 \
+            "memini-${MEMINI_VERSION#v}/.claude-plugin" "memini-${MEMINI_VERSION#v}/plugin"; \
+    printf '%s\n' '{"extraKnownMarketplaces":{"memini":{"source":{"source":"directory","path":"/opt/claude-plugins/memini"}}},"enabledPlugins":{"memini@memini":true}}' \
+        > /etc/claude-code/managed-settings.d/10-memini.json; \
+    claude plugin validate /opt/claude-plugins/memini
