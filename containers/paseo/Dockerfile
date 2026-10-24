@@ -13,7 +13,7 @@ ARG FLUX_VERSION=v2.9.6
 # renovate: datasource=github-releases depName=cli/cli
 ARG GH_VERSION=v2.103.2
 # renovate: datasource=github-releases depName=jdx/mise
-ARG MISE_VERSION=v2026.10.18
+ARG MISE_VERSION=v2026.10.19
 # renovate: datasource=npm depName=@opencode/cli
 ARG OPENCODE_VERSION=2.1.4
 # renovate: datasource=npm depName=opencode-with-claude
