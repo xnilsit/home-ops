@@ -58,7 +58,7 @@ ARG MEMINI_VERSION=v0.7.37
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VERSION=v4.3.1
 # renovate: datasource=git-refs depName=https://github.com/ohmyzsh/ohmyzsh branch=master
-ARG OHMYZSH_COMMIT=2100c630ba4bd67bb48802c3e7da893a4fdaa1a0
+ARG OHMYZSH_COMMIT=d2b7f557cceaddb16ba89bbf8200d8a8df35c4d8
 # renovate: datasource=git-refs depName=https://github.com/djui/alias-tips branch=master
 ARG ALIAS_TIPS_COMMIT=41cb143ccc3b8cc444bf20257276cb43275f65c4
 
