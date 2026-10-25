@@ -56,6 +56,32 @@
       versioningTemplate: "{{{versioning}}}",
     },
     {
+      description: "Commit pins annotated with the branch they track, which the preset's annotation regex does not match",
+      customType: "regex",
+      managerFilePatterns: ["/(^|/)Dockerfile$/", "/containers/paseo/rootfs/etc/xdg/nvim/init\\.lua$/"],
+      matchStrings: [
+        "datasource=git-refs depName=(?<depName>\\S+) branch=(?<currentValue>\\S+)\\n[^\\n]*?(?<currentDigest>[0-9a-f]{40})",
+      ],
+      datasourceTemplate: "git-refs",
+    },
+    {
+      description: "Paseo Neovim plugin tags and Mason package versions, Lua's `key = 'value'` spacing is beyond the preset's annotation regex",
+      customType: "regex",
+      managerFilePatterns: ["/containers/paseo/rootfs/etc/xdg/nvim/init\\.lua$/"],
+      matchStrings: [
+        "datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n[^\\n]*?(tag|version) = '(?<currentValue>[^']+)'",
+      ],
+    },
+    {
+      description: "As above, for versions that need an explicit versioning",
+      customType: "regex",
+      managerFilePatterns: ["/containers/paseo/rootfs/etc/xdg/nvim/init\\.lua$/"],
+      matchStrings: [
+        "datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) versioning=(?<versioning>\\S+)\\n[^\\n]*?(tag|version) = '(?<currentValue>[^']+)'",
+      ],
+      versioningTemplate: "{{{versioning}}}",
+    },
+    {
       description: "Immich machine-learning tag follows the immich release, its ghcr tag list is too large to page through",
       customType: "regex",
       managerFilePatterns: ["/kubernetes/apps/immich/immich/app/helmrelease\\.yaml$/"],
@@ -207,6 +233,16 @@
         commitMessageTopic: "{{{groupName}}} group",
       },
     },
+    {
+      description: "Paseo Neovim Group: plugins and Mason packages baked into the image, majors included, in one PR a week",
+      groupName: "paseo-neovim",
+      matchFileNames: ["containers/paseo/rootfs/etc/xdg/nvim/init.lua"],
+      separateMajorMinor: false,
+      schedule: ["before 6am on saturday"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
     // ---------------------------------------------------------------------
     // Disabled lookups
     // ---------------------------------------------------------------------
@@ -265,6 +301,12 @@
       matchUpdateTypes: ["digest"],
       automerge: true,
       schedule: ["at any time"],
+    },
+    {
+      description: "Auto-merge Paseo Neovim plugin commits, a pin that breaks the bake fails the image build on main and the cluster keeps the last image",
+      matchFileNames: ["containers/paseo/rootfs/etc/xdg/nvim/init.lua"],
+      matchUpdateTypes: ["digest"],
+      automerge: true,
     },
     {
       description: "Auto-merge GitHub Actions",
