@@ -226,17 +226,6 @@ local treesitter_parsers = {
 local servers = {
   awk_ls = {},
   bashls = {},
-  basedpyright = {
-    settings = {
-      basedpyright = {
-        analysis = {
-          autoSearchPaths = true,
-          diagnosticMode = 'openFilesOnly',
-          useLibraryCodeForTypes = true,
-        },
-      },
-    },
-  },
   docker_compose_language_service = {},
   dockerls = {},
   helm_ls = {
@@ -305,8 +294,6 @@ local tools = {
   { 'awk-language-server', version = '0.10.6' },
   -- renovate: datasource=npm depName=bash-language-server
   { 'bash-language-server', version = '5.8.1' },
-  -- renovate: datasource=pypi depName=basedpyright
-  { 'basedpyright', version = '1.40.2' },
   -- renovate: datasource=npm depName=@microsoft/compose-language-service
   { 'docker-compose-language-service', version = '1.0.0' },
   -- renovate: datasource=npm depName=dockerfile-language-server-nodejs
