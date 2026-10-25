@@ -1,0 +1,67 @@
+# vim: ft=zsh
+# Interactive zsh for Paseo terminals. It replaces Debian's /etc/zsh/zshrc, as
+# /home/paseo is a volume that hides anything the image puts there. Personal
+# additions go in ~/.zshrc, which zsh still reads after this file.
+
+# The aliases load before oh-my-zsh, whose git plugin wins on shared names (gp, gl, grh, grv).
+for file in /etc/zsh/zshrc.d/*.zsh(N); do
+  source $file
+done
+unset file
+
+export LANG=${LANG:-en_US.UTF-8}
+export EDITOR=nvim
+export VISUAL=$EDITOR
+export FCEDIT=$EDITOR
+
+setopt extended_glob
+
+export ZSH=/usr/share/oh-my-zsh
+# The image is read-only; caches and the compdump live on the cache volume.
+ZSH_CACHE_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/oh-my-zsh
+ZSH_COMPDUMP=$ZSH_CACHE_DIR/.zcompdump-${ZSH_VERSION}
+zstyle ':omz:update' mode disabled
+# Paseo sets the tab title from its own precmd hook.
+DISABLE_AUTO_TITLE="true"
+
+ZSH_THEME="agnoster"
+COMPLETION_WAITING_DOTS="true"
+DISABLE_UNTRACKED_FILES_DIRTY="true"
+GIT_AUTO_FETCH_INTERVAL=120 # in seconds
+
+plugins=(
+  git
+  git-auto-fetch
+  z
+  dirhistory
+  sudo
+  history-substring-search
+  vi-mode
+  alias-tips
+)
+
+source $ZSH/oh-my-zsh.sh
+
+# prompt
+build_prompt() {
+  RETVAL=$?
+  prompt_status
+  prompt_virtualenv
+  prompt_context
+  prompt_dir
+  prompt_git
+  prompt_bzr
+  prompt_end
+}
+
+bindkey "^[[A" history-substring-search-up
+bindkey "^[[B" history-substring-search-down
+
+# killall completion
+zstyle ':completion:*:processes' command 'NOCOLORS=1 ps -U $(whoami)|sed "/ps/d"'
+zstyle ':completion:*:processes' insert-ids menu yes select
+zstyle ':completion:*:processes-names' command 'NOCOLORS=1 ps xho command|sed "s/://g"'
+zstyle ':completion:*:processes' sort false
+
+# Include hidden files in autocomplete:
+_comp_options+=(globdots)
