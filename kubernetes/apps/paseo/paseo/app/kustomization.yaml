@@ -8,7 +8,7 @@ components:
 resources:
   - ./rbac.yaml
   - ./ciliumnetworkpolicy.yaml
-  # PASEO_PASSWORD, GH_TOKEN
+  # PASEO_PASSWORD, GH_TOKEN, KGUARDIAN_MCP_TOKEN
   - ./secret.sops.yaml
   - ./ocirepository.yaml
   - ./helmrelease.yaml

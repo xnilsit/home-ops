@@ -43,7 +43,7 @@ spec:
               GIT_CONFIG_KEY_0: credential.https://github.com.helper
               GIT_CONFIG_VALUE_0: "!gh auth git-credential"
             envFrom:
-              # PASEO_PASSWORD, GH_TOKEN
+              # PASEO_PASSWORD, GH_TOKEN, KGUARDIAN_MCP_TOKEN
               - secretRef:
                   name: paseo-secret
             probes:
