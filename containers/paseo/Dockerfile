@@ -45,7 +45,7 @@ ARG KUBECTL_VERSION=v1.37.1
 # renovate: datasource=github-releases depName=fluxcd/flux2
 ARG FLUX_VERSION=v2.9.6
 # renovate: datasource=github-releases depName=cli/cli
-ARG GH_VERSION=v2.103.2
+ARG GH_VERSION=v2.103.3
 # renovate: datasource=github-releases depName=jdx/mise
 ARG MISE_VERSION=v2026.10.19
 # renovate: datasource=npm depName=@opencode/cli
