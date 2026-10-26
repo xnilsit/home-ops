@@ -5,3 +5,13 @@ resources:
   - ./grafanadashboard.yaml
   - ./helmrelease.yaml
   - ./ocirepository.yaml
+configMapGenerator:
+  - name: spegel-dashboard
+    files:
+      - spegel.json=./dashboards/spegel.json
+    options:
+      annotations:
+        # Keeps postBuild.substituteFrom away from $node, ${datasource} and $__range.
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+generatorOptions:
+  disableNameSuffixHash: true

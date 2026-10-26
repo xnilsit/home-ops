@@ -9,8 +9,6 @@ spec:
   instanceSelector:
     matchLabels:
       dashboards: grafana
-  datasources:
-    - datasourceName: prometheus
-      inputName: DS_PROMETHEUS
-  # The tag is bumped by the spegel customManager in .renovaterc.json5
-  url: https://raw.githubusercontent.com/spegel-org/spegel/v0.8.0/charts/spegel/monitoring/grafana-dashboard.json
+  configMapRef:
+    name: spegel-dashboard
+    key: spegel.json
