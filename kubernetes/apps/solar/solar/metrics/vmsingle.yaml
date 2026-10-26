@@ -11,7 +11,7 @@ spec:
   # Overrides vm-operator's default image tag.
   image:
     # renovate: datasource=docker depName=docker.io/victoriametrics/victoria-metrics
-    tag: v1.154.1
+    tag: v1.155.0
   # Scrapes the two exporters itself, so no VMAgent and no copy in the
   # cluster vmsingle.
   configMaps:
