@@ -11,5 +11,5 @@ spec:
     operation: copy
   ref:
     # Chart tags carry no `v` prefix, unlike the images and GitHub releases
-    tag: 0.16.5
+    tag: 0.16.6
   url: oci://ghcr.io/flux-iac/charts/tofu-controller
