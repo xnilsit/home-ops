@@ -347,9 +347,9 @@ local plugin_pins = {
   -- renovate: datasource=git-refs depName=https://github.com/nvim-lua/plenary.nvim branch=master
   ['nvim-lua/plenary.nvim'] = { commit = '74b06c6c75e4eeb3108ec01852001636d85a932b' },
   -- renovate: datasource=git-refs depName=https://github.com/nvim-mini/mini.nvim branch=main
-  ['nvim-mini/mini.nvim'] = { commit = 'd79805a0dfe9e8dc82c0988aec0d85e5440e86eb' },
+  ['nvim-mini/mini.nvim'] = { commit = 'ed8683521996657ce774e5eec9d2f9b1b5ecef82' },
   -- renovate: datasource=github-tags depName=lukas-reineke/indent-blankline.nvim
-  ['lukas-reineke/indent-blankline.nvim'] = { tag = 'v3.9.1' },
+  ['lukas-reineke/indent-blankline.nvim'] = { tag = 'v3.10.1' },
   -- renovate: datasource=git-refs depName=https://github.com/mason-org/mason.nvim branch=main
   ['mason-org/mason.nvim'] = { commit = '2a6940af80375532e5e9e7c1f2fc6319a1b7a69d' },
   -- renovate: datasource=github-releases depName=saghen/blink.cmp
