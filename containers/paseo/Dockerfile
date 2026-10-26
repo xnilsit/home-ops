@@ -103,12 +103,14 @@ RUN ln -s /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
 
 # Paseo starts terminals with $SHELL, the login shell covers kubectl exec and the like.
 # Without newuser zsh skips its setup menu, which every shell would hit as the zshrc lives in /etc/zsh rather than the home volume.
+# tar as root keeps the archives' group-writable modes, which oh-my-zsh's compaudit rejects.
 RUN set -eux; \
     mkdir -p /usr/share/oh-my-zsh/custom/plugins/alias-tips; \
     curl -fsSL "https://github.com/ohmyzsh/ohmyzsh/archive/${OHMYZSH_COMMIT}.tar.gz" \
         | tar -xzf - -C /usr/share/oh-my-zsh --strip-components=1; \
     curl -fsSL "https://github.com/djui/alias-tips/archive/${ALIAS_TIPS_COMMIT}.tar.gz" \
         | tar -xzf - -C /usr/share/oh-my-zsh/custom/plugins/alias-tips --strip-components=1; \
+    chmod -R g-w,o-w /usr/share/oh-my-zsh; \
     rm -f /usr/share/zsh/*/scripts/newuser; \
     completions=/usr/local/share/zsh/site-functions; \
     mkdir -p "${completions}"; \
