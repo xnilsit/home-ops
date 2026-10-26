@@ -43,7 +43,7 @@ ARG CLAUDE_CODE_VERSION=2.1.310
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
 ARG KUBECTL_VERSION=v1.37.1
 # renovate: datasource=github-releases depName=fluxcd/flux2
-ARG FLUX_VERSION=v2.9.6
+ARG FLUX_VERSION=v2.10.0
 # renovate: datasource=github-releases depName=cli/cli
 ARG GH_VERSION=v2.103.2
 # renovate: datasource=github-releases depName=jdx/mise
