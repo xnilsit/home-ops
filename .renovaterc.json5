@@ -309,6 +309,13 @@
       automerge: true,
     },
     {
+      description: "Auto-merge Paseo oh-my-zsh commits, a pin that breaks the bake fails the image build on main and the cluster keeps the last image",
+      matchDatasources: ["git-refs"],
+      matchPackageNames: ["https://github.com/ohmyzsh/ohmyzsh"],
+      matchUpdateTypes: ["digest"],
+      automerge: true,
+    },
+    {
       description: "Auto-merge GitHub Actions",
       matchManagers: ["github-actions"],
       automerge: true,
