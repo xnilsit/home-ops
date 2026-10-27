@@ -49,7 +49,7 @@ ARG GH_VERSION=v2.103.3
 # renovate: datasource=github-releases depName=jdx/mise
 ARG MISE_VERSION=v2026.10.20
 # renovate: datasource=npm depName=@opencode/cli
-ARG OPENCODE_VERSION=2.1.4
+ARG OPENCODE_VERSION=2.2.0
 # renovate: datasource=npm depName=opencode-with-claude
 ARG OPENCODE_WITH_CLAUDE_VERSION=1.11.2
 # Drives both the Claude Code plugin (repo tag) and @eleboucher/opencode-memini-v2 (same version on npm).
