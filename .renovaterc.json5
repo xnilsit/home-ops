@@ -217,10 +217,11 @@
       },
     },
     {
-      description: "Paseo Neovim Group: plugins and Mason packages baked into the image, majors included, in one PR a week",
-      groupName: "paseo-neovim",
-      matchFileNames: ["containers/paseo/rootfs/etc/xdg/nvim/init.lua"],
+      description: "Paseo Group: every dependency baked into the image, majors included, in one auto-merged PR a week so the image rebuilds once. A bump that breaks the bake fails the image build on main and the cluster keeps the last image",
+      groupName: "paseo",
+      matchFileNames: ["containers/paseo/**"],
       separateMajorMinor: false,
+      automerge: true,
       schedule: ["before 6am on saturday"],
       group: {
         commitMessageTopic: "{{{groupName}}} group",
@@ -284,19 +285,6 @@
       matchUpdateTypes: ["digest"],
       automerge: true,
       schedule: ["at any time"],
-    },
-    {
-      description: "Auto-merge Paseo Neovim plugin commits, a pin that breaks the bake fails the image build on main and the cluster keeps the last image",
-      matchFileNames: ["containers/paseo/rootfs/etc/xdg/nvim/init.lua"],
-      matchUpdateTypes: ["digest"],
-      automerge: true,
-    },
-    {
-      description: "Auto-merge Paseo oh-my-zsh commits, a pin that breaks the bake fails the image build on main and the cluster keeps the last image",
-      matchDatasources: ["git-refs"],
-      matchPackageNames: ["https://github.com/ohmyzsh/ohmyzsh"],
-      matchUpdateTypes: ["digest"],
-      automerge: true,
     },
     {
       description: "Auto-merge GitHub Actions",
