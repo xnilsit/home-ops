@@ -18,7 +18,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/ghcr.io/scanopy/scanopy/server
-              tag: v0.19.2@sha256:c392997c31c04239b0cffdb858ec8128943f047cee6697d90d4f63c212835e86
+              tag: v0.19.3@sha256:bc90acfffc6ee86c50b572bcd1ec8386e98fe870d4ac1e05bcc5eb30fee890a5
             env:
               TZ: ${TIMEZONE}
               SCANOPY_LOG_LEVEL: info
@@ -98,7 +98,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/ghcr.io/scanopy/scanopy/daemon
-              tag: v0.19.2@sha256:d55d5f53339ad24478a77c7f539916d9fe07d84b079f793a9b8525b777328e7c
+              tag: v0.19.3@sha256:fb8b0e32408a4b1b7ebc7754716241c7a241d948ead7d9e3b7ad46fde4323548
             env:
               TZ: ${TIMEZONE}
               SCANOPY_LOG_LEVEL: info
