@@ -307,7 +307,7 @@ local tools = {
   -- renovate: datasource=github-releases depName=artempyanykh/marksman versioning=loose
   { 'marksman', version = '2026-02-08' },
   -- renovate: datasource=github-releases depName=astral-sh/ruff
-  { 'ruff', version = '0.17.2' },
+  { 'ruff', version = '0.17.3' },
   -- renovate: datasource=npm depName=typescript-language-server
   { 'typescript-language-server', version = '6.0.2' },
   -- renovate: datasource=github-releases depName=tekumara/typos-vscode
