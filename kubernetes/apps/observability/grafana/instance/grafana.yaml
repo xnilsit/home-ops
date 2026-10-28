@@ -7,9 +7,9 @@ metadata:
   labels:
     dashboards: grafana
 spec:
-  # Overrides grafana-operator's default image tag.
+  # Overrides grafana-operator's default image tag, a bare tag resolves against docker.io/grafana/grafana.
   # renovate: datasource=docker depName=docker.io/grafana/grafana
-  version: docker.io/grafana/grafana:13.2.3
+  version: 13.2.3
   config:
     analytics:
       check_for_updates: "false"
