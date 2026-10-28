@@ -104,10 +104,10 @@ spec:
           # That matters: leaving the RGW data pool unbounded with bulk set took
           # it to 512 PGs and tripped "too many PGs per OSD".
           #
-          # Steady state: 32x7 rgw metadata + 256 rgw data + 32 blockpool
-          # + 16 cephfs metadata + 32 cephfs data + 1 mgr, at size 3 across
-          # 3 OSDs = ~561 PGs/OSD, up from a measured 217. Both defaults
-          # (250 guard, 100 target) would block this outright.
+          # Steady state: 32x7 rgw metadata + 32x3 default.rgw + 64 rgw data
+          # + 128 blockpool + 16 cephfs metadata + 32 cephfs data + 1 mgr, at
+          # size 3 across 3 OSDs = ~561 PGs/OSD, up from a measured 217. Both
+          # defaults (250 guard, 100 target) would block this outright.
           #
           # The target sits above the landing point on purpose so the autoscaler
           # is not permanently trying to shrink, and the guard above that with
@@ -375,10 +375,13 @@ spec:
               # it jumps straight to the full target instead of ramping. Combined
               # with mon_target_pg_per_osd it took this pool to 512 PGs (1536
               # PG-replicas) for a few MB of backups and tripped
-              # "too many PGs per OSD". pg_num_max bounds it; pg_num brings it
-              # back down, since pg_num_max alone only caps future growth.
+              # "too many PGs per OSD". pg_num_max bounds it.
+              #
+              # No pg_num: since Ceph v21 the autoscaler counts the fixed 32-PG
+              # pools at their PG floor and rounds bulk pools down to fit the
+              # budget, landing this pool at 64. A pinned pg_num just fights it
+              # on every Rook reconcile.
               bulk: "true"
-              pg_num: "256"
               pg_num_max: "256"
           preservePoolsOnDelete: true
           gateway:
