@@ -49,7 +49,8 @@ spec:
       enabled: true
     loadBalancer:
       algorithm: maglev
-      mode: "dsr"
+      # hybrid: DSR for TCP, SNAT for UDP. DSR's per-packet IP option pushes full-size QUIC packets over MTU.
+      mode: "hybrid"
     # Pinned: autodetect follows netbird's 1280 wt0 down and shrinks the pod network.
     MTU: 1500
     localRedirectPolicies:
