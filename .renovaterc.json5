@@ -65,6 +65,15 @@
       datasourceTemplate: "github-releases",
     },
     {
+      description: "dragonfly-operator dashboard, the tag sits inside the raw.githubusercontent.com URL",
+      customType: "regex",
+      managerFilePatterns: ["/kubernetes/apps/database/dragonfly/app/grafanadashboard\\.yaml$/"],
+      matchStrings: [
+        "raw\\.githubusercontent\\.com/(?<depName>dragonflydb/dragonfly-operator)/(?<currentValue>v[^/]+)/",
+      ],
+      datasourceTemplate: "github-releases",
+    },
+    {
       description: "Paseo Neovim plugin tags and Mason package versions, Lua's `key = 'value'` spacing is beyond the preset's annotation regex",
       customType: "regex",
       managerFilePatterns: ["/containers/paseo/rootfs/etc/xdg/nvim/init\\.lua$/"],
@@ -192,6 +201,14 @@
       description: "grafana-operator Group: the chart and the CRDs applied ahead of it",
       groupName: "grafana-operator",
       matchPackageNames: ["ghcr.io/grafana/helm-charts/grafana-operator", "grafana/grafana-operator"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
+    {
+      description: "dragonfly-operator Group: the chart and the dashboard pinned to the matching tag",
+      groupName: "dragonfly-operator",
+      matchPackageNames: ["ghcr.io/dragonflydb/dragonfly-operator/helm/dragonfly-operator", "dragonflydb/dragonfly-operator"],
       group: {
         commitMessageTopic: "{{{groupName}}} group",
       },
