@@ -56,6 +56,15 @@
       datasourceTemplate: "git-refs",
     },
     {
+      description: "grafana-operator CRDs, the tag sits inside the GitHub release download URL",
+      customType: "regex",
+      managerFilePatterns: ["/kubernetes/apps/observability/grafana/crds/kustomization\\.yaml$/"],
+      matchStrings: [
+        "github\\.com/(?<depName>grafana/grafana-operator)/releases/download/(?<currentValue>v[^/]+)/",
+      ],
+      datasourceTemplate: "github-releases",
+    },
+    {
       description: "Paseo Neovim plugin tags and Mason package versions, Lua's `key = 'value'` spacing is beyond the preset's annotation regex",
       customType: "regex",
       managerFilePatterns: ["/containers/paseo/rootfs/etc/xdg/nvim/init\\.lua$/"],
@@ -175,6 +184,14 @@
       description: "apoci Group: the image and the dashboard pinned to the matching tag",
       groupName: "apoci",
       matchPackageNames: ["git.ow-ops.eu/ow-ops/apoci", "ow-ops/apoci"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
+    {
+      description: "grafana-operator Group: the chart and the CRDs applied ahead of it",
+      groupName: "grafana-operator",
+      matchPackageNames: ["ghcr.io/grafana/helm-charts/grafana-operator", "grafana/grafana-operator"],
       group: {
         commitMessageTopic: "{{{groupName}}} group",
       },
