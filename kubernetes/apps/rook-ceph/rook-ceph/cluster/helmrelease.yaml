@@ -128,6 +128,10 @@ spec:
           mon_memory_target: "1073741824" # quote
         mgr:
           log_max_recent: "100"
+          # Umbrella's MgrMapCache never frees an invalidated entry, so every
+          # prometheus collect leaks a full pg_dump (~24MiB/min here, OOM at the
+          # 2Gi limit in ~80min). Drop once tracker 81794 / ceph#72727 ships.
+          mgr_map_cache_enabled: "false" # quote
         client:
           rgw_realm: ceph-objectstore
           rgw_zonegroup: ceph-objectstore
