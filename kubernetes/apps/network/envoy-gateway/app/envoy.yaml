@@ -353,7 +353,8 @@ spec:
         - x-geo-asn-org
   http2:
     onInvalidMessage: TerminateStream
-  http3: {}
+  # No http3: Cilium's DSR adds an IP option to every UDP packet, so full-size
+  # QUIC packets exceed the 1500 MTU and uploads stall. TCP is unaffected.
   targetSelectors:
     - group: gateway.networking.k8s.io
       kind: Gateway
