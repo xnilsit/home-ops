@@ -39,17 +39,17 @@ RUN set -eux; \
 FROM ${BASE}
 
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
-ARG CLAUDE_CODE_VERSION=2.1.311
+ARG CLAUDE_CODE_VERSION=2.1.312
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
-ARG KUBECTL_VERSION=v1.37.1
+ARG KUBECTL_VERSION=v1.37.2
 # renovate: datasource=github-releases depName=fluxcd/flux2
 ARG FLUX_VERSION=v2.10.0
 # renovate: datasource=github-releases depName=cli/cli
 ARG GH_VERSION=v2.103.3
 # renovate: datasource=github-releases depName=jdx/mise
-ARG MISE_VERSION=v2026.10.20
+ARG MISE_VERSION=v2026.10.23
 # renovate: datasource=npm depName=@opencode/cli
-ARG OPENCODE_VERSION=2.2.0
+ARG OPENCODE_VERSION=2.2.1
 # renovate: datasource=npm depName=opencode-with-claude
 ARG OPENCODE_WITH_CLAUDE_VERSION=1.11.2
 # Drives both the Claude Code plugin (repo tag) and @eleboucher/opencode-memini-v2 (same version on npm).
@@ -58,7 +58,7 @@ ARG MEMINI_VERSION=v0.7.37
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VERSION=v4.3.1
 # renovate: datasource=git-refs depName=https://github.com/ohmyzsh/ohmyzsh branch=master
-ARG OHMYZSH_COMMIT=d2b7f557cceaddb16ba89bbf8200d8a8df35c4d8
+ARG OHMYZSH_COMMIT=17a2b4c3a5855524ad4772a17ada0dc474e2fdf3
 # renovate: datasource=git-refs depName=https://github.com/djui/alias-tips branch=master
 ARG ALIAS_TIPS_COMMIT=41cb143ccc3b8cc444bf20257276cb43275f65c4
 
