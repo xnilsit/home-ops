@@ -34,8 +34,8 @@ spec:
               MISE_TRUSTED_CONFIG_PATHS: /home/paseo/workspace
               # The npm install in the image is read-only.
               DISABLE_AUTOUPDATER: "1"
-              GIT_AUTHOR_NAME: &gitName paseo-agent
-              GIT_AUTHOR_EMAIL: &gitEmail paseo-agent@users.noreply.github.com
+              GIT_AUTHOR_NAME: &gitName xnilsit
+              GIT_AUTHOR_EMAIL: &gitEmail me@nilsit.dev
               GIT_COMMITTER_NAME: *gitName
               GIT_COMMITTER_EMAIL: *gitEmail
               # HTTPS pushes authenticate with GH_TOKEN through gh.
