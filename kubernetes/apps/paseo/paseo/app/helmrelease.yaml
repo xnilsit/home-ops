@@ -24,7 +24,7 @@ spec:
             image:
               repository: registry.nilsit.de/nilsit.de/paseo
               # Rebuilt under the same tag by .github/workflows/paseo-image.yaml, the digest selects the build.
-              tag: 0.13.2@sha256:f33cf23f5b80ae5ef8f380343c56d8f3cd87daf00874cf326f1d29263c2e2252
+              tag: 0.14.0@sha256:64fcde69b61f1a0772ee2526c452f9b35aace9627707a321d8ad1b3da030379e
             env:
               PASEO_HOSTNAMES: &host "paseo.${SECRET_DOMAIN}"
               # Voice models are re-downloadable, so they stay off the backed-up volume.
@@ -34,8 +34,8 @@ spec:
               MISE_TRUSTED_CONFIG_PATHS: /home/paseo/workspace
               # The npm install in the image is read-only.
               DISABLE_AUTOUPDATER: "1"
-              GIT_AUTHOR_NAME: &gitName paseo-agent
-              GIT_AUTHOR_EMAIL: &gitEmail paseo-agent@users.noreply.github.com
+              GIT_AUTHOR_NAME: &gitName xnilsit
+              GIT_AUTHOR_EMAIL: &gitEmail me@nilsit.dev
               GIT_COMMITTER_NAME: *gitName
               GIT_COMMITTER_EMAIL: *gitEmail
               # HTTPS pushes authenticate with GH_TOKEN through gh.
