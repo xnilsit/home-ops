@@ -184,7 +184,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/docker.io/apache/tika
-              tag: 4.1.0@sha256:06bcdbd09aca073293e5a171ad161418cc93c91d58d9e4e205064eade84889d4
+              tag: 4.2.0@sha256:b99f19c4fd76237dafe7d22f719b9bddfa9a449da687c597a41e2f6d9a595418
             probes:
               liveness: &tikaProbes
                 enabled: true
