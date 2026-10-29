@@ -3,9 +3,14 @@
 set -eu
 
 # Firmware updates drop apt-installed packages; only /data survives.
+# Retries for up to 10 minutes, since udm-boot runs before PPPoE and DNS are up.
 if ! command -v chronyd >/dev/null 2>&1; then
-  apt-get update
-  DEBIAN_FRONTEND=noninteractive apt-get install -y chrony
+  tries=0
+  until apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y chrony; do
+    tries=$((tries + 1))
+    [ "$tries" -lt 30 ] || exit 1
+    sleep 20
+  done
 fi
 
 # Hooks run `chronyc onoffline`, which finds no main-table default route and leaves sources offline.
