@@ -1,12 +1,13 @@
 # Garage on the Unraid server
 
 Second storage node of the Garage cluster, at `192.168.0.250`, deployed by Unraid's doco-cd (see
-`unraid/README.md`). With `replication_factor = 2` every block lives once on the NAS
-(`synology/garage`) and once here, each node in its own zone. Buckets, keys and the edge gateways
+`unraid/README.md`). With `replication_factor = 2` every block lives on two of the three
+storage nodes, the NAS (`synology/garage`), this one and syn1621 (`syn1621/garage`), each node in its
+own zone. Buckets, keys and the edge gateways
 are unchanged — see `synology/garage/README.md` for those.
 
-With two copies and the default `consistent` mode a write needs both nodes. While either the NAS
-or this box is down, reads keep working and writes fail.
+With two copies and the default `consistent` mode a write needs both nodes holding that partition.
+While any one storage node is down, reads keep working and most writes fail.
 
 | Port | What |
 | ---- | ---- |

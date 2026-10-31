@@ -152,7 +152,7 @@
       minimumGroupSize: 2,
     },
     {
-      description: "Garage Group: the NAS, the Unraid node and the edge gateways must run the same version",
+      description: "Garage Group: the storage nodes (NAS, Unraid, syn1621) and the edge gateways must run the same version",
       groupName: "garage",
       matchDatasources: ["docker"],
       matchPackageNames: ["/dxflrs/garage$/"],

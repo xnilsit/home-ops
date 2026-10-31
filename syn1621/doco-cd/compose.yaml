@@ -1,0 +1,34 @@
+---
+services:
+  # Self-updating: the service and project name must stay doco-cd. No
+  # container_name or ports, so an update can start the successor first.
+  doco-cd:
+    image: ghcr.io/kimdre/doco-cd:0.131.0@sha256:33761af0adb58696bf7892604a4a319cee6164aa5cb17e5b4b4f5c8cb248a603
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Berlin
+      SELF_UPDATE_ENABLED: "true"
+      SELF_UPDATE_STRATEGY: auto
+      DEPLOY_CONFIG_BASE_DIR: syn1621/
+      SOPS_AGE_KEY_FILE: /run/secrets/sops_age_key
+      POLL_CONFIG: |
+        - url: https://github.com/xnilsit/home-ops.git
+          reference: main
+          interval: 5m
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - data:/data
+    secrets:
+      - sops_age_key
+    healthcheck:
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+volumes:
+  data:
+
+secrets:
+  sops_age_key:
+    file: /volume1/docker/doco-cd/age.key
