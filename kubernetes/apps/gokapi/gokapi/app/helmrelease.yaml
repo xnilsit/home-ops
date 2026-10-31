@@ -33,7 +33,7 @@ spec:
           config:
             image: &image
               repository: registry.nilsit.de/docker.io/f0rc3/gokapi
-              tag: v2.2.4
+              tag: v2.2.4@sha256:43cd93b9e1f02d760923f67f6e74e1c4d4a9cccb9b08fa42ad60770333f231eb
             # Replaces the interactive first-run setup, which only ever writes config.json.
             command:
               - "/bin/sh"

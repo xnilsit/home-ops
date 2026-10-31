@@ -6,5 +6,6 @@ resources:
   - ./pki.yaml
   - ./objectbucketclaim.yaml
   - ./ciliumnetworkpolicy.yaml
+  - ./seccompprofile.yaml
   - ./ocirepository.yaml
   - ./helmrelease.yaml

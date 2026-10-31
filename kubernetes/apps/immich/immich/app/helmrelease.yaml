@@ -29,7 +29,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/ghcr.io/immich-app/immich-server
-              tag: &serverTag v3.3.4
+              tag: &serverTag v3.3.5@sha256:485d546a2e31d6a8b4db8423fcba5c109de8c218d93410af115fd1ccfc4352a6
             env:
               DB_HOSTNAME: &dbHost immich-rw
               DB_PORT: &dbPort 5432
@@ -191,11 +191,11 @@ spec:
                   app.kubernetes.io/controller: machine-learning
         containers:
           app:
-            image:
+            image: &mlImage
               repository: registry.nilsit.de/ghcr.io/immich-app/immich-machine-learning
               # Moves in lockstep with the server tag above, Renovate bumps it
               # from the immich-app/immich GitHub releases (see .renovaterc.json5).
-              tag: v3.3.1-openvino
+              tag: v3.3.5-openvino
             env:
               MACHINE_LEARNING_CACHE_FOLDER: &cache /cache
               HF_HOME: *cache
@@ -236,6 +236,47 @@ spec:
                 # Without it OpenVINO enumerates ['CPU'] and Immich falls back
                 # to CPU inference, logging the choice only at debug level.
                 gpu.intel.com/i915: 1
+      ml-cache-cleanup:
+        # Immich never deletes from the model cache, only rebuilds in place
+        # what it loads again - see the docstring of ./ml-cache-cleanup.py
+        # for what this removes. All of it is re-downloadable or recompiled
+        # on demand, so a wrong call costs one cold start, not data.
+        type: cronjob
+        cronjob:
+          schedule: "30 4 * * *"
+          concurrencyPolicy: Forbid
+          successfulJobsHistory: 1
+          failedJobsHistory: 1
+          backoffLimit: 0
+        pod:
+          affinity:
+            # The image is a few GB; a node already running machine-learning
+            # has it cached.
+            podAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    topologyKey: kubernetes.io/hostname
+                    labelSelector:
+                      matchLabels:
+                        app.kubernetes.io/name: immich
+                        app.kubernetes.io/controller: machine-learning
+        containers:
+          app:
+            # The same image as machine-learning, so the onnxruntime and
+            # OpenVINO releases it compares against are the ones Immich records.
+            image: *mlImage
+            command:
+              - "python"
+              - "/scripts/ml-cache-cleanup.py"
+            env:
+              MACHINE_LEARNING_CACHE_FOLDER: *cache
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 512Mi
     defaultPodOptions:
       securityContext:
         runAsNonRoot: true
@@ -263,9 +304,18 @@ spec:
       cache:
         existingClaim: immich-ml-cache
         advancedMounts:
-          machine-learning:
+          machine-learning: &cacheMount
             app:
               - path: *cache
+          ml-cache-cleanup: *cacheMount
+      ml-cache-cleanup:
+        type: configMap
+        name: immich-ml-cache-cleanup
+        advancedMounts:
+          ml-cache-cleanup:
+            app:
+              - path: /scripts
+                readOnly: true
       config:
         type: secret
         name: immich-config

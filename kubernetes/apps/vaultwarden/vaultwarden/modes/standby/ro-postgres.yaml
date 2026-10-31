@@ -8,6 +8,8 @@ metadata:
   name: vaultwarden-ro-postgres
 spec:
   instances: 1
+  # A single-instance PDB can never be evicted and blocks node drains.
+  enablePDB: false
   imageName: ghcr.io/cloudnative-pg/postgresql:${PG_IMAGE_TAG}
   storage:
     size: 1Gi

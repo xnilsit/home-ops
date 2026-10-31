@@ -14,7 +14,8 @@ spec:
   dependsOn:
     - name: cert-manager
       namespace: flux-system
-    - name: runtime-classes
+    # SeccompProfile CRD and the controller that writes it to the nodes
+    - name: kguardian
       namespace: flux-system
     - name: rook-ceph-cluster
       namespace: flux-system

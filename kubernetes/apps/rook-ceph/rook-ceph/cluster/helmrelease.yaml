@@ -10,7 +10,7 @@ spec:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy
   ref:
-    tag: 1.21.0
+    tag: 1.21.1
   url: oci://ghcr.io/rook/rook-ceph-cluster
 ---
 # yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
@@ -83,7 +83,7 @@ spec:
 
     cephImage:
       repository: quay.io/ceph/ceph
-      tag: v20.2.4
+      tag: v21.2.0@sha256:c9e6ed4ac3fcf67b28f38358bb9619dee4d1dfb96ddd4b9b583eee316a15f04d
 
     cephClusterSpec:
       dashboard:
@@ -104,10 +104,10 @@ spec:
           # That matters: leaving the RGW data pool unbounded with bulk set took
           # it to 512 PGs and tripped "too many PGs per OSD".
           #
-          # Steady state: 32x7 rgw metadata + 256 rgw data + 32 blockpool
-          # + 16 cephfs metadata + 32 cephfs data + 1 mgr, at size 3 across
-          # 3 OSDs = ~561 PGs/OSD, up from a measured 217. Both defaults
-          # (250 guard, 100 target) would block this outright.
+          # Steady state: 32x7 rgw metadata + 32x3 default.rgw + 64 rgw data
+          # + 128 blockpool + 16 cephfs metadata + 32 cephfs data + 1 mgr, at
+          # size 3 across 3 OSDs = ~561 PGs/OSD, up from a measured 217. Both
+          # defaults (250 guard, 100 target) would block this outright.
           #
           # The target sits above the landing point on purpose so the autoscaler
           # is not permanently trying to shrink, and the guard above that with
@@ -128,6 +128,10 @@ spec:
           mon_memory_target: "1073741824" # quote
         mgr:
           log_max_recent: "100"
+          # Umbrella's MgrMapCache never frees an invalidated entry, so every
+          # prometheus collect leaks a full pg_dump (~24MiB/min here, OOM at the
+          # 2Gi limit in ~80min). Drop once tracker 81794 / ceph#72727 ships.
+          mgr_map_cache_enabled: "false" # quote
         client:
           rgw_realm: ceph-objectstore
           rgw_zonegroup: ceph-objectstore
@@ -140,8 +144,10 @@ spec:
       crashCollector:
         disable: false
       csi:
+        # Off: on Ceph v21.2.0 the kernel CephFS client silently loses writes when mounted with
+        # read_from_replica=localize (what readAffinity adds), on every kernel tested.
         readAffinity:
-          enabled: true
+          enabled: false
       mgr:
         modules:
           # Cant enable due to `Module 'diskprediction_local' has failed: No module named 'sklearn.svm.classes'`
@@ -375,10 +381,13 @@ spec:
               # it jumps straight to the full target instead of ramping. Combined
               # with mon_target_pg_per_osd it took this pool to 512 PGs (1536
               # PG-replicas) for a few MB of backups and tripped
-              # "too many PGs per OSD". pg_num_max bounds it; pg_num brings it
-              # back down, since pg_num_max alone only caps future growth.
+              # "too many PGs per OSD". pg_num_max bounds it.
+              #
+              # No pg_num: since Ceph v21 the autoscaler counts the fixed 32-PG
+              # pools at their PG floor and rounds bulk pools down to fit the
+              # budget, landing this pool at 64. A pinned pg_num just fights it
+              # on every Rook reconcile.
               bulk: "true"
-              pg_num: "256"
               pg_num_max: "256"
           preservePoolsOnDelete: true
           gateway:

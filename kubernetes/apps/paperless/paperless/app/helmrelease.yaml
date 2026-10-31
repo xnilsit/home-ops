@@ -21,7 +21,7 @@ spec:
           run-dir:
             image: &image
               repository: registry.nilsit.de/ghcr.io/paperless-ngx/paperless-ngx
-              tag: 3.3.3
+              tag: 3.4.1@sha256:1a08d8dfc2b51a08de09652dd86ad4d0c611c362382f944533ad38b73125fbc4
             command:
               - "mkdir"
               - "-p"
@@ -80,7 +80,7 @@ spec:
               PAPERLESS_FILENAME_FORMAT: "{created}-{correspondent}-{title}"
               PAPERLESS_CONSUMER_RECURSIVE: "true"
               PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS: "true"
-              # The consume folder is NFS, which delivers no inotify events.
+              # CephFS delivers no inotify events for the mover's writes from another node.
               PAPERLESS_CONSUMER_POLLING_INTERVAL: "60"
               PAPERLESS_EMAIL_TASK_CRON: "*/2 * * * *"
               PAPERLESS_EMAIL_HOST: mail.${SECRET_DOMAIN_ALT}
@@ -127,6 +127,39 @@ spec:
                 memory: 1Gi
               limits:
                 memory: 4Gi
+      # Moves scans from the NFS inbox into the consume folder. A fresh pod per run
+      # remounts NFS, so an Unraid outage or stale handle never reaches paperless.
+      mover:
+        type: cronjob
+        cronjob:
+          schedule: "*/2 * * * *"
+          concurrencyPolicy: Forbid
+          successfulJobsHistory: 1
+          failedJobsHistory: 1
+          backoffLimit: 0
+          # Ends runs stuck mounting an unreachable NFS server.
+          activeDeadlineSeconds: 300
+        containers:
+          app:
+            image:
+              repository: registry.nilsit.de/docker.io/rclone/rclone
+              tag: 1.75.2@sha256:2687085f718d3c628f7fdfb77c52a1d344332aed543110bb88088f2c70d43eb5
+            args:
+              - move
+              - /import
+              - /consume
+              # Skips files a scanner may still be writing.
+              - --min-age=1m
+              # Paperless ignores hidden files, so they would pile up in the consume folder.
+              - --exclude=.*
+            env:
+              HOME: /tmp
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 256Mi
       tika:
         replicas: 2
         strategy: RollingUpdate
@@ -151,7 +184,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/docker.io/apache/tika
-              tag: 4.1.0
+              tag: 4.2.0@sha256:b99f19c4fd76237dafe7d22f719b9bddfa9a449da687c597a41e2f6d9a595418
             probes:
               liveness: &tikaProbes
                 enabled: true
@@ -195,7 +228,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/docker.io/gotenberg/gotenberg
-              tag: 8.38.1
+              tag: 8.39.0@sha256:13672f317b443c793e972b1bd2155ec62a3e7b6891b411e8196442cc053ee5f5
             command:
               - gotenberg
               - --chromium-disable-javascript=true
@@ -240,13 +273,22 @@ spec:
                 subPath: data
               - path: /usr/src/paperless/media
                 subPath: media
+      import:
+        existingClaim: paperless-import
+        advancedMounts:
+          mover:
+            app:
+              - path: /import
+                subPath: import
       consume:
-        existingClaim: paperless-consume
+        existingClaim: paperless-staging
         advancedMounts:
           paperless:
             app:
               - path: /usr/src/paperless/consume
-                subPath: import
+          mover:
+            app:
+              - path: /consume
       run:
         type: emptyDir
         advancedMounts:
@@ -266,6 +308,9 @@ spec:
             app:
               - path: /tmp
           gotenberg:
+            app:
+              - path: /tmp
+          mover:
             app:
               - path: /tmp
       gotenberg-home:

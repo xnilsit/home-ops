@@ -1,10 +1,10 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: [
-    "github>home-operations/renovate-presets#9.0.0",
+    "github>home-operations/renovate-presets#10.0.1",
     // apps/ presets are opt-in and need their own tag, they do not inherit the one above
-    "github>home-operations/renovate-presets//apps/grafanaDashboards.json5#9.0.0",
-    "github>home-operations/renovate-presets//apps/talosFactory.json5#9.0.0",
+    "github>home-operations/renovate-presets//apps/grafanaDashboards.json5#10.0.1",
+    "github>home-operations/renovate-presets//apps/talosFactory.json5#10.0.1",
   ],
   schedule: ["every weekend"],
   // ghcr.io / quay.io carry no releaseTimestamp, which parks them forever
@@ -27,15 +27,6 @@
   },
   customManagers: [
     {
-      description: "Spegel dashboard, the tag sits inside the raw.githubusercontent URL",
-      customType: "regex",
-      managerFilePatterns: ["/kubernetes/apps/kube-system/spegel/app/grafanadashboard\\.yaml$/"],
-      matchStrings: [
-        "raw\\.githubusercontent\\.com/(?<depName>spegel-org/spegel)/(?<currentValue>v[^/]+)/charts/",
-      ],
-      datasourceTemplate: "github-releases",
-    },
-    {
       description: "apoci dashboard, the tag sits inside the Forgejo raw URL",
       customType: "regex",
       managerFilePatterns: ["/kubernetes/apps/apoci/apoci/app/grafanadashboard\\.yaml$/"],
@@ -56,11 +47,55 @@
       versioningTemplate: "{{{versioning}}}",
     },
     {
+      description: "Commit pins annotated with the branch they track, which the preset's annotation regex does not match",
+      customType: "regex",
+      managerFilePatterns: ["/(^|/)Dockerfile$/", "/containers/paseo/rootfs/etc/xdg/nvim/init\\.lua$/"],
+      matchStrings: [
+        "datasource=git-refs depName=(?<depName>\\S+) branch=(?<currentValue>\\S+)\\n[^\\n]*?(?<currentDigest>[0-9a-f]{40})",
+      ],
+      datasourceTemplate: "git-refs",
+    },
+    {
+      description: "grafana-operator CRDs, the tag sits inside the GitHub release download URL",
+      customType: "regex",
+      managerFilePatterns: ["/kubernetes/apps/observability/grafana/crds/kustomization\\.yaml$/"],
+      matchStrings: [
+        "github\\.com/(?<depName>grafana/grafana-operator)/releases/download/(?<currentValue>v[^/]+)/",
+      ],
+      datasourceTemplate: "github-releases",
+    },
+    {
+      description: "dragonfly-operator dashboard, the tag sits inside the raw.githubusercontent.com URL",
+      customType: "regex",
+      managerFilePatterns: ["/kubernetes/apps/database/dragonfly/app/grafanadashboard\\.yaml$/"],
+      matchStrings: [
+        "raw\\.githubusercontent\\.com/(?<depName>dragonflydb/dragonfly-operator)/(?<currentValue>v[^/]+)/",
+      ],
+      datasourceTemplate: "github-releases",
+    },
+    {
+      description: "Paseo Neovim plugin tags and Mason package versions, Lua's `key = 'value'` spacing is beyond the preset's annotation regex",
+      customType: "regex",
+      managerFilePatterns: ["/containers/paseo/rootfs/etc/xdg/nvim/init\\.lua$/"],
+      matchStrings: [
+        "datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n[^\\n]*?(tag|version) = '(?<currentValue>[^']+)'",
+      ],
+    },
+    {
+      description: "As above, for versions that need an explicit versioning",
+      customType: "regex",
+      managerFilePatterns: ["/containers/paseo/rootfs/etc/xdg/nvim/init\\.lua$/"],
+      matchStrings: [
+        "datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) versioning=(?<versioning>\\S+)\\n[^\\n]*?(tag|version) = '(?<currentValue>[^']+)'",
+      ],
+      versioningTemplate: "{{{versioning}}}",
+    },
+    {
       description: "Immich machine-learning tag follows the immich release, its ghcr tag list is too large to page through",
       customType: "regex",
       managerFilePatterns: ["/kubernetes/apps/immich/immich/app/helmrelease\\.yaml$/"],
       matchStrings: [
-        "repository: ghcr\\.io/immich-app/immich-machine-learning\\n(\\s*#.*\\n)*\\s*tag: (?<currentValue>v\\d+\\.\\d+\\.\\d+)-openvino",
+        "repository: (registry\\.nilsit\\.de/)?ghcr\\.io/immich-app/immich-machine-learning\\n(\\s*#.*\\n)*\\s*tag: (?<currentValue>v\\d+\\.\\d+\\.\\d+)-openvino",
       ],
       depNameTemplate: "immich-app/immich",
       datasourceTemplate: "github-releases",
@@ -155,17 +190,25 @@
       },
     },
     {
-      description: "Spegel Group: the helm chart and the dashboard pinned to the matching tag",
-      groupName: "spegel",
-      matchPackageNames: ["ghcr.io/spegel-org/helm-charts/spegel", "spegel-org/spegel"],
+      description: "apoci Group: the image and the dashboard pinned to the matching tag",
+      groupName: "apoci",
+      matchPackageNames: ["git.ow-ops.eu/ow-ops/apoci", "ow-ops/apoci"],
       group: {
         commitMessageTopic: "{{{groupName}}} group",
       },
     },
     {
-      description: "apoci Group: the image and the dashboard pinned to the matching tag",
-      groupName: "apoci",
-      matchPackageNames: ["git.ow-ops.eu/ow-ops/apoci", "ow-ops/apoci"],
+      description: "grafana-operator Group: the chart and the CRDs applied ahead of it",
+      groupName: "grafana-operator",
+      matchPackageNames: ["ghcr.io/grafana/helm-charts/grafana-operator", "grafana/grafana-operator"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
+    {
+      description: "dragonfly-operator Group: the chart and the dashboard pinned to the matching tag",
+      groupName: "dragonfly-operator",
+      matchPackageNames: ["ghcr.io/dragonflydb/dragonfly-operator/helm/dragonfly-operator", "dragonflydb/dragonfly-operator"],
       group: {
         commitMessageTopic: "{{{groupName}}} group",
       },
@@ -207,6 +250,17 @@
         commitMessageTopic: "{{{groupName}}} group",
       },
     },
+    {
+      description: "Paseo Group: every dependency baked into the image, majors included, in one auto-merged PR a week so the image rebuilds once. A bump that breaks the bake fails the image build on main and the cluster keeps the last image",
+      groupName: "paseo",
+      matchFileNames: ["containers/paseo/**"],
+      separateMajorMinor: false,
+      automerge: true,
+      schedule: ["before 6am on saturday"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
     // ---------------------------------------------------------------------
     // Disabled lookups
     // ---------------------------------------------------------------------
@@ -215,6 +269,18 @@
       matchDatasources: ["docker"],
       matchPackageNames: ["ghcr.io/immich-app/immich-machine-learning"],
       enabled: false,
+    },
+    {
+      description: "dvinyl's grants Job takes its tag from PG_IMAGE_TAG in ks.yaml, the kubernetes manager sees no tag and would pin latest's digest",
+      matchManagers: ["kubernetes"],
+      matchPackageNames: ["ghcr.io/ferretdb/postgres-documentdb"],
+      enabled: false,
+    },
+    {
+      description: "node-healthcheck-operator v5.x tags are rebuilt from upstream main and their old digests are deleted",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["quay.io/medik8s/node-healthcheck-operator"],
+      allowedVersions: "<5",
     },
     // ---------------------------------------------------------------------
     // Digests
@@ -229,7 +295,7 @@
       description: "Don't chase a new digest for an unchanged tag, version bumps still carry the new digest. lancachenet only publish latest, so the digest is all that can move",
       matchDatasources: ["docker"],
       matchUpdateTypes: ["digest"],
-      matchPackageNames: ["!/lancachenet//"],
+      matchPackageNames: ["!/lancachenet//", "!registry.nilsit.de/nilsit.de/paseo"],
       enabled: false,
     },
     // ---------------------------------------------------------------------
@@ -245,6 +311,14 @@
       matchUpdateTypes: ["minor"],
       matchCurrentVersion: "!/^v?0\\./",
       automerge: true,
+    },
+    {
+      description: "Auto-merge Paseo image rebuilds, containers/paseo pushes each one under the same tag",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["registry.nilsit.de/nilsit.de/paseo"],
+      matchUpdateTypes: ["digest"],
+      automerge: true,
+      schedule: ["at any time"],
     },
     {
       description: "Auto-merge GitHub Actions",

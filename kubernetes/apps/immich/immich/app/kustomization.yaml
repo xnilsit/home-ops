@@ -25,3 +25,13 @@ resources:
   - ./ocirepository.yaml
   - ./helmrelease.yaml
   - ./hpa.yaml
+configMapGenerator:
+  - name: immich-ml-cache-cleanup
+    files:
+      - ./ml-cache-cleanup.py
+    options:
+      # The HelmRelease mounts it by name.
+      disableNameSuffixHash: true
+      annotations:
+        # Python, not a manifest: keep postBuild.substituteFrom out of it.
+        kustomize.toolkit.fluxcd.io/substitute: disabled

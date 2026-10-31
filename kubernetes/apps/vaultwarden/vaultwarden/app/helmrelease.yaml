@@ -29,7 +29,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/ghcr.io/dani-garcia/vaultwarden
-              tag: 1.37.4-alpine
+              tag: 1.37.4-alpine@sha256:19ea2b669945d842dadc3d500f2d6a795866a003330f59a47b9634658bae98bb
             env:
               # config.json from rra-team overrides this with the same value.
               DOMAIN: https://bitwarden.hoeller-en.de
@@ -75,7 +75,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/docker.io/rclone/rclone
-              tag: 1.75.2
+              tag: 1.75.2@sha256:2687085f718d3c628f7fdfb77c52a1d344332aed543110bb88088f2c70d43eb5
             args:
               - sync
               - ro:vaultwarden-data

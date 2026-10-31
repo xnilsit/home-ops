@@ -15,7 +15,7 @@ items:
   - <<: &cluster {apiVersion: garage.rajsingh.info/v1beta2, kind: GarageCluster}
     metadata: {name: edge-a}
     spec: &spec
-      image: registry.nilsit.de/docker.io/dxflrs/garage:v2.4.1
+      image: registry.nilsit.de/docker.io/dxflrs/garage:v2.5.0@sha256:677e5b758e4425a325b811c425c026bf35a4bf42f7ddbaa773de3f4fd779a5a5
       zone: cluster
       # Must equal the storage nodes' replication_factor: Garage refuses peers
       # that disagree.

@@ -56,7 +56,9 @@ commands below select it by its Compose service label.
 
 - A merge to `main` reaches Unraid within 5 minutes. `docker restart $(docker ps -aq -f label=com.docker.compose.service=doco-cd)` polls
   immediately.
-- doco-cd does not restart a container that was stopped by hand; the next deployment that changes
-  that stack does.
+- doco-cd redeploys a stack whose `unless-stopped`/`always` containers are not running at its next
+  poll, so a container stopped by hand comes back within 5 minutes.
+- doco-cd has `restart: always`, so it starts with the Docker daemon after an array stop or a
+  reboot and its first poll starts the other stacks again.
 - To keep doco-cd from touching anything during maintenance, `docker stop $(docker ps -aq -f label=com.docker.compose.service=doco-cd)`, and
-  `docker start` it afterwards.
+  `docker start` it afterwards. Stopping the array or rebooting starts it again.

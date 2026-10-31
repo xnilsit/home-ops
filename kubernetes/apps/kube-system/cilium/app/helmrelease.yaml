@@ -21,8 +21,10 @@ spec:
       automount:
         enabled: false
       hostRoot: /sys/fs/cgroup
-    # NOTE: devices might need to be set if you have more than one active NIC on your hosts
-    # devices: eno+ eth+
+    # Autodetect everything except netbird's wt0 (MTU 1280), which would otherwise
+    # be selected and drag the autodetected pod network MTU down with it.
+    devices: "!wt0"
+    forceDeviceDetection: true
     dashboards:
       enabled: true
     endpointRoutes:
@@ -50,8 +52,6 @@ spec:
     loadBalancer:
       algorithm: maglev
       mode: "dsr"
-    # Pinned: autodetect follows netbird's 1280 wt0 down and shrinks the pod network.
-    MTU: 1500
     localRedirectPolicies:
       enabled: true
     operator:

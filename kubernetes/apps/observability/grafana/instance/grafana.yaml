@@ -7,9 +7,9 @@ metadata:
   labels:
     dashboards: grafana
 spec:
-  # Overrides grafana-operator's default image tag.
+  # Overrides grafana-operator's default image tag, a bare tag resolves against docker.io/grafana/grafana.
   # renovate: datasource=docker depName=docker.io/grafana/grafana
-  version: docker.io/grafana/grafana:13.2.3
+  version: 13.3.0
   config:
     analytics:
       check_for_updates: "false"
@@ -119,7 +119,7 @@ spec:
             # Writes an empty lookup if the download fails, so grafana still
             # starts.
             - name: geonames-gazetteer
-              image: registry.nilsit.de/mirror.gcr.io/curlimages/curl:8.23.0
+              image: registry.nilsit.de/mirror.gcr.io/curlimages/curl:8.23.0@sha256:11e64e28c5f58c8d93ee95fcf22ac055f48b0bc440e0ce7d8013bbb5ad6aa8ac
               command:
                 - "/bin/sh"
                 - "-c"

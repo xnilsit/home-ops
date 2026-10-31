@@ -20,7 +20,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/docker.io/moby/buildkit
-              tag: v0.34.0-rootless
+              tag: v0.34.1-rootless@sha256:f68752a5a94acfcdad2d07867b7075601a421638e17fc5f28efc1c814d0c4f89
             args:
               - "--addr"
               - "unix:///run/user/1000/buildkit/buildkitd.sock"
@@ -33,8 +33,7 @@ spec:
               - "--tlskey"
               - "/certs/tls.key"
               - "--oci-worker-no-process-sandbox"
-              # gVisor has no nested overlayfs.
-              - "--oci-worker-snapshotter=native"
+              - "--oci-worker-snapshotter=overlayfs"
             # AWS SDK default chain for the s3 cache backend, from the OBC Secret.
             envFrom:
               - secretRef:
@@ -53,9 +52,10 @@ spec:
                   periodSeconds: 30
               readiness: *probes
             securityContext:
-              # Rootless BuildKit needs unconfined seccomp and AppArmor for its user namespace.
+              # Rootless BuildKit needs its user and mount namespaces, which RuntimeDefault denies.
               seccompProfile:
-                type: Unconfined
+                type: Localhost
+                localhostProfile: kguardian/actions-runner-system/buildkitd.json
               appArmorProfile:
                 type: Unconfined
             resources:
@@ -67,12 +67,22 @@ spec:
           volumeClaimTemplates:
             - name: state
               accessMode: ReadWriteOnce
-              size: 30Gi
+              size: 60Gi
               storageClass: ceph-block
               globalMounts:
                 - path: /home/user/.local/share/buildkit
     defaultPodOptions:
-      runtimeClassName: gvisor
+      # runc, not gVisor: gVisor has no nested overlayfs, and the native snapshotter
+      # copies the whole rootfs per layer. ./seccompprofile.yaml narrows the kernel instead.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              # The 16-thread Ryzens (kube-srv-02, kube-wrk-01). Keyed off the
+              # amdgpu extension, the only stable label unique to them.
+              - matchExpressions:
+                  - key: extensions.talos.dev/amdgpu
+                    operator: Exists
       # Resolve external names without the cluster search list.
       dnsConfig:
         options:

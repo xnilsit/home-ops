@@ -20,7 +20,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/ghcr.io/kyonew/dvinyl
-              tag: 3.3.0
+              tag: 3.3.0@sha256:c00b0c9b32ad46291dd81829cae1d9aead4b53903c5eba39f19e831a592edf3e
             env:
               VINYL_PORT: &port 3099
               PROD: "true"
@@ -105,7 +105,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/ghcr.io/ferretdb/ferretdb
-              tag: 2.7.0
+              tag: 2.7.0@sha256:5706414241eb84f0515512c37b46db0f1b1eac9e5ceb7e4c2523211c184b1985
             env:
               FERRETDB_LISTEN_ADDR: :27017
               FERRETDB_DEBUG_ADDR: :8088

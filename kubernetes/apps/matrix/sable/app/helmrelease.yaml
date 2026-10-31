@@ -20,7 +20,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/git.sable.moe/sableclient/sable-next
-              tag: 2.0.3
+              tag: 2.2.2@sha256:b3036144e92eddf60c054bb49d792e16abcd54882102548426c4f937aad28ca2
             probes:
               liveness: &probes
                 enabled: true

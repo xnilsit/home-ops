@@ -9,7 +9,7 @@ spec:
   # counters are per-window and worth nothing after a restart, so neither fits.
   #
   # renovate: datasource=docker depName=ghcr.io/dragonflydb/dragonfly
-  image: registry.nilsit.de/ghcr.io/dragonflydb/dragonfly:v2.0.2
+  image: registry.nilsit.de/ghcr.io/dragonflydb/dragonfly:v2.0.2@sha256:061f00b201b58e12f974e4e96c761a881ee1c05e9d8ee967466a604b7299753b
   replicas: 2
   # Every ingress request is rate limited against this instance.
   priorityClassName: cluster-infra

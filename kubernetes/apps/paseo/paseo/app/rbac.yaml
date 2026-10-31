@@ -1,0 +1,115 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/clusterrole-v1.json
+# Read everything except Secrets and the core subresources that reach into
+# pods or nodes (exec, attach, portforward, proxy). A new API group must be
+# added to the second rule before the agents can see it.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: paseo-read
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - componentstatuses
+      - configmaps
+      - endpoints
+      - events
+      - limitranges
+      - namespaces
+      - nodes
+      - persistentvolumeclaims
+      - persistentvolumes
+      - pods
+      - pods/log
+      - podtemplates
+      - replicationcontrollers
+      - resourcequotas
+      - serviceaccounts
+      - services
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+  # No subresource in these groups exposes more than its parent.
+  - apiGroups:
+      - acme.cert-manager.io
+      - actions.github.com
+      - admissionregistration.k8s.io
+      - apiextensions.k8s.io
+      - apiregistration.k8s.io
+      - apps
+      - autoscaling
+      - barmancloud.cnpg.io
+      - batch
+      - ceph.rook.io
+      - cert-manager.io
+      - certificates.k8s.io
+      - cilium.io
+      - coordination.k8s.io
+      - csi.ceph.io
+      - deviceplugin.intel.com
+      - discovery.k8s.io
+      - dragonflydb.io
+      - events.k8s.io
+      - external-secrets.io
+      - external.metrics.k8s.io
+      - externaldns.k8s.io
+      - flowcontrol.apiserver.k8s.io
+      - fluxcd.controlplane.io
+      - fpga.intel.com
+      - garage.rajsingh.info
+      - gateway.envoyproxy.io
+      - gateway.networking.k8s.io
+      - gateway.networking.x-k8s.io
+      - generators.external-secrets.io
+      - grafana.integreatly.org
+      - groupsnapshot.storage.k8s.io
+      - helm.toolkit.fluxcd.io
+      - infra.contrib.fluxcd.io
+      - k8s.cni.cncf.io
+      - kguardian.dev
+      - kopiur.home-operations.com
+      - kustomize.toolkit.fluxcd.io
+      - metrics.k8s.io
+      - monitoring.coreos.com
+      - networking.k8s.io
+      - node.k8s.io
+      - notification.toolkit.fluxcd.io
+      - objectbucket.io
+      - operator.victoriametrics.com
+      - policy
+      - postgresql.cnpg.io
+      - rbac.authorization.k8s.io
+      - remediation.medik8s.io
+      - resource.k8s.io
+      - scheduling.k8s.io
+      - self-node-remediation.medik8s.io
+      - snapshot.storage.k8s.io
+      - source.toolkit.fluxcd.io
+      - storage.k8s.io
+      - storagemigration.k8s.io
+      - talos.dev
+      - tuppr.home-operations.com
+      - volsync.backube
+    resources:
+      - "*"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/clusterrolebinding-rbac-v1.json
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: paseo-read
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: paseo-read
+subjects:
+  # Rendered by the HelmRelease.
+  - kind: ServiceAccount
+    name: paseo
+    namespace: paseo
