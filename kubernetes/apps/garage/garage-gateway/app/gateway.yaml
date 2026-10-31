@@ -1,7 +1,8 @@
 ---
-# Two edge gateways in front of the storage nodes on the NAS and Unraid: Garage
-# nodes that join the cluster with a capacity-less role, store no blocks and
-# forward every S3 request over RPC. The operator assigns that role itself.
+# Two edge gateways in front of the storage nodes on the NAS, Unraid and
+# syn1621: Garage nodes that join the cluster with a capacity-less role, store
+# no blocks and forward every S3 request over RPC. The operator assigns that
+# role itself.
 #
 # Two CRs rather than one at replicas: 2 - an edge gateway renders one shared
 # garage.toml, so its rpc_public_addr can only name one identity. Each CR gets
