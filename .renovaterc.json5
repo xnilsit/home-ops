@@ -95,7 +95,7 @@
       customType: "regex",
       managerFilePatterns: ["/kubernetes/apps/immich/immich/app/helmrelease\\.yaml$/"],
       matchStrings: [
-        "repository: ghcr\\.io/immich-app/immich-machine-learning\\n(\\s*#.*\\n)*\\s*tag: (?<currentValue>v\\d+\\.\\d+\\.\\d+)-openvino",
+        "repository: (registry\\.nilsit\\.de/)?ghcr\\.io/immich-app/immich-machine-learning\\n(\\s*#.*\\n)*\\s*tag: (?<currentValue>v\\d+\\.\\d+\\.\\d+)-openvino",
       ],
       depNameTemplate: "immich-app/immich",
       datasourceTemplate: "github-releases",
