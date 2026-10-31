@@ -195,7 +195,7 @@ spec:
               repository: registry.nilsit.de/ghcr.io/immich-app/immich-machine-learning
               # Moves in lockstep with the server tag above, Renovate bumps it
               # from the immich-app/immich GitHub releases (see .renovaterc.json5).
-              tag: v3.3.1-openvino
+              tag: v3.3.5-openvino
             env:
               MACHINE_LEARNING_CACHE_FOLDER: &cache /cache
               HF_HOME: *cache
