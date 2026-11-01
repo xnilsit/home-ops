@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "Garage cluster: the storage nodes on the NAS and Unraid, and the edge gateways in the cluster.",
+  "description": "Garage cluster: the storage nodes on the NAS, Unraid and syn1621, and the edge gateways in the cluster.",
   "editable": true,
   "graphTooltip": 1,
   "links": [],
@@ -1053,7 +1053,7 @@
       "id": 13,
       "type": "timeseries",
       "title": "Data disk free",
-      "description": "Free space on each storage node's data filesystem. With two copies over two zones, usable space is the smaller of the two.",
+      "description": "Free space on each storage node's data filesystem. With two copies over three zones, usable space is about the smaller of half the total and the total minus the largest node.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"

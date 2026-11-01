@@ -1,0 +1,62 @@
+# syn1621 (Synology)
+
+`192.168.0.216`. The Docker stacks here are deployed by [doco-cd](https://doco.cd/) running on
+the NAS: it polls `main` every 5 minutes and applies the stacks listed in `.doco-cd.yml`, itself
+included. Nothing has to be copied to the NAS by hand.
+
+| Stack | What |
+| ----- | ---- |
+| `doco-cd/` | doco-cd itself. A bumped tag in its compose file makes it replace itself |
+| `garage/` | Garage storage node, see `garage/README.md` |
+
+## Secrets
+
+Secrets are committed as `*.sops.env`, encrypted to the home-ops key and to this NAS's own age key
+(`.sops.yaml`). doco-cd decrypts them with the NAS key; it cannot read anything else in the repo.
+Edit them with `sops syn1621/<stack>/secret.sops.env`.
+
+The NAS key's private half lives at `/volume1/docker/doco-cd/age.key` on the NAS and in
+`.private/doco-cd/syn1621.age.key` (gitignored) here.
+
+## Bootstrap
+
+Once, as root (`sudo -i`), after installing Container Manager from the Package Center:
+
+1. Put the age key in place:
+
+   ```sh
+   mkdir -p /volume1/docker/doco-cd
+   vi /volume1/docker/doco-cd/age.key        # contents of .private/doco-cd/syn1621.age.key
+   chmod 600 /volume1/docker/doco-cd/age.key
+   ```
+
+2. Run the one-shot bootstrap. It deploys every stack in `.doco-cd.yml` once and exits, leaving a
+   doco-cd container that manages itself from then on:
+
+   ```sh
+   docker volume create doco-cd_data
+   docker run --rm \
+     -v /var/run/docker.sock:/var/run/docker.sock \
+     -v doco-cd_data:/data \
+     -v /volume1/docker/doco-cd/age.key:/age.key:ro \
+     -e SELF_UPDATE_ENABLED=true \
+     -e DEPLOY_CONFIG_BASE_DIR=syn1621/ \
+     -e SOPS_AGE_KEY_FILE=/age.key \
+     -e POLL_CONFIG='[{url: https://github.com/xnilsit/home-ops.git, reference: main}]' \
+     ghcr.io/kimdre/doco-cd:0.131.0 apply-self --bootstrap
+   ```
+
+3. `docker ps` shows `doco-cd-doco-cd-<n>` and `garage`. `docker logs -f $(docker ps -aq -f label=com.docker.compose.service=doco-cd)` follows
+   the deployments.
+
+## Day-to-day
+
+doco-cd's container is `doco-cd-doco-cd-<n>`, and `<n>` goes up with every self-update, so the
+commands below select it by its Compose service label.
+
+- A merge to `main` reaches the NAS within 5 minutes. `docker restart $(docker ps -aq -f label=com.docker.compose.service=doco-cd)` polls
+  immediately.
+- doco-cd does not restart a container that was stopped by hand; the next deployment that changes
+  that stack does.
+- To keep doco-cd from touching anything during maintenance, `docker stop $(docker ps -aq -f label=com.docker.compose.service=doco-cd)`, and
+  `docker start` it afterwards.

@@ -12,6 +12,8 @@ creation_rules:
     age: "age1hxyyusztx42n4ympwpu8jwzyvegzd8ynzl3jeve952rewvrj2aesy3s74t,age19z4rrlhzddm2gm5ww988a0cvc3dj5yrlpqs90ad4nwas8702uvaqne082z"
   - path_regex: unraid/.*\.sops\.env
     age: "age1hxyyusztx42n4ympwpu8jwzyvegzd8ynzl3jeve952rewvrj2aesy3s74t,age1zh75nyj5jd0jq5dqsy2apgemtasgcdr3m7ppysauqqu0npgslelsyajf2e"
+  - path_regex: syn1621/.*\.sops\.env
+    age: "age1hxyyusztx42n4ympwpu8jwzyvegzd8ynzl3jeve952rewvrj2aesy3s74t,age1k39acpmrrn0wkvk4ywr2z7q54aqeu2twy4pcjsln2lwpajzuqy9qzxw023"
 stores:
   yaml:
     indent: 2

@@ -1,0 +1,31 @@
+# Garage on the syn1621 Synology (192.168.0.216), deployed by its doco-cd.
+#
+# rpc_secret and admin_token are deliberately absent: they come from the
+# GARAGE_RPC_SECRET / GARAGE_ADMIN_TOKEN env vars in secret.sops.env, which
+# keeps them out of Garage's world-readable-secret check on this file.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+# sqlite, not the lmdb default, like the other storage nodes: no lmdb mmap or
+# unclean-shutdown failure modes.
+db_engine = "sqlite"
+
+# Must equal every other node's replication_factor: Garage refuses peers that
+# disagree. Three storage nodes, two copies of every block.
+replication_factor = 2
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "192.168.0.216:3901"
+# The NAS node, dialled on start so this node joins without a manual connect.
+# Garage learns the rest of the cluster from it.
+bootstrap_peers = [
+  "6f5f585f1a30d045ddd68c1ec16c25221e4ea6dbb290df25fa40b55805811809@192.168.0.200:3901",
+]
+
+[s3_api]
+api_bind_addr = "[::]:3900"
+# Garage checks the region in the SigV4 credential scope and rejects a mismatch,
+# so every client has to send this exact value.
+s3_region = "eu-central-1"
+
+[admin]
+api_bind_addr = "[::]:3903"
