@@ -32,7 +32,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/ghcr.io/dani-garcia/vaultwarden
-              tag: 1.37.4-alpine
+              tag: 1.37.5-alpine
             env:
               DOMAIN: https://bw.${SECRET_DOMAIN}
               ROCKET_PORT: &port 8080
