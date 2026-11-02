@@ -108,6 +108,8 @@ spec:
               OXICLOUD_SMTP_TLS: tls
               OXICLOUD_SMTP_USER: no-reply@nilsit.email
               OXICLOUD_SMTP_FROM: OxiCloud <no-reply@nilsit.de>
+              # Job findings at or above OXICLOUD_JOBS_NOTIFY_MIN_SEVERITY (default data_loss).
+              OXICLOUD_JOBS_NOTIFY_EMAIL_TO: me+oc-admin@nilsit.dev
             envFrom:
               # OXICLOUD_JWT_SECRET, OXICLOUD_STORAGE_rgw_ENCRYPTION_KEY, OXICLOUD_SMTP_PASS
               - secretRef:
