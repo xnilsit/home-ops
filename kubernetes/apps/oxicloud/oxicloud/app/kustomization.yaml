@@ -5,6 +5,7 @@ kind: Kustomization
 components:
   # Archived to Garage.
   - ../../../../components/postgres
+  - ../../../../components/postgres-recovery
 resources:
   - ./objectbucketclaim.yaml
   - ./pvc.yaml

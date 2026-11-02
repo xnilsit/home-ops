@@ -74,8 +74,7 @@ spec:
                     key: AWS_SECRET_ACCESS_KEY
               OXICLOUD_DEFAULT_USER_QUOTA_BYTES: "107374182400"
               OXICLOUD_DISABLE_REGISTRATION: "true"
-              # password stays until the owner account exists; see the PR description.
-              OXICLOUD_AUTH_METHODS: password,oidc
+              OXICLOUD_AUTH_METHODS: oidc
               OXICLOUD_OIDC_ENABLED: "true"
               OXICLOUD_OIDC_PROVIDER_NAME: authentik
               OXICLOUD_OIDC_ISSUER_URL: ${AUTHENTIK_URL}/application/o/home-ops-oxicloud/
