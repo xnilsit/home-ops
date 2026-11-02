@@ -1,0 +1,64 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ntfy-rules
+spec:
+  groups:
+    - name: ntfy
+      rules:
+        # A node that cannot reach its primary cannot publish or authenticate.
+        # Alertmanager delivers through ntfy, so this one may only show up in
+        # the Alertmanager UI.
+        - alert: NtfyDatabaseDown
+          annotations:
+            summary: >-
+              ntfy {{ $labels.pod }} cannot reach its Postgres database
+          expr: |-
+            ntfy_db_up{namespace="observability", role="primary"} == 0
+          for: 2m
+          labels:
+            severity: critical
+        # Upstream's recommended check. Failures, not the last-success time: a
+        # node with nothing to send never succeeds either. A one-way link
+        # keeps both nodes healthy and only delays messages that way to the
+        # database read, so nothing else notices it.
+        - alert: NtfyClusterPeerLinkBroken
+          annotations:
+            summary: >-
+              ntfy {{ $labels.pod }} cannot forward messages to peer {{ $labels.peer }}
+          expr: |-
+            increase(ntfy_cluster_peer_batches_sent_total{namespace="observability", result="error"}[5m]) > 0
+              unless on (pod, peer)
+            increase(ntfy_cluster_peer_batches_sent_total{namespace="observability", result="ok"}[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+        # Peers are the other live nodes in the registry, so a node sees one
+        # fewer than the StatefulSet wants. A rollout restarts one pod at a
+        # time and is over well within the window.
+        - alert: NtfyClusterPeersMissing
+          annotations:
+            summary: >-
+              ntfy {{ $labels.pod }} sees {{ $value }} live peers, fewer than expected
+          expr: |-
+            ntfy_cluster_peers{namespace="observability"}
+              < on (namespace) group_left ()
+            (max by (namespace) (kube_statefulset_replicas{namespace="observability", statefulset="ntfy"}) - 1)
+          for: 15m
+          labels:
+            severity: warning
+        # Leadership is derived from the registry, with a deliberate gap of up
+        # to ~90s on failover. Without a leader, pruning and the other
+        # singleton jobs stop; two leaders mean the nodes disagree on the
+        # registry.
+        - alert: NtfyClusterLeaderCount
+          annotations:
+            summary: >-
+              ntfy has {{ $value }} cluster leaders, expected exactly 1
+          expr: |-
+            sum(ntfy_cluster_leader{namespace="observability"}) != 1
+          for: 5m
+          labels:
+            severity: warning
