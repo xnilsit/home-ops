@@ -1,0 +1,138 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/garage.rajsingh.info/garagebucket_v1beta1.json
+apiVersion: garage.rajsingh.info/v1beta1
+kind: GarageBucket
+metadata:
+  name: ${APP}-mirror
+spec:
+  clusterRef:
+    name: garage
+    namespace: garage
+  # Removing the app must not take the only off-cluster copy with it.
+  deletionPolicy: Retain
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/garage.rajsingh.info/garagekey_v1beta1.json
+apiVersion: garage.rajsingh.info/v1beta1
+kind: GarageKey
+metadata:
+  name: ${APP}-mirror
+spec:
+  clusterRef:
+    name: garage
+    namespace: garage
+  neverExpires: true
+  secretTemplate:
+    name: ${APP}-mirror
+    accessKeyIdKey: AWS_ACCESS_KEY_ID
+    secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
+    # Same as components/postgres/garagekey.yaml: the handle carries no region or endpoint.
+    includeRegion: false
+    includeEndpoint: false
+  bucketPermissions:
+    - bucketRef:
+        name: ${APP}-mirror
+      read: true
+      write: true
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/garage.rajsingh.info/garagereferencegrant_v1beta1.json
+apiVersion: garage.rajsingh.info/v1beta1
+kind: GarageReferenceGrant
+metadata:
+  name: ${APP}-mirror-offsite
+spec:
+  # Lets garage/offsite-backup's allBuckets read reach the bucket above.
+  from:
+    - kind: GarageKey
+      namespace: garage
+  to:
+    - kind: GarageBucket
+      name: ${APP}-mirror
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/cronjob-batch-v1.json
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ${APP}-mirror
+spec:
+  # Clear of the CNPG backup windows at 03:30 and 04:00.
+  schedule: "15 2 * * *"
+  timeZone: "${TIMEZONE}"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ${APP}-mirror
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: rclone
+              image: registry.nilsit.de/mirror.gcr.io/rclone/rclone:1.75.2@sha256:2687085f718d3c628f7fdfb77c52a1d344332aed543110bb88088f2c70d43eb5
+              command:
+                - "/bin/sh"
+                - "-c"
+              args:
+                - |
+                  set -eu
+                  # Deleted or replaced objects go to deleted/<date> instead of vanishing.
+                  rclone sync "rgw:$${BUCKET_NAME}" garage:${APP}-mirror/current \
+                    --backup-dir "garage:${APP}-mirror/deleted/$(date -u +%Y%m%d)" \
+                    --s3-no-check-bucket \
+                    --fast-list \
+                    --transfers 8 \
+                    --stats 60s \
+                    --stats-one-line
+                  rclone delete garage:${APP}-mirror/deleted --min-age 30d --s3-no-check-bucket
+              envFrom:
+                # BUCKET_NAME
+                - configMapRef:
+                    name: ${APP}
+              env:
+                - name: RCLONE_CONFIG_RGW_TYPE
+                  value: s3
+                - name: RCLONE_CONFIG_RGW_PROVIDER
+                  value: Ceph
+                - name: RCLONE_CONFIG_RGW_ENDPOINT
+                  value: http://rook-ceph-rgw-ceph-objectstore.rook-ceph.svc:80
+                - name: RCLONE_CONFIG_RGW_REGION
+                  value: us-east-1
+                - name: RCLONE_CONFIG_RGW_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef: {name: "${APP}", key: AWS_ACCESS_KEY_ID}
+                - name: RCLONE_CONFIG_RGW_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef: {name: "${APP}", key: AWS_SECRET_ACCESS_KEY}
+                - name: RCLONE_CONFIG_GARAGE_TYPE
+                  value: s3
+                - name: RCLONE_CONFIG_GARAGE_PROVIDER
+                  value: Other
+                - name: RCLONE_CONFIG_GARAGE_ENDPOINT
+                  value: http://garage.garage.svc.cluster.local:3900
+                # Garage rejects a SigV4 scope with the wrong region.
+                - name: RCLONE_CONFIG_GARAGE_REGION
+                  value: eu-central-1
+                - name: RCLONE_CONFIG_GARAGE_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef: {name: "${APP}-mirror", key: AWS_ACCESS_KEY_ID}
+                - name: RCLONE_CONFIG_GARAGE_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef: {name: "${APP}-mirror", key: AWS_SECRET_ACCESS_KEY}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: ["ALL"]}
+              resources:
+                requests:
+                  cpu: 25m
+                limits:
+                  memory: 512Mi

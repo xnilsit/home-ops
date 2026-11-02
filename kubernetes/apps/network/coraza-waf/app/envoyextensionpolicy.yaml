@@ -311,6 +311,31 @@ spec:
             "id:10037,phase:1,pass,nolog,t:none,
             ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:target"
 
+          # OxiCloud's REST API plus the WebDAV, CalDAV and CardDAV verbs.
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^oc\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10040,phase:1,pass,nolog,t:none,
+            setvar:'tx.allowed_methods=GET HEAD POST OPTIONS PUT PATCH DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK REPORT SEARCH'"
+
+          # File, DAV, upload and WOPI bodies are user files of any type, and the
+          # URI is the user's file path, so restricted names and extensions are
+          # allowed. Headers are still inspected.
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^oc\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10041,phase:1,pass,nolog,t:none,chain"
+          - >-
+            SecRule REQUEST_FILENAME "@rx ^/(?:remote\.php|webdav|caldav|carddav|dav|wopi|api/uploads|api/files)/"
+            "t:none,ctl:requestBodyAccess=Off,
+            ctl:ruleRemoveById=920420,
+            ctl:ruleRemoveById=920440,
+            ctl:ruleRemoveTargetById=930130;REQUEST_FILENAME"
+
+          # Collabora calls /wopi/ with the WOPI token as an opaque query arg.
+          - >-
+            SecRule REQUEST_HEADERS:Host "@rx ^oc\.${SECRET_DOMAIN_REGEX}(?::\d+)?$"
+            "id:10042,phase:1,pass,nolog,t:none,
+            ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:access_token"
+
           - Include @owasp_crs/*.conf
 
           # Scores any backend 5xx, and one alone exceeds the outbound threshold.
