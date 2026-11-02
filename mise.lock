@@ -317,6 +317,53 @@ checksum = "sha256:3fd13fa65907312ee77ebf96bb76554558cd8f63ab65c3026b643be2e7003
 url = "https://github.com/home-operations/flate/releases/download/v0.6.5/flate_0.6.5_windows_amd64.zip"
 url_api = "https://api.github.com/repos/home-operations/flate/releases/assets/541337344"
 
+[[tools."github:nklmilojevic/sofka"]]
+version = "0.34.0"
+backend = "github:nklmilojevic/sofka"
+specifiers = ["v0.34.0"]
+
+[tools."github:nklmilojevic/sofka"."platforms.linux-arm64"]
+checksum = "sha256:47f9459bac9076a2eb2a604e78b8129fad011378937e5782ad7bd034b4e88289"
+url = "https://github.com/nklmilojevic/sofka/releases/download/v0.34.0/sofka-v0.34.0-aarch64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/nklmilojevic/sofka/releases/assets/699465156"
+provenance = "github-attestations"
+
+[tools."github:nklmilojevic/sofka"."platforms.linux-arm64-musl"]
+checksum = "sha256:0b2c9f7e7a4d82fcab4b26f3be5c8f1b5c48cbdf5a9b965ee0a00f0e24af6756"
+url = "https://github.com/nklmilojevic/sofka/releases/download/v0.34.0/sofka-v0.34.0-aarch64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/nklmilojevic/sofka/releases/assets/699465157"
+provenance = "github-attestations"
+
+[tools."github:nklmilojevic/sofka"."platforms.linux-x64"]
+checksum = "sha256:afa9e37662be8f3804b7a890e0fb78bbe7afcea798bcb2c584c390fae8761ecd"
+url = "https://github.com/nklmilojevic/sofka/releases/download/v0.34.0/sofka-v0.34.0-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/nklmilojevic/sofka/releases/assets/699465163"
+provenance = "github-attestations"
+
+[tools."github:nklmilojevic/sofka"."platforms.linux-x64-musl"]
+checksum = "sha256:034a3f7f170921621613ec01d016967ff8f35b9c42e88c8af2095c1815a117ad"
+url = "https://github.com/nklmilojevic/sofka/releases/download/v0.34.0/sofka-v0.34.0-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/nklmilojevic/sofka/releases/assets/699465187"
+provenance = "github-attestations"
+
+[tools."github:nklmilojevic/sofka"."platforms.macos-arm64"]
+checksum = "sha256:dff9ee7d16757f6b0c83a788e750aeeeff49518b3dde4370266ca337fde4eed1"
+url = "https://github.com/nklmilojevic/sofka/releases/download/v0.34.0/sofka-v0.34.0-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/nklmilojevic/sofka/releases/assets/699465158"
+provenance = "github-attestations"
+
+[tools."github:nklmilojevic/sofka"."platforms.macos-x64"]
+checksum = "sha256:137323c5501dd5b89a361c073a258c979515dc13392b72b5112b7e34bc740204"
+url = "https://github.com/nklmilojevic/sofka/releases/download/v0.34.0/sofka-v0.34.0-x86_64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/nklmilojevic/sofka/releases/assets/699465160"
+provenance = "github-attestations"
+
+[tools."github:nklmilojevic/sofka"."platforms.windows-x64"]
+checksum = "sha256:b3684b0f17ff4a2d1494aafc0a3f5a29df78287fe1f9dd081c641adcc60393b1"
+url = "https://github.com/nklmilojevic/sofka/releases/download/v0.34.0/sofka-v0.34.0-x86_64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/nklmilojevic/sofka/releases/assets/699465194"
+provenance = "github-attestations"
+
 [[tools."github:postfinance/topf"]]
 version = "0.6.2"
 backend = "github:postfinance/topf"
