@@ -72,6 +72,11 @@ spec:
                   secretKeyRef:
                     name: *bucket
                     key: AWS_SECRET_ACCESS_KEY
+              # Plaintext: the cache sits outside the encryption wrapper, on unencrypted node disk.
+              OXICLOUD_STORAGE_CACHE_ENABLED: "true"
+              OXICLOUD_STORAGE_CACHE_PATH: /cache
+              # 25 GiB, below the emptyDir sizeLimit so the kubelet never evicts the pod.
+              OXICLOUD_STORAGE_CACHE_MAX_SIZE: "26843545600"
               OXICLOUD_DEFAULT_USER_QUOTA_BYTES: "107374182400"
               OXICLOUD_DISABLE_REGISTRATION: "true"
               # password stays until the owner account exists; see the PR description.
@@ -146,6 +151,8 @@ spec:
               requests:
                 cpu: 100m
                 memory: 256Mi
+                # Schedules onto a node with room for the cache emptyDir.
+                ephemeral-storage: 30Gi
               limits:
                 memory: 2Gi
     defaultPodOptions:
@@ -159,6 +166,13 @@ spec:
         seccompProfile:
           type: RuntimeDefault
     persistence:
+      cache:
+        type: emptyDir
+        sizeLimit: 30Gi
+        advancedMounts:
+          oxicloud:
+            app:
+              - path: /cache
       storage:
         existingClaim: oxicloud
         advancedMounts:
