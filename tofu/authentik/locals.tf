@@ -98,6 +98,23 @@ locals {
       ]
     }
 
+    oxicloud = {
+      display_name = "OxiCloud"
+      description  = "Files, calendars and contacts."
+      hostnames    = ["oc.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/oxicloud.svg"
+      # oxicloud-admin is also OXICLOUD_OIDC_ADMIN_GROUPS.
+      groups = ["oxicloud", "oxicloud-admin"]
+      # OxiCloud links an existing account by email only when email_verified is true.
+      email_verified = true
+      # OxiCloud reads groups from the id token for the admin role.
+      include_claims_in_id_token = true
+      gateway_callback           = false
+      extra_redirect_uris = [
+        "https://oc.${var.domain}/api/auth/oidc/callback",
+      ]
+    }
+
     grimoire = {
       display_name = "Grimoire"
       description  = "TTRPG library and campaigns."

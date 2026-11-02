@@ -21,6 +21,9 @@ locals {
     "gokapi" = {}
     # Outline login; members join the workspace on first login.
     "outline" = {}
+    # OxiCloud login; the -admin one maps to OxiCloud's admin role.
+    "oxicloud"       = {}
+    "oxicloud-admin" = {}
     # Matrix login; members get @<username> on the homeserver on first login.
     "matrix" = {}
     # Grimoire login. `grimoire` is the role and permissions object the

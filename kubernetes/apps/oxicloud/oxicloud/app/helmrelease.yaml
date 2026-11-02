@@ -1,0 +1,201 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: oxicloud
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: oxicloud
+  interval: 1h
+  values:
+    controllers:
+      oxicloud:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # Message bus, collab sessions and the RWO spool are per process.
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: registry.nilsit.de/docker.io/diocrafts/oxicloud
+              tag: 0.10.0@sha256:ef5174909d03f6197265dc87642fa621fdb43a176b1a16e2f1612bf29a982f79
+            env:
+              OXICLOUD_SERVER_HOST: 0.0.0.0
+              OXICLOUD_SERVER_PORT: &port 8086
+              OXICLOUD_BASE_URL: &url https://oc.${SECRET_DOMAIN}
+              OXICLOUD_STORAGE_PATH: /app/storage
+              OXICLOUD_STATIC_PATH: /app/static
+              OXICLOUD_COOKIE_SECURE: "true"
+              # Next: opportunistic, then required once oxicloud_dpop_verify_failed_total stays flat.
+              OXICLOUD_DPOP_MODE: "off"
+              # Envoy pods; X-Forwarded-For is only read from these.
+              OXICLOUD_TRUST_PROXY_CIDR: 10.42.0.0/16,fd2e:9a41:6b8c:4200::/56
+              OXICLOUD_METRICS_LISTEN: 0.0.0.0:9090
+              OXICLOUD_DB_CONNECTION_STRING:
+                valueFrom:
+                  secretKeyRef:
+                    name: oxicloud-postgres-app
+                    key: uri
+              BUCKET_HOST:
+                valueFrom:
+                  configMapKeyRef:
+                    name: &bucket oxicloud
+                    key: BUCKET_HOST
+              BUCKET_PORT:
+                valueFrom:
+                  configMapKeyRef:
+                    name: *bucket
+                    key: BUCKET_PORT
+              OXICLOUD_STORAGE_ENTRIES: rgw
+              OXICLOUD_STORAGE_rgw_BACKEND: s3
+              OXICLOUD_STORAGE_rgw_S3_ENDPOINT_URL:
+                value: http://$(BUCKET_HOST):$(BUCKET_PORT)
+                dependsOn:
+                  - BUCKET_HOST
+                  - BUCKET_PORT
+              OXICLOUD_STORAGE_rgw_S3_REGION: us-east-1
+              OXICLOUD_STORAGE_rgw_S3_FORCE_PATH_STYLE: "true"
+              OXICLOUD_STORAGE_rgw_S3_BUCKET:
+                valueFrom:
+                  configMapKeyRef:
+                    name: *bucket
+                    key: BUCKET_NAME
+              OXICLOUD_STORAGE_rgw_S3_ACCESS_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: *bucket
+                    key: AWS_ACCESS_KEY_ID
+              OXICLOUD_STORAGE_rgw_S3_SECRET_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: *bucket
+                    key: AWS_SECRET_ACCESS_KEY
+              OXICLOUD_DEFAULT_USER_QUOTA_BYTES: "107374182400"
+              OXICLOUD_DISABLE_REGISTRATION: "true"
+              # password stays until the owner account exists; see the PR description.
+              OXICLOUD_AUTH_METHODS: password,oidc
+              OXICLOUD_OIDC_ENABLED: "true"
+              OXICLOUD_OIDC_PROVIDER_NAME: authentik
+              OXICLOUD_OIDC_ISSUER_URL: ${AUTHENTIK_URL}/application/o/home-ops-oxicloud/
+              OXICLOUD_OIDC_CLIENT_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: &oidcSecret oxicloud-oidc
+                    key: client-id
+              OXICLOUD_OIDC_CLIENT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: *oidcSecret
+                    key: client-secret
+              OXICLOUD_OIDC_REDIRECT_URI: https://oc.${SECRET_DOMAIN}/api/auth/oidc/callback
+              OXICLOUD_OIDC_FRONTEND_URL: *url
+              OXICLOUD_OIDC_SCOPES: openid profile email
+              # Re-evaluated at every login.
+              OXICLOUD_OIDC_ADMIN_GROUPS: oxicloud-admin
+              OXICLOUD_NEXTCLOUD_ENABLED: "true"
+              # Collabora on rra-team; oc.${SECRET_DOMAIN} must be in its aliasgroups.
+              OXICLOUD_WOPI_ENABLED: "true"
+              OXICLOUD_WOPI_DISCOVERY_URL: https://collabora.rra.team/hosting/discovery
+              OXICLOUD_SMTP_HOST: mx.nilsit.email
+              OXICLOUD_SMTP_PORT: "465"
+              OXICLOUD_SMTP_TLS: tls
+              OXICLOUD_SMTP_USER: no-reply@nilsit.email
+              OXICLOUD_SMTP_FROM: OxiCloud <no-reply@nilsit.de>
+            envFrom:
+              # OXICLOUD_JWT_SECRET, OXICLOUD_STORAGE_rgw_ENCRYPTION_KEY, OXICLOUD_SMTP_PASS
+              - secretRef:
+                  name: oxicloud-secret
+            probes:
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /ready
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              # Covers the migrations run on start.
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: *port
+                  periodSeconds: 10
+                  failureThreshold: 60
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                memory: 2Gi
+    defaultPodOptions:
+      securityContext:
+        # oxicloud in the image; the entrypoint skips its chown when not root.
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    persistence:
+      storage:
+        existingClaim: oxicloud
+        advancedMounts:
+          oxicloud:
+            app:
+              # Chunked-upload sessions under .uploads/.
+              - path: /app/storage
+                subPath: storage
+              # Video frames and metadata extraction stream whole blobs here.
+              - path: /tmp
+                subPath: tmp
+    service:
+      app:
+        controller: oxicloud
+        ports:
+          http:
+            port: *port
+          metrics:
+            port: 9090
+    serviceMonitor:
+      app:
+        endpoints:
+          - port: metrics
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /health
+        hostnames:
+          - "oc.${SECRET_DOMAIN}"
+        # envoy-external-direct: Nextcloud clients send upload chunks of up to
+        # 1000 MB, past the Cloudflare tunnel's 100 MB cap.
+        parentRefs:
+          - name: envoy-external-direct
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
