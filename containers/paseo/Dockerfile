@@ -55,6 +55,8 @@ ARG OPENCODE_WITH_CLAUDE_VERSION=1.11.2
 # Drives both the Claude Code plugin (repo tag) and @eleboucher/opencode-memini-v2 (same version on npm).
 # renovate: datasource=github-tags depName=eleboucher/memini
 ARG MEMINI_VERSION=v0.7.38
+# renovate: datasource=git-refs depName=https://github.com/AminBlg/SimpleEnglish branch=main
+ARG SIMPLE_ENGLISH_COMMIT=a6fcb4fde098b33617cc1578d151ebf58774b883
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VERSION=v4.3.1
 # renovate: datasource=git-refs depName=https://github.com/ohmyzsh/ohmyzsh branch=master
@@ -146,7 +148,7 @@ RUN set -eux; \
 RUN od -An -tx1 -N16 /dev/urandom | tr -d ' \n' > /etc/machine-id
 
 # Paseo merges its bridge plugin into this, and opencode-with-claude points the placeholder baseURL at its Meridian port.
-ENV OPENCODE_CONFIG_CONTENT='{"plugins":["/opt/opencode-plugins/opencode-with-claude","/opt/opencode-plugins/memini"],"providers":{"anthropic":{"settings":{"baseURL":"http://127.0.0.1:3456/v1","apiKey":"dummy"}}}}'
+ENV OPENCODE_CONFIG_CONTENT='{"plugins":["/opt/opencode-plugins/opencode-with-claude","/opt/opencode-plugins/memini"],"skills":["/opt/claude-plugins/simple-english/skills"],"providers":{"anthropic":{"settings":{"baseURL":"http://127.0.0.1:3456/v1","apiKey":"dummy"}}}}'
 # The npm installs are read-only, plugins included.
 ENV OPENCODE_DISABLE_AUTOUPDATE=1
 ENV MEMINI_AUTO_UPDATE=false
@@ -160,3 +162,15 @@ RUN set -eux; \
     printf '%s\n' '{"extraKnownMarketplaces":{"memini":{"source":{"source":"directory","path":"/opt/claude-plugins/memini"}}},"enabledPlugins":{"memini@memini":true}}' \
         > /etc/claude-code/managed-settings.d/10-memini.json; \
     claude plugin validate /opt/claude-plugins/memini
+
+# The plugin's lint hooks import evals/ste_lint.py, which reads evals/slop.tsv.
+RUN set -eux; \
+    src="SimpleEnglish-${SIMPLE_ENGLISH_COMMIT}"; \
+    mkdir -p /opt/claude-plugins/simple-english; \
+    curl -fsSL "https://github.com/AminBlg/SimpleEnglish/archive/${SIMPLE_ENGLISH_COMMIT}.tar.gz" \
+        | tar -xzf - -C /opt/claude-plugins/simple-english --strip-components=1 \
+            "${src}/.claude-plugin" "${src}/skills" "${src}/output-styles" "${src}/prompts" "${src}/src/hooks" \
+            "${src}/evals/ste_lint.py" "${src}/evals/slop.tsv" "${src}/LICENSE"; \
+    printf '%s\n' '{"extraKnownMarketplaces":{"simple-english":{"source":{"source":"directory","path":"/opt/claude-plugins/simple-english"}}},"enabledPlugins":{"simple-english@simple-english":true}}' \
+        > /etc/claude-code/managed-settings.d/20-simple-english.json; \
+    claude plugin validate /opt/claude-plugins/simple-english
