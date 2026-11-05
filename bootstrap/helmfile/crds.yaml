@@ -41,4 +41,4 @@ releases:
     chart: oci://ghcr.io/prometheus-community/charts/prometheus-operator-crds
     # Its OCIRepository sits in helmrelease.yaml, which the default template cannot read
     # renovate: datasource=docker depName=ghcr.io/prometheus-community/charts/prometheus-operator-crds
-    version: 33.0.0
+    version: 33.0.1
