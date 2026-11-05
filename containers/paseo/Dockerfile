@@ -1,6 +1,6 @@
 # Paseo daemon with Claude Code and the CLIs agents need against home-ops.
 # renovate: datasource=docker depName=ghcr.io/getpaseo/paseo
-ARG BASE=ghcr.io/getpaseo/paseo:0.15.0@sha256:b2ea682ad520518f027bf6e6ed2e1c94f2de4a60b23ef31098a60dd64c09c7f8
+ARG BASE=ghcr.io/getpaseo/paseo:0.15.2@sha256:e12414fe71f33aa7cedf1eaf027bf2acfccdf01d6b692ba779a220b2ec1c46e6
 
 # Neovim with its plugins, LSPs and parsers prebuilt, the final image has neither compilers nor a writable rootfs.
 # Same base as the final stage: Mason's Python venvs link /usr/bin/python3.
@@ -39,7 +39,7 @@ RUN set -eux; \
 FROM ${BASE}
 
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
-ARG CLAUDE_CODE_VERSION=2.1.317
+ARG CLAUDE_CODE_VERSION=2.1.318
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
 ARG KUBECTL_VERSION=v1.37.2
 # renovate: datasource=github-releases depName=fluxcd/flux2
@@ -47,14 +47,14 @@ ARG FLUX_VERSION=v2.10.0
 # renovate: datasource=github-releases depName=cli/cli
 ARG GH_VERSION=v2.103.3
 # renovate: datasource=github-releases depName=jdx/mise
-ARG MISE_VERSION=v2026.10.25
+ARG MISE_VERSION=v2026.11.2
 # renovate: datasource=npm depName=@opencode/cli
 ARG OPENCODE_VERSION=2.2.5
 # renovate: datasource=npm depName=opencode-with-claude
 ARG OPENCODE_WITH_CLAUDE_VERSION=1.11.2
 # Drives both the Claude Code plugin (repo tag) and @eleboucher/opencode-memini-v2 (same version on npm).
 # renovate: datasource=github-tags depName=eleboucher/memini
-ARG MEMINI_VERSION=v0.7.38
+ARG MEMINI_VERSION=v0.7.39
 # renovate: datasource=git-refs depName=https://github.com/AminBlg/SimpleEnglish branch=main
 ARG SIMPLE_ENGLISH_COMMIT=a6fcb4fde098b33617cc1578d151ebf58774b883
 # renovate: datasource=github-releases depName=helm/helm
