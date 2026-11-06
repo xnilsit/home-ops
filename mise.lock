@@ -821,45 +821,45 @@ url = "https://github.com/opentofu/opentofu/releases/download/v1.13.9/tofu_1.13.
 url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/714327099"
 
 [[tools.pipx]]
-version = "1.18.14"
+version = "1.18.15"
 backend = "aqua:pypa/pipx"
-specifiers = ["1.18.14"]
+specifiers = ["1.18.15"]
 
 [tools.pipx."platforms.linux-arm64"]
-checksum = "sha256:2f3cd4d7637c3c9d271939cea8b6ab3d6e2a69ef98381ca400d85f72ef591e12"
+checksum = "sha256:420604146e875bdd558166e8b06107f09c16936434f3b300e370074c47b5ea53"
 checksum_source = "mise-versions"
-url = "https://github.com/pypa/pipx/releases/download/1.18.14/pipx.pyz"
-url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/714409907"
+url = "https://github.com/pypa/pipx/releases/download/1.18.15/pipx.pyz"
+url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/717609535"
 
 [tools.pipx."platforms.linux-arm64-musl"]
-checksum = "sha256:2f3cd4d7637c3c9d271939cea8b6ab3d6e2a69ef98381ca400d85f72ef591e12"
+checksum = "sha256:420604146e875bdd558166e8b06107f09c16936434f3b300e370074c47b5ea53"
 checksum_source = "mise-versions"
-url = "https://github.com/pypa/pipx/releases/download/1.18.14/pipx.pyz"
-url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/714409907"
+url = "https://github.com/pypa/pipx/releases/download/1.18.15/pipx.pyz"
+url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/717609535"
 
 [tools.pipx."platforms.linux-x64"]
-checksum = "sha256:2f3cd4d7637c3c9d271939cea8b6ab3d6e2a69ef98381ca400d85f72ef591e12"
+checksum = "sha256:420604146e875bdd558166e8b06107f09c16936434f3b300e370074c47b5ea53"
 checksum_source = "mise-versions"
-url = "https://github.com/pypa/pipx/releases/download/1.18.14/pipx.pyz"
-url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/714409907"
+url = "https://github.com/pypa/pipx/releases/download/1.18.15/pipx.pyz"
+url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/717609535"
 
 [tools.pipx."platforms.linux-x64-musl"]
-checksum = "sha256:2f3cd4d7637c3c9d271939cea8b6ab3d6e2a69ef98381ca400d85f72ef591e12"
+checksum = "sha256:420604146e875bdd558166e8b06107f09c16936434f3b300e370074c47b5ea53"
 checksum_source = "mise-versions"
-url = "https://github.com/pypa/pipx/releases/download/1.18.14/pipx.pyz"
-url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/714409907"
+url = "https://github.com/pypa/pipx/releases/download/1.18.15/pipx.pyz"
+url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/717609535"
 
 [tools.pipx."platforms.macos-arm64"]
-checksum = "sha256:2f3cd4d7637c3c9d271939cea8b6ab3d6e2a69ef98381ca400d85f72ef591e12"
+checksum = "sha256:420604146e875bdd558166e8b06107f09c16936434f3b300e370074c47b5ea53"
 checksum_source = "mise-versions"
-url = "https://github.com/pypa/pipx/releases/download/1.18.14/pipx.pyz"
-url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/714409907"
+url = "https://github.com/pypa/pipx/releases/download/1.18.15/pipx.pyz"
+url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/717609535"
 
 [tools.pipx."platforms.macos-x64"]
-checksum = "sha256:2f3cd4d7637c3c9d271939cea8b6ab3d6e2a69ef98381ca400d85f72ef591e12"
+checksum = "sha256:420604146e875bdd558166e8b06107f09c16936434f3b300e370074c47b5ea53"
 checksum_source = "mise-versions"
-url = "https://github.com/pypa/pipx/releases/download/1.18.14/pipx.pyz"
-url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/714409907"
+url = "https://github.com/pypa/pipx/releases/download/1.18.15/pipx.pyz"
+url_api = "https://api.github.com/repos/pypa/pipx/releases/assets/717609535"
 
 [[tools."pipx:makejinja"]]
 version = "2.9.1"
