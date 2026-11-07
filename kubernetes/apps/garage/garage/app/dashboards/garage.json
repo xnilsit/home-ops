@@ -1638,6 +1638,320 @@
       ]
     },
     {
+      "id": 33,
+      "type": "row",
+      "title": "S3 API on $node",
+      "collapsed": false,
+      "repeat": "node",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 39
+      },
+      "panels": []
+    },
+    {
+      "id": 34,
+      "type": "timeseries",
+      "title": "Requests by endpoint",
+      "description": "S3 requests per second on $node.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 60,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (api_endpoint) ((rate(api_s3_request_counter{job=\"garage\", instance=~\"${node:regex}\"}[$__rate_interval]) or rate(api_s3_request_counter{job=\"garage\", pod=~\"${node:regex}-gateway-0\"}[$__rate_interval])))",
+          "legendFormat": "{{api_endpoint}}",
+          "range": true,
+          "instant": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "type": "timeseries",
+      "title": "Errors by endpoint and status",
+      "description": "S3 errors per second on $node.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 60,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (api_endpoint, status_code) ((rate(api_s3_error_counter{job=\"garage\", instance=~\"${node:regex}\"}[$__rate_interval]) or rate(api_s3_error_counter{job=\"garage\", pod=~\"${node:regex}-gateway-0\"}[$__rate_interval]))) > 0",
+          "legendFormat": "{{api_endpoint}} {{status_code}}",
+          "range": true,
+          "instant": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "type": "timeseries",
+      "title": "Latency quantiles",
+      "description": "S3 request duration on $node, over all endpoints.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 48
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.5, sum by (le) ((rate(api_s3_request_duration_bucket{job=\"garage\", instance=~\"${node:regex}\"}[$__rate_interval]) or rate(api_s3_request_duration_bucket{job=\"garage\", pod=~\"${node:regex}-gateway-0\"}[$__rate_interval]))))",
+          "legendFormat": "p50",
+          "range": true,
+          "instant": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.9, sum by (le) ((rate(api_s3_request_duration_bucket{job=\"garage\", instance=~\"${node:regex}\"}[$__rate_interval]) or rate(api_s3_request_duration_bucket{job=\"garage\", pod=~\"${node:regex}-gateway-0\"}[$__rate_interval]))))",
+          "legendFormat": "p90",
+          "range": true,
+          "instant": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.99, sum by (le) ((rate(api_s3_request_duration_bucket{job=\"garage\", instance=~\"${node:regex}\"}[$__rate_interval]) or rate(api_s3_request_duration_bucket{job=\"garage\", pod=~\"${node:regex}-gateway-0\"}[$__rate_interval]))))",
+          "legendFormat": "p99",
+          "range": true,
+          "instant": false,
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "type": "timeseries",
+      "title": "Mean latency by endpoint",
+      "description": "Mean S3 request duration per endpoint on $node.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 48
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (api_endpoint) ((rate(api_s3_request_duration_sum{job=\"garage\", instance=~\"${node:regex}\"}[$__rate_interval]) or rate(api_s3_request_duration_sum{job=\"garage\", pod=~\"${node:regex}-gateway-0\"}[$__rate_interval]))) / sum by (api_endpoint) ((rate(api_s3_request_duration_count{job=\"garage\", instance=~\"${node:regex}\"}[$__rate_interval]) or rate(api_s3_request_duration_count{job=\"garage\", pod=~\"${node:regex}-gateway-0\"}[$__rate_interval])))",
+          "legendFormat": "{{api_endpoint}}",
+          "range": true,
+          "instant": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
       "id": 22,
       "type": "row",
       "title": "Blocks",
@@ -1646,7 +1960,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 39
+        "y": 56
       },
       "panels": []
     },
@@ -1663,7 +1977,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 40
+        "y": 57
       },
       "fieldConfig": {
         "defaults": {
@@ -1744,7 +2058,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 40
+        "y": 57
       },
       "fieldConfig": {
         "defaults": {
@@ -1841,7 +2155,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 40
+        "y": 57
       },
       "fieldConfig": {
         "defaults": {
@@ -1906,7 +2220,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 65
       },
       "panels": [
         {
@@ -1922,7 +2236,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 49
+            "y": 66
           },
           "fieldConfig": {
             "defaults": {
@@ -2015,7 +2329,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 49
+            "y": 66
           },
           "fieldConfig": {
             "defaults": {
@@ -2083,7 +2397,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 57
+            "y": 74
           },
           "fieldConfig": {
             "defaults": {
@@ -2152,7 +2466,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 57
+            "y": 74
           },
           "fieldConfig": {
             "defaults": {
@@ -2233,7 +2547,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 65
+            "y": 82
           },
           "fieldConfig": {
             "defaults": {
@@ -2302,7 +2616,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 65
+            "y": 82
           },
           "fieldConfig": {
             "defaults": {
@@ -2395,6 +2709,39 @@
         "regex": "",
         "skipUrlSync": false,
         "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(count by (node) (label_replace(label_replace(garage_build_info{job=\"garage\"}, \"node\", \"$1\", \"instance\", \"(.+)\"), \"node\", \"$1\", \"pod\", \"(.+)-gateway-0\")))",
+        "description": "Garage node: the storage nodes by name, the edge gateways by StatefulSet name. Drives the repeated per-node S3 API row.",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Node",
+        "multi": true,
+        "name": "node",
+        "options": [],
+        "query": {
+          "qryType": 3,
+          "query": "query_result(count by (node) (label_replace(label_replace(garage_build_info{job=\"garage\"}, \"node\", \"$1\", \"instance\", \"(.+)\"), \"node\", \"$1\", \"pod\", \"(.+)-gateway-0\")))",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "/node=\"([^\"]+)\"/",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
       }
     ]
   },
