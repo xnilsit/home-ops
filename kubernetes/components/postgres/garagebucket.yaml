@@ -16,3 +16,9 @@ spec:
   # Own bucket rather than a prefix in the shared cnpg-backup one: a Garage key
   # is scoped per bucket, not per prefix, so a shared bucket would hand this
   # namespace read access to every other cluster's base backups.
+  # Uploads interrupted mid-way leave their parts behind, invisible to listings
+  # but counted against the disks.
+  lifecycle:
+    rules:
+      - id: abort-incomplete-mpu
+        abortIncompleteMultipartUploadDays: 3

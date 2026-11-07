@@ -10,6 +10,12 @@ spec:
     namespace: garage
   # Removing the app must not take the only off-cluster copy with it.
   deletionPolicy: Retain
+  # Uploads interrupted mid-way leave their parts behind, invisible to listings
+  # but counted against the disks.
+  lifecycle:
+    rules:
+      - id: abort-incomplete-mpu
+        abortIncompleteMultipartUploadDays: 3
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/garage.rajsingh.info/garagekey_v1beta1.json
 apiVersion: garage.rajsingh.info/v1beta1
