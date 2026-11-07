@@ -282,6 +282,18 @@
       matchPackageNames: ["quay.io/medik8s/node-healthcheck-operator"],
       allowedVersions: "<5",
     },
+    {
+      description: "paperless-ngx's gotenberg-client still calls the Gotenberg 8 API (pdfa field, /forms/pdfengines/merge), which Gotenberg 9 refuses",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["/gotenberg/gotenberg$/"],
+      allowedVersions: "<9",
+    },
+    {
+      description: "paperless-ngx's tika-client 1.x only speaks the Tika 3 API, Tika 4 dropped /tika/form/text (paperless-ngx#14579)",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["/apache/tika$/"],
+      allowedVersions: "<4",
+    },
     // ---------------------------------------------------------------------
     // Digests
     // ---------------------------------------------------------------------
