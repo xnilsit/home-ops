@@ -12,7 +12,16 @@ items:
     metadata: {name: cnpg-backup}
     # Retain, not the Delete default: deleting the CR must not take the Postgres
     # backups with it.
-    spec: &spec {clusterRef: {name: garage}, deletionPolicy: Retain}
+    spec: &spec
+      clusterRef: {name: garage}
+      deletionPolicy: Retain
+      # Uploads interrupted mid-way leave their parts behind, invisible to
+      # listings but counted against the disks. Buckets with their own
+      # lifecycle below replace this rule and abort sooner.
+      lifecycle:
+        rules:
+          - id: abort-incomplete-mpu
+            abortIncompleteMultipartUploadDays: 3
   - <<: *bucket
     metadata: {name: timescale-backup}
     spec: *spec
