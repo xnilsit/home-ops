@@ -31,4 +31,4 @@ volumes:
 
 secrets:
   sops_age_key:
-    file: /volume1/docker/doco-cd/age.key
+    file: /volume1/garage/docker/doco-cd/age.key

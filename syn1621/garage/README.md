@@ -19,7 +19,7 @@ working and most writes fail.
 
 | On the NAS | In the container |
 | ---------- | ---------------- |
-| `/volume1/docker/garage/meta` | `/var/lib/garage/meta` |
+| `/volume1/garage/meta` | `/var/lib/garage/meta` |
 | `/volume1/garage/data` | `/var/lib/garage/data` |
 
 ## Joining the cluster
@@ -28,10 +28,11 @@ Adding a node at the same replication factor is an ordinary layout change: no do
 rebuild. Garage moves a share of the partitions here and the NAS and Unraid drop their copies once
 this node holds them.
 
-1. On the NAS, create the directories:
+1. On the NAS, everything lives in the `garage` shared folder on Volume 1: `meta/` and `data/` for
+   Garage, `docker/` for doco-cd's age key. Create the folders if they are missing:
 
    ```sh
-   mkdir -p /volume1/docker/garage/meta /volume1/garage/data
+   mkdir -p /volume1/garage/meta /volume1/garage/data /volume1/garage/docker
    ```
 
 2. Bootstrap doco-cd (see `syn1621/README.md`). It starts Garage, which dials the NAS through

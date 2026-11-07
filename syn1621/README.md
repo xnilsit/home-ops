@@ -15,7 +15,7 @@ Secrets are committed as `*.sops.env`, encrypted to the home-ops key and to this
 (`.sops.yaml`). doco-cd decrypts them with the NAS key; it cannot read anything else in the repo.
 Edit them with `sops syn1621/<stack>/secret.sops.env`.
 
-The NAS key's private half lives at `/volume1/docker/doco-cd/age.key` on the NAS and in
+The NAS key's private half lives at `/volume1/garage/docker/doco-cd/age.key` on the NAS and in
 `.private/doco-cd/syn1621.age.key` (gitignored) here.
 
 ## Bootstrap
@@ -25,9 +25,9 @@ Once, as root (`sudo -i`), after installing Container Manager from the Package C
 1. Put the age key in place:
 
    ```sh
-   mkdir -p /volume1/docker/doco-cd
-   vi /volume1/docker/doco-cd/age.key        # contents of .private/doco-cd/syn1621.age.key
-   chmod 600 /volume1/docker/doco-cd/age.key
+   mkdir -p /volume1/garage/docker/doco-cd
+   vi /volume1/garage/docker/doco-cd/age.key        # contents of .private/doco-cd/syn1621.age.key
+   chmod 600 /volume1/garage/docker/doco-cd/age.key
    ```
 
 2. Run the one-shot bootstrap. It deploys every stack in `.doco-cd.yml` once and exits, leaving a
@@ -38,7 +38,7 @@ Once, as root (`sudo -i`), after installing Container Manager from the Package C
    docker run --rm \
      -v /var/run/docker.sock:/var/run/docker.sock \
      -v doco-cd_data:/data \
-     -v /volume1/docker/doco-cd/age.key:/age.key:ro \
+     -v /volume1/garage/docker/doco-cd/age.key:/age.key:ro \
      -e SELF_UPDATE_ENABLED=true \
      -e DEPLOY_CONFIG_BASE_DIR=syn1621/ \
      -e SOPS_AGE_KEY_FILE=/age.key \

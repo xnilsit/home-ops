@@ -10,7 +10,7 @@ services:
     env_file: secret.sops.env
     volumes:
       - ./garage.toml:/etc/garage.toml:ro
-      - /volume1/docker/garage/meta:/var/lib/garage/meta
+      - /volume1/garage/meta:/var/lib/garage/meta
       - /volume1/garage/data:/var/lib/garage/data
     logging:
       # DSM's default json-file driver is unbounded
