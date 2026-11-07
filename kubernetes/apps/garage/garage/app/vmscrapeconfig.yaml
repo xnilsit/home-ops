@@ -21,6 +21,11 @@ spec:
       labels:
         job: garage
         instance: unraid
+    - targets:
+        - "192.168.0.216:3903"
+      labels:
+        job: garage
+        instance: syn1621
   path: /metrics
   scheme: HTTP
   scrapeTimeout: 20s

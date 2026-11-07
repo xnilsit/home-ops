@@ -1,5 +1,5 @@
 ---
-# Admin API across both storage nodes, for the operator. Selectorless, the
+# Admin API across all storage nodes, for the operator. Selectorless, the
 # EndpointSlice below holds their LAN addresses. Nothing health-checks them:
 # with one node down, connections to it are refused and the operator retries.
 apiVersion: v1
@@ -23,3 +23,4 @@ ports:
 endpoints:
   - {addresses: ["192.168.0.200"], hostname: nas}
   - {addresses: ["192.168.0.250"], hostname: unraid}
+  - {addresses: ["192.168.0.216"], hostname: syn1621}

@@ -1,8 +1,8 @@
 # Garage on the Synology NAS
 
 S3-compatible object storage at `192.168.0.200`, holding the CNPG backups that used to live in the
-cluster's own Ceph RGW. It is one of two storage nodes: the Unraid server (`unraid/garage`) holds the
-second copy of every block. Buckets, keys and permissions are **not** managed here — they are declared
+cluster's own Ceph RGW. It is one of three storage nodes, together with the Unraid server
+(`unraid/garage`) and the syn1621 Synology (`syn1621/garage`); every block is kept on two of them. Buckets, keys and permissions are **not** managed here — they are declared
 in `kubernetes/apps/garage/` and applied by
 [garage-operator](https://github.com/rajsinghtech/garage-operator) through Garage's Admin API.
 
@@ -21,7 +21,7 @@ can dial it back:
 | Port | What |
 | ---- | ---- |
 | 3900 | S3 API — only the gateways and ad-hoc LAN tooling use it directly |
-| 3901 | RPC — the gateways' and the Unraid node's link to this node, in both directions |
+| 3901 | RPC — the gateways' and the other storage nodes' link to this node, in both directions |
 | 3903 | Admin API — the operator's only channel |
 
 ## First-time setup
@@ -38,8 +38,9 @@ can dial it back:
    to Garage and derived GarageKeys break.
 
 3. Apply a layout. **Garage stores nothing until this is done** — a node with no role silently
-   rejects writes. The layout needs both storage nodes, so bring up the Unraid node first; the full
-   sequence is in `unraid/garage/README.md`:
+   rejects writes. This is the original two-node layout; the full sequence is in
+   `unraid/garage/README.md`, and syn1621 joined later as a third zone
+   (`syn1621/garage/README.md`):
 
    ```sh
    docker exec garage /garage status                        # note both node ids
@@ -55,8 +56,9 @@ can dial it back:
 
    `-c` is a byte size, suffixes `B KB MB GB TB PB` (decimal) or `KiB MiB GiB TiB` (binary) —
    a bare `2T` does not parse. It is the weight Garage spreads partitions by, not a quota: with
-   two copies over two zones every partition lands on both nodes whatever the number, and Garage
-   keeps accepting writes until a disk is actually full. Re-run `layout assign` plus
+   two copies over three zones each partition lands on two of them, in proportion to `-c`, and
+   Garage keeps accepting writes until a disk is actually full. Usable capacity is about the
+   smaller of half the total and the total minus the largest node. Re-run `layout assign` plus
    `layout apply --version <n+1>` to change it.
 
 4. Check the Admin API answers from a cluster node, which is what the operator needs:

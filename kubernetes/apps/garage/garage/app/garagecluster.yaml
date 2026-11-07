@@ -1,7 +1,7 @@
 ---
 # A GarageCluster with only spec.connectTo set is a MANAGEMENT HANDLE: the
 # operator provisions no StatefulSet, PVCs or Services and touches nothing but
-# the Admin API of the Garage storage nodes on the NAS and Unraid. Adding
+# the Admin API of the Garage storage nodes on the NAS, Unraid and syn1621. Adding
 # spec.storage or spec.gateway here would make the operator start deploying
 # Garage in-cluster.
 #
