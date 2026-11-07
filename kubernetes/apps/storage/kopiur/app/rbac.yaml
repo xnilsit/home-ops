@@ -56,3 +56,36 @@ subjects:
   - apiGroup: rbac.authorization.k8s.io
     kind: User
     name: home-ops
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/role-rbac-v1.json
+# The console lists the Jobs of the ClusterRepository's Maintenance, which run
+# here in the operator namespace. None of the chart's ui roles grant jobs (only
+# kopiur-ui-browse does, and that one hands out repository credentials), so
+# read-only access is granted by hand.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kopiur-ui-jobs
+rules:
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - get
+      - list
+      - watch
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/rolebinding-rbac-v1.json
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kopiur-ui-jobs
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kopiur-ui-jobs
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: home-ops
