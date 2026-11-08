@@ -16,7 +16,6 @@ resources:
   - ./k8s-gateway/ks.yaml
   - ./netbird/ks.yaml
   - ./ratelimit-dragonfly/ks.yaml
-  - ./scanopy/ks.yaml
 components:
   - ../../flux/components/namespace
 patches:
