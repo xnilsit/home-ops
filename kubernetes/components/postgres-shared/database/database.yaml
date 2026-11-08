@@ -7,6 +7,7 @@ metadata:
 spec:
   name: ${APP}
   owner: ${APP}
+  ensure: ${PG_ENSURE:=present}
   cluster:
     name: pg-shared
     # No extensions: every consumer so far migrates its own schema. An app that

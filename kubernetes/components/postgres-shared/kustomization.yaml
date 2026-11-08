@@ -16,7 +16,10 @@ kind: Component
 #                   consuming app's targetNamespace
 #
 # Required in the app's ks.yaml postBuild.substitute:
-#   APP  the app name; also the database, role and secret name
+#   APP        the app name; also the database, role and secret name
+# Optional, for removing an app (both only act while the CRs still exist):
+#   PG_ENSURE        absent drops the database
+#   PG_ROLE_RECLAIM  delete drops the role once its DatabaseRole is deleted
 #
 # The app Kustomization must dependsOn external-secrets-stores-database, which
 # owns the ClusterSecretStore the pull below goes through. Everything on the

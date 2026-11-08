@@ -184,23 +184,6 @@ locals {
       ]
     }
 
-    scanopy = {
-      display_name = "Scanopy"
-      description  = "Network discovery and topology diagrams."
-      hostnames    = ["scanopy.${var.domain}"]
-      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/scanopy.svg"
-      groups       = ["home-ops"]
-      # sub_mode left at hashed_user_id, unlike the other apps here: Scanopy
-      # slices sub at 8 bytes to build a fallback email and aborts the server
-      # when it is shorter, which "nilsit" is.
-      include_claims_in_id_token = true
-      gateway_callback           = false
-      extra_redirect_uris = [
-        # The path segment is the provider slug in SCANOPY_OIDC_PROVIDERS.
-        "https://scanopy.${var.domain}/api/auth/oidc/authentik/callback",
-      ]
-    }
-
     # No components/oidc: HA runs its own OIDC via the auth_oidc integration.
     "home-assistant" = {
       display_name = "Home Assistant"

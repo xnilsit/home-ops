@@ -11,6 +11,7 @@ spec:
     name: pg-shared
   name: ${APP}
   ensure: present
+  databaseRoleReclaimPolicy: ${PG_ROLE_RECLAIM:=retain}
   login: true
   inherit: true
   passwordSecret:
