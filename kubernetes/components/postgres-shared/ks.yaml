@@ -25,6 +25,8 @@ spec:
       # the parent's substitutions are already resolved in this file's text and
       # would not reach the manifests this one renders.
       APP: ${APP}
+      PG_ENSURE: ${PG_ENSURE:=present}
+      PG_ROLE_RECLAIM: ${PG_ROLE_RECLAIM:=retain}
   healthChecks:
     - apiVersion: postgresql.cnpg.io/v1
       kind: Database
