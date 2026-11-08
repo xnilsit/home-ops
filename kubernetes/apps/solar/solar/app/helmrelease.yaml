@@ -76,7 +76,7 @@ spec:
           app:
             image: &deyeImage
               repository: registry.nilsit.de/ghcr.io/kbialek/deye-inverter-mqtt
-              tag: 2026.10.2@sha256:b98b45039f101fdddf3eaa27ab5312ec144c24902779cbc0006df2d145de0cd7
+              tag: 2026.11.1@sha256:54c6fddfdf154a16ad3103df7b120546cfe589f2810a28db516e4f427368c4f0
             env:
               <<: &deyeEnv
                 DEYE_DATA_READ_INTERVAL: "30"
