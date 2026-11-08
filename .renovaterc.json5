@@ -222,16 +222,6 @@
       },
     },
     {
-      description: "Scanopy Group: server and daemon images must match",
-      groupName: "scanopy",
-      matchDatasources: ["docker"],
-      matchPackageNames: ["ghcr.io/scanopy/scanopy/server", "ghcr.io/scanopy/scanopy/daemon"],
-      group: {
-        commitMessageTopic: "{{{groupName}}} group",
-      },
-      minimumGroupSize: 2,
-    },
-    {
       description: "VictoriaMetrics Group: the k8s-stack chart and the pinned vmsolar image",
       groupName: "victoria-metrics",
       matchPackageNames: [
