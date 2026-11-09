@@ -33,6 +33,7 @@ jobs:
           files: |
             kubernetes/**
             .github/workflows/flate.yaml
+            .github/flate/**
 
   # Test and diff share one job so the checkout, cache restore, and flate
   # install happen once per PR instead of twice
@@ -44,6 +45,8 @@ jobs:
       contents: read
       pull-requests: write
     if: ${{ needs.pre-job.outputs.any_changed == 'true' }}
+    env:
+      FLATE_SUPPLY: .github/flate/supply.yaml
     steps:
       # fetch-depth 0 so the baseline rev resolves locally; HEAD is the PR merge
       # commit, whose second parent is the base tip, so that tip is the merge base

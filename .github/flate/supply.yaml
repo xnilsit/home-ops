@@ -1,0 +1,16 @@
+---
+# Stand-ins for the SOPS-encrypted cluster-secrets, which flate cannot decrypt.
+# Without them every ${VAR} from it renders empty, and charts whose values
+# schema checks the result (garage-ui's issuer_url) fail to template.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cluster-secrets
+  namespace: flux-system
+stringData:
+  TELEGRAM_CHAT_ID: "0"
+  TIMEZONE: Etc/UTC
+  SECRET_DOMAIN: example.com
+  SECRET_DOMAIN_ALT: example.net
+  SECRET_DOMAIN_REGEX: example\.com
+  AUTHENTIK_URL: https://auth.example.com
