@@ -17,12 +17,14 @@ The B2 side lives outside git:
 - **Bucket**: private, and **Lifecycle Settings → custom**:
 
   ```json
-  [{"fileNamePrefix": "", "daysFromHidingToDeleting": 90, "daysFromUploadingToHiding": null, "daysFromStartingToCancelingUnfinishedLargeFiles": 1}]
+  [{"fileNamePrefix": "", "daysFromHidingToDeleting": 1, "daysFromUploadingToHiding": null, "daysFromStartingToCancelingUnfinishedLargeFiles": 1}]
   ```
 
   With the native `b2` backend, `rclone sync` hides objects that are gone from
   Garage, as well as overwritten versions, instead of deleting them. This rule
-  is what removes them 90 days later.
+  is what removes them a day later. The offsite copy covers the loss of all
+  three Garage nodes, which share a rack. It does not keep history; kopiur and
+  CNPG keep their own.
 - **Application key**: restricted to that bucket, with capabilities
   `listBuckets, listFiles, readFiles, writeFiles` and **no `deleteFiles`**.
   Nothing the cluster holds can destroy data in B2.
@@ -54,6 +56,6 @@ rclone lsf offsite:                                   # one directory per Garage
 rclone copy offsite:cnpg-backup garage:cnpg-backup    # restore a single bucket
 ```
 
-To get back objects that were deleted or overwritten in the last 90 days, add
+To get back objects that were deleted or overwritten in the last day, add
 `--b2-version-at <timestamp>`. rclone then reads the bucket as it was at that
 moment.

@@ -41,7 +41,7 @@ spec:
                     exit 1
                   fi
                   # One top-level directory per bucket. Removed objects are only
-                  # hidden; B2's lifecycle rule deletes them after 90 days.
+                  # hidden; B2's lifecycle rule deletes them after a day.
                   # Each B2 upload costs a round trip of about 0.5s, so small
                   # files need many transfers; --bwlimit caps them all together.
                   exec rclone sync garage: offsite: \
