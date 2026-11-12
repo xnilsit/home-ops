@@ -29,7 +29,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/ghcr.io/immich-app/immich-server
-              tag: &serverTag v3.4.0@sha256:7b7b575029168bfb9eb901d868ce7dbfda0d7818e78aaace29b7b8a08cd4e7d5
+              tag: &serverTag v3.4.1@sha256:7c489add298fc2f92cda4c777de6462aa206877e04087b815f62c7664af0b53b
             env:
               DB_HOSTNAME: &dbHost immich-rw
               DB_PORT: &dbPort 5432
@@ -195,7 +195,7 @@ spec:
               repository: registry.nilsit.de/ghcr.io/immich-app/immich-machine-learning
               # Moves in lockstep with the server tag above, Renovate bumps it
               # from the immich-app/immich GitHub releases (see .renovaterc.json5).
-              tag: v3.4.0-openvino
+              tag: v3.4.1-openvino
             env:
               MACHINE_LEARNING_CACHE_FOLDER: &cache /cache
               HF_HOME: *cache
