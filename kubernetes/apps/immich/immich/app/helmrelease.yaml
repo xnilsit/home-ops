@@ -9,6 +9,7 @@ spec:
     kind: OCIRepository
     name: immich
   interval: 1h
+  timeout: 10m
   # machine-learning replicas are set by ./hpa.yaml.
   driftDetection:
     ignore:
