@@ -42,7 +42,7 @@ spec:
       APP: *app
       DRAGONFLY_REPLICAS: "2"
       # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql
-      PG_IMAGE_TAG: 18.6-minimal-trixie
+      PG_IMAGE_TAG: 18.7-minimal-trixie
   healthChecks:
     - apiVersion: postgresql.cnpg.io/v1
       kind: Cluster

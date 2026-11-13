@@ -43,7 +43,7 @@ spec:
       KOPIUR_CAPACITY: 100Gi
       KOPIUR_CRON: "H */6 * * *"
       # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql
-      PG_IMAGE_TAG: 18.6-minimal-trixie
+      PG_IMAGE_TAG: 18.7-minimal-trixie
   healthChecks:
     - apiVersion: postgresql.cnpg.io/v1
       kind: Cluster
