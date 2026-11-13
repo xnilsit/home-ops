@@ -36,7 +36,7 @@ spec:
       # capture the repository too and never resolve a version.
       #
       # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql
-      PG_IMAGE_TAG: 18.6-minimal-trixie
+      PG_IMAGE_TAG: 18.7-minimal-trixie
       # renovate: datasource=docker depName=ghcr.io/xnilsit/timescaledb-cnpg versioning=regex:^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-18-trixie$
       TIMESCALEDB_IMAGE_TAG: 2.31.0-18-trixie
   healthChecks:
@@ -91,7 +91,7 @@ spec:
       # A tag change replaces the Job, which re-runs the extension update
       #
       # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql
-      PG_IMAGE_TAG: 18.6-minimal-trixie
+      PG_IMAGE_TAG: 18.7-minimal-trixie
       # renovate: datasource=docker depName=ghcr.io/xnilsit/timescaledb-cnpg versioning=regex:^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-18-trixie$
       TIMESCALEDB_IMAGE_TAG: 2.31.0-18-trixie
   prune: true

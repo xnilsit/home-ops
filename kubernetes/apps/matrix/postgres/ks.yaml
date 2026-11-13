@@ -32,7 +32,7 @@ spec:
       PG_STORAGE_SIZE: 5Gi
       PG_BACKUP_CRON: "0 45 4 * * *"
       # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql
-      PG_IMAGE_TAG: 18.6-minimal-trixie
+      PG_IMAGE_TAG: 18.7-minimal-trixie
   healthChecks:
     - apiVersion: postgresql.cnpg.io/v1
       kind: Cluster
