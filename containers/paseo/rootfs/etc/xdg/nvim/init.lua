@@ -337,7 +337,7 @@ local plugin_pins = {
   -- renovate: datasource=git-refs depName=https://github.com/NMAC427/guess-indent.nvim branch=main
   ['nmac427/guess-indent.nvim'] = { commit = '84a4987ff36798c2fc1169cbaff67960aed9776f' },
   -- renovate: datasource=git-refs depName=https://github.com/lewis6991/gitsigns.nvim branch=main
-  ['lewis6991/gitsigns.nvim'] = { commit = '7c33a797a5c0923e346cbedebe37bdea8f7ea160' },
+  ['lewis6991/gitsigns.nvim'] = { commit = 'dc7698f932792a764d3db95fedee26c38e728355' },
   -- renovate: datasource=git-refs depName=https://github.com/folke/which-key.nvim branch=main
   ['folke/which-key.nvim'] = { commit = '3aab2147e74890957785941f0c1ad87d0a44c15a' },
   -- renovate: datasource=git-refs depName=https://github.com/folke/tokyonight.nvim branch=main

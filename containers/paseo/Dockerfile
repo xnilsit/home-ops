@@ -39,7 +39,7 @@ RUN set -eux; \
 FROM ${BASE}
 
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
-ARG CLAUDE_CODE_VERSION=2.1.323
+ARG CLAUDE_CODE_VERSION=2.1.325
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
 ARG KUBECTL_VERSION=v1.37.2
 # renovate: datasource=github-releases depName=fluxcd/flux2
@@ -51,7 +51,7 @@ ARG MISE_VERSION=v2026.11.8
 # renovate: datasource=npm depName=@opencode/cli
 ARG OPENCODE_VERSION=2.3.0
 # renovate: datasource=npm depName=opencode-with-claude
-ARG OPENCODE_WITH_CLAUDE_VERSION=1.11.2
+ARG OPENCODE_WITH_CLAUDE_VERSION=1.11.3
 # Drives both the Claude Code plugin (repo tag) and @eleboucher/opencode-memini-v2 (same version on npm).
 # renovate: datasource=github-tags depName=eleboucher/memini
 ARG MEMINI_VERSION=v0.7.39
