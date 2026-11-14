@@ -1,0 +1,35 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: etcd-rules
+spec:
+  groups:
+    - name: etcd-fragmentation
+      rules:
+        # Replaces the chart's etcdDatabaseHighFragmentationRatio. bbolt reuses
+        # freed pages, so free space is just headroom left by the last write
+        # burst (node drains spike in-use to ~3x its ~120MB baseline) and the
+        # ratio sits under 50% most of the time. It only matters once the file
+        # nears the backend quota, where etcd goes read-only (NOSPACE) - so fire
+        # at half the quota, while a defrag still clears it with room to spare.
+        - alert: EtcdDatabaseNeedsDefrag
+          annotations:
+            summary: >-
+              etcd on {{ $labels.instance }} uses {{ $value | humanizePercentage }}
+              of its quota and over half of it is fragmented; run
+              `talosctl -n <node> etcd defrag` one node at a time.
+          expr: |-
+            (
+              last_over_time(etcd_mvcc_db_total_size_in_bytes{job=~".*etcd.*"}[5m])
+                / last_over_time(etcd_server_quota_backend_bytes{job=~".*etcd.*"}[5m])
+            ) > 0.5
+              and
+            (
+              last_over_time(etcd_mvcc_db_total_size_in_use_in_bytes{job=~".*etcd.*"}[5m])
+                / last_over_time(etcd_mvcc_db_total_size_in_bytes{job=~".*etcd.*"}[5m])
+            ) < 0.5
+          for: 30m
+          labels:
+            severity: warning
