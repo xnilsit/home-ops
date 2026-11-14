@@ -6,6 +6,7 @@ components:
   - ../../../../components/kopiur/backup
 resources:
   - ./helmrelease.yaml
+  - ./prometheusrule.yaml
 configMapGenerator:
   - name: flux-metrics-configmap
     files:
