@@ -3,7 +3,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 components:
-  # Uploads PVC (named ${APP}), snapshotted to the NAS.
+  # Data (SQLite) and uploads PVC (named ${APP}), snapshotted to the NAS.
   - ../../../../components/kopiur/backup
   # FerretDB backend, archived to Garage.
   - ../../../../components/postgres

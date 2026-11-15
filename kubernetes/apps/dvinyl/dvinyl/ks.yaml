@@ -24,10 +24,10 @@ spec:
     # Backup bucket and key for the Cluster
     - name: garage
       namespace: flux-system
-    # Uploads PVC is provisioned through kopiur's Restore populator
+    # Data (SQLite) and uploads PVC is provisioned through kopiur's Restore populator
     - name: kopiur-repository
       namespace: flux-system
-    # ceph-block for the uploads PVC
+    # ceph-block for the data PVC
     - name: rook-ceph-cluster
       namespace: flux-system
     - name: envoy-gateway
@@ -36,10 +36,8 @@ spec:
     substitute:
       APP: *app
       KOPIUR_CAPACITY: 5Gi
-      KOPIUR_CRON: "H */6 * * *"
-      # The volume is empty today (every snapshot holds 0 files), so the
-      # component's files > 0 check would fail every verify.
-      KOPIUR_VERIFY_EXPR: "stats.errors == 0"
+      # Hourly: the volume holds the SQLite database, not just uploads.
+      KOPIUR_CRON: "H * * * *"
       # Versioned by its FerretDB suffix; grouped with ghcr.io/ferretdb/ferretdb.
       #
       # renovate: datasource=docker depName=ghcr.io/ferretdb/postgres-documentdb versioning=regex:^17-\d+\.\d+\.\d+-ferretdb-(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$
