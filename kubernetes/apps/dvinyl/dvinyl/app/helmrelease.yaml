@@ -32,6 +32,9 @@ spec:
                   secretKeyRef:
                     name: &superuser dvinyl-postgres-superuser
                     key: password
+              # 4.x imports this into data/dvinyl.sqlite on the first start with
+              # /app/data mounted, then only reads it. Drop it and the FerretDB
+              # stack once the log shows `[IMPORT] Done.`.
               MONGODB_URL:
                 value: mongodb://postgres:$(PG_PASSWORD)@dvinyl-ferretdb:27017/dvinyl?authSource=admin
                 dependsOn: PG_PASSWORD
@@ -156,12 +159,15 @@ spec:
         seccompProfile:
           type: RuntimeDefault
     persistence:
-      uploads:
-        # Provisioned by components/kopiur/backup.
+      data:
+        # Provisioned by components/kopiur/backup; holds dvinyl.sqlite (the
+        # whole collection since 4.0) beside the uploads.
         existingClaim: dvinyl
         advancedMounts:
           dvinyl:
             app:
+              - path: /app/data
+                subPath: data
               - path: /app/public/uploads
                 subPath: uploads
       tmp:
