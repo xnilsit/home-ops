@@ -27,17 +27,6 @@ spec:
               TZ: Europe/Berlin
               # npx and tsx caches.
               HOME: /tmp
-              PG_PASSWORD:
-                valueFrom:
-                  secretKeyRef:
-                    name: &superuser dvinyl-postgres-superuser
-                    key: password
-              # 4.x imports this into data/dvinyl.sqlite on the first start with
-              # /app/data mounted, then only reads it. Drop it and the FerretDB
-              # stack once the log shows `[IMPORT] Done.`.
-              MONGODB_URL:
-                value: mongodb://postgres:$(PG_PASSWORD)@dvinyl-ferretdb:27017/dvinyl?authSource=admin
-                dependsOn: PG_PASSWORD
               PASSJWT:
                 valueFrom:
                   secretKeyRef:
@@ -116,7 +105,7 @@ spec:
               PG_PASSWORD:
                 valueFrom:
                   secretKeyRef:
-                    name: *superuser
+                    name: dvinyl-postgres-superuser
                     key: password
               FERRETDB_POSTGRESQL_URL:
                 value: postgres://postgres:$(PG_PASSWORD)@dvinyl-postgres-rw:5432/postgres
