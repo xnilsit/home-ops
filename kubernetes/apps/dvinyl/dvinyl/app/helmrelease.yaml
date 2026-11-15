@@ -92,52 +92,6 @@ spec:
                 memory: 256Mi
               limits:
                 memory: 1Gi
-      ferretdb:
-        containers:
-          app:
-            image:
-              repository: registry.nilsit.de/ghcr.io/ferretdb/ferretdb
-              tag: 2.7.0@sha256:5706414241eb84f0515512c37b46db0f1b1eac9e5ceb7e4c2523211c184b1985
-            env:
-              FERRETDB_LISTEN_ADDR: :27017
-              FERRETDB_DEBUG_ADDR: :8088
-              FERRETDB_TELEMETRY: disable
-              PG_PASSWORD:
-                valueFrom:
-                  secretKeyRef:
-                    name: dvinyl-postgres-superuser
-                    key: password
-              FERRETDB_POSTGRESQL_URL:
-                value: postgres://postgres:$(PG_PASSWORD)@dvinyl-postgres-rw:5432/postgres
-                dependsOn: PG_PASSWORD
-            probes:
-              liveness:
-                enabled: true
-                custom: true
-                spec:
-                  httpGet:
-                    path: /debug/livez
-                    port: 8088
-                  periodSeconds: 10
-                  timeoutSeconds: 3
-                  failureThreshold: 3
-              readiness:
-                enabled: true
-                custom: true
-                spec:
-                  httpGet:
-                    path: /debug/readyz
-                    port: 8088
-                  periodSeconds: 10
-                  timeoutSeconds: 3
-                  failureThreshold: 3
-            securityContext: *securityContext
-            resources:
-              requests:
-                cpu: 20m
-                memory: 64Mi
-              limits:
-                memory: 512Mi
     defaultPodOptions:
       securityContext:
         runAsNonRoot: true
@@ -171,11 +125,6 @@ spec:
         ports:
           http:
             port: *port
-      ferretdb:
-        controller: ferretdb
-        ports:
-          mongodb:
-            port: 27017
     route:
       app:
         annotations:

@@ -5,38 +5,9 @@ kind: Kustomization
 components:
   # Data (SQLite) and uploads PVC (named ${APP}), snapshotted to the NAS.
   - ../../../../components/kopiur/backup
-  # FerretDB backend, archived to Garage.
-  - ../../../../components/postgres
-  - ../../../../components/postgres-recovery
 resources:
   - ./externalsecret-oidc.yaml
   - ./externalsecret-secret.yaml
   - ./secret.sops.yaml
   - ./ocirepository.yaml
   - ./helmrelease.yaml
-  - ./job-grants.yaml
-patches:
-  # DocumentDB extension for FerretDB.
-  - patch: |-
-      apiVersion: postgresql.cnpg.io/v1
-      kind: Cluster
-      metadata:
-        name: ${APP}-postgres
-      spec:
-        imageName: ghcr.io/ferretdb/postgres-documentdb:${PG_IMAGE_TAG}
-        # UID/GID the image's data directory expects.
-        postgresUID: 999
-        postgresGID: 999
-        # FerretDB connects as superuser (FerretDB#4997).
-        enableSuperuserAccess: true
-        postgresql:
-          shared_preload_libraries:
-            - pg_cron
-            - pg_documentdb_core
-            - pg_documentdb
-          parameters:
-            cron.database_name: postgres
-          # Loopback connections DocumentDB cursors and pg_cron open without a password.
-          pg_hba:
-            - host postgres postgres 127.0.0.1/32 trust
-            - host postgres postgres ::1/128 trust
