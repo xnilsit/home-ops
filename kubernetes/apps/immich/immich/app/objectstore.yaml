@@ -5,7 +5,7 @@ metadata:
   name: ${APP}-store
 spec:
   # TOP-LEVEL, not under .configuration. Pattern is ^[1-9][0-9]*[dwm]$ - no `y`.
-  retentionPolicy: 30d
+  retentionPolicy: 14d
   configuration:
     # Bucket name must match the GarageBucket in kubernetes/apps/garage
     destinationPath: s3://${APP}-backup/

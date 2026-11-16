@@ -7,7 +7,7 @@ spec:
   # TOP-LEVEL, not under .configuration. The plugin's own concepts.md documents
   # it in the wrong place; the CRD schema and every other page use top-level.
   # Pattern is ^[1-9][0-9]*[dwm]$ - no `y`.
-  retentionPolicy: 30d
+  retentionPolicy: 14d
   configuration:
     # serverName is deliberately unset - it exists only for in-tree API
     # compatibility, and is supplied as a plugin parameter on the Cluster. That
