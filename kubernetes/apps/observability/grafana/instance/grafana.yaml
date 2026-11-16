@@ -84,10 +84,6 @@ spec:
                     secretKeyRef:
                       name: *oidcSecret
                       key: client-secret
-                # Installs the plugin ./datasource-logs.yaml needs at container
-                # start. plugin_admin_enabled stays false.
-                - name: GF_INSTALL_PLUGINS
-                  value: victoriametrics-logs-datasource
               volumeMounts:
                 # Writable scratch for the plugin installer's download, which
                 # readOnlyRootFilesystem otherwise refuses.

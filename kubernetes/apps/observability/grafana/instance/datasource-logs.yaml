@@ -8,8 +8,10 @@ spec:
   instanceSelector:
     matchLabels:
       dashboards: grafana
+  plugins:
+    - name: victoriametrics-logs-datasource
+      version: latest
   datasource:
-    # Plugin installed through GF_INSTALL_PLUGINS in ./grafana.yaml.
     type: victoriametrics-logs-datasource
     name: victorialogs
     access: proxy
