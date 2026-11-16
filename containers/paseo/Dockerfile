@@ -47,7 +47,7 @@ ARG FLUX_VERSION=v2.10.0
 # renovate: datasource=github-releases depName=cli/cli
 ARG GH_VERSION=v2.104.0
 # renovate: datasource=github-releases depName=jdx/mise
-ARG MISE_VERSION=v2026.11.8
+ARG MISE_VERSION=v2026.11.9
 # renovate: datasource=npm depName=@opencode/cli
 ARG OPENCODE_VERSION=2.3.0
 # renovate: datasource=npm depName=opencode-with-claude
@@ -60,7 +60,7 @@ ARG SIMPLE_ENGLISH_COMMIT=300432a9e4c473229a7049ab61b8ca2522d9214c
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VERSION=v4.3.2
 # renovate: datasource=git-refs depName=https://github.com/ohmyzsh/ohmyzsh branch=master
-ARG OHMYZSH_COMMIT=6010fb6260f359e71d99ba25f05f9215809b3ed2
+ARG OHMYZSH_COMMIT=c0140703a53eb0d22be44f7bac318d0baacc927c
 # renovate: datasource=git-refs depName=https://github.com/djui/alias-tips branch=master
 ARG ALIAS_TIPS_COMMIT=41cb143ccc3b8cc444bf20257276cb43275f65c4
 
