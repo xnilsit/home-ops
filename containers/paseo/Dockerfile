@@ -1,6 +1,6 @@
 # Paseo daemon with Claude Code and the CLIs agents need against home-ops.
 # renovate: datasource=docker depName=ghcr.io/getpaseo/paseo
-ARG BASE=ghcr.io/getpaseo/paseo:0.16.0@sha256:13fa2676fa9706ec7096be080e33722bedf6cbc036f22b91d88b44e85506bdc8
+ARG BASE=ghcr.io/getpaseo/paseo:0.16.1@sha256:e18728682ed3edb1c032df1e8423d4ec5ff2415bd73651f2db0abdeabdb4d072
 
 # Neovim with its plugins, LSPs and parsers prebuilt, the final image has neither compilers nor a writable rootfs.
 # Same base as the final stage: Mason's Python venvs link /usr/bin/python3.
@@ -39,7 +39,7 @@ RUN set -eux; \
 FROM ${BASE}
 
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
-ARG CLAUDE_CODE_VERSION=2.1.325
+ARG CLAUDE_CODE_VERSION=2.1.326
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
 ARG KUBECTL_VERSION=v1.37.2
 # renovate: datasource=github-releases depName=fluxcd/flux2
