@@ -11,17 +11,6 @@ default:
 reconcile:
     flux --namespace flux-system reconcile kustomization flux-system --with-source
 
-[doc('Render every Kustomization and HelmRelease offline, as CI does')]
-[group('kube')]
-test:
-    flate test all --path '{{ source_directory() }}'
-
-[doc('Render the working tree against main and write the diff as a browsable page')]
-[group('kube')]
-diff out='/tmp/flate-diff.html':
-    flate diff all --path '{{ source_directory() }}' --base origin/main --output html > '{{ out }}'
-    just log info "Diff written" path '{{ out }}'
-
 # [script], not a plain recipe: the embedded manifest's own indentation is extra
 # leading whitespace to just's line-by-line parser.
 [doc('Copy one PVC onto another in the same namespace (both must be unmounted)')]
