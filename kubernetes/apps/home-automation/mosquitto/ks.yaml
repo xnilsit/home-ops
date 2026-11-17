@@ -22,7 +22,7 @@ spec:
       namespace: home-automation
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   # wait: true, unlike the other two apps here: both zigbee2mqtt and
   # home-assistant dependsOn this one and neither is useful without a broker.

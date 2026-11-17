@@ -83,7 +83,7 @@ spec:
       current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   # wait: false, since wait: true would ignore the healthCheckExprs above.
   wait: false

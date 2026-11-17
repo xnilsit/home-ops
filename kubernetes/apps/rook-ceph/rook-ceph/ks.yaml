@@ -24,7 +24,7 @@ spec:
   path: ./kubernetes/apps/rook-ceph/rook-ceph/app
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: false
   interval: 30m
@@ -47,7 +47,7 @@ spec:
   path: ./kubernetes/apps/rook-ceph/rook-ceph/csi-drivers
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: false
   interval: 30m
@@ -79,7 +79,7 @@ spec:
   path: ./kubernetes/apps/rook-ceph/rook-ceph/cluster
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: true
   interval: 30m
@@ -136,7 +136,7 @@ spec:
       current: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'True'))
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   # wait: false, since wait: true would ignore the healthCheckExprs above.
   wait: false
@@ -167,7 +167,7 @@ spec:
   force: true
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: true
   interval: 1h

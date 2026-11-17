@@ -67,7 +67,7 @@ spec:
       inProgress: has(status.phase) && status.phase in ['ResourcesCreated', 'Configuring', 'RollingUpdate']
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: false
   interval: 1h

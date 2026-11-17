@@ -27,7 +27,7 @@ spec:
       name: tofu-controller
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: true
   interval: 1h
@@ -57,7 +57,7 @@ spec:
       name: garage
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: true
   interval: 1h
@@ -89,7 +89,7 @@ spec:
       name: database
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: true
   interval: 1h

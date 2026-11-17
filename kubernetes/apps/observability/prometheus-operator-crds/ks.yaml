@@ -13,7 +13,7 @@ spec:
   path: ./kubernetes/apps/observability/prometheus-operator-crds/app
   prune: false # never should be deleted
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: false
   interval: 30m

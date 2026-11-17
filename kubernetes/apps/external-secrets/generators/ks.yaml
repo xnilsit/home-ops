@@ -18,7 +18,7 @@ spec:
   # "applied" as ready and the check would assert nothing dependsOn does not.
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: true
   interval: 1h

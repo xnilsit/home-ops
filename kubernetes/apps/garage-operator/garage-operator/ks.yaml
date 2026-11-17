@@ -33,7 +33,7 @@ spec:
       name: garagekeys.garage.rajsingh.info
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: true
   interval: 1h

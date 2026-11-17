@@ -6,6 +6,9 @@ metadata:
 spec:
   dependsOn:
     - name: flux-operator
+    # Holds the switch from the bootstrap source to registry.${SECRET_DOMAIN} until it serves the newest artifact
+    - name: apoci-seed
+      namespace: flux-system
   interval: 1h
   path: ./kubernetes/apps/flux-system/flux-instance/app
   postBuild:
@@ -14,7 +17,7 @@ spec:
         kind: Secret
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
     namespace: flux-system
   targetNamespace: flux-system

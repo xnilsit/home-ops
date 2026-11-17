@@ -1,0 +1,110 @@
+---
+# Makes registry.${SECRET_DOMAIN} serve the newest cluster artifact before Flux
+# is pointed back at it. After a rebootstrap its restored database and blobs can
+# lag the federated copy on registry.nilsit.dev, which the cluster was built from.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/job-batch-v1.json
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: apoci-seed
+spec:
+  backoffLimit: 6
+  # No ttlSecondsAfterFinished: this Job is Flux-owned, so a garbage-collected
+  # one is recreated and re-runs on the next reconcile. Harmless, as a re-run
+  # only copies what is missing.
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: apoci-seed
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: flux
+          # Pulled direct, so a broken apoci cannot hold up its own repair.
+          image: ghcr.io/fluxcd/flux-cli:v2.10.0@sha256:1a5178b1770052d6e88ab1c7c8434c5ac9bca8a8ab984dcaf6b9df31814ce9f2
+          command:
+            - "/bin/sh"
+            - "-c"
+          args:
+            - |
+              set -eu
+              src="registry.nilsit.dev/${SECRET_DOMAIN}/home-ops"
+              dst="registry.${SECRET_DOMAIN}/home-ops"
+
+              # Prints "<tag> <source> <revision>" of the highest YYYY.M.build tag.
+              newest() {
+                flux list artifacts "oci://$${1}" --filter-semver ">=2026.0.0" \
+                  | awk 'NR > 1 { n = split($$1, ref, ":"); print ref[n], $$3, $$4 }' \
+                  | sort -t. -k1,1n -k2,2n -k3,3n \
+                  | tail -n 1
+              }
+              pullable() {
+                rm -rf /tmp/check && mkdir /tmp/check
+                flux pull artifact "oci://$${1}" --output /tmp/check > /dev/null
+              }
+
+              newest "$${src}" > /tmp/src
+              read -r tag source revision < /tmp/src || true
+              if [ -z "$${tag:-}" ]; then
+                echo "$${src} lists no artifact"
+                exit 1
+              fi
+
+              newest "$${dst}" > /tmp/dst
+              read -r dst_tag _ < /tmp/dst || true
+              if [ -n "$${dst_tag:-}" ] && [ "$${dst_tag}" != "$${tag}" ] \
+                  && [ "$(printf '%s\n%s\n' "$${tag}" "$${dst_tag}" | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1)" = "$${dst_tag}" ]; then
+                # Flux would pick this one, so it is what has to work.
+                if pullable "$${dst}:$${dst_tag}"; then
+                  echo "$${dst}:$${dst_tag} is ahead of $${src} and serves"
+                  exit 0
+                fi
+                echo "$${dst}:$${dst_tag} is ahead of $${src} but cannot be pulled"
+                exit 1
+              fi
+
+              if pullable "$${dst}:$${tag}"; then
+                echo "$${dst}:$${tag} already serves"
+                exit 0
+              fi
+              echo "Copying $${tag} from $${src}"
+              rm -rf /tmp/artifact && mkdir /tmp/artifact
+              flux pull artifact "oci://$${src}:$${tag}" --output /tmp/artifact
+              flux push artifact "oci://$${dst}:$${tag}" \
+                --path /tmp/artifact \
+                --source "$${source}" \
+                --revision "$${revision}" \
+                --creds "registry:$${APOCI_REGISTRY_TOKEN}"
+              pullable "$${dst}:$${tag}"
+              echo "$${dst}:$${tag} serves"
+          env:
+            - name: HOME
+              value: /tmp
+            - name: APOCI_REGISTRY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: apoci-secret
+                  key: APOCI_REGISTRY_TOKEN
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - "ALL"
+          resources:
+            requests:
+              cpu: 25m
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

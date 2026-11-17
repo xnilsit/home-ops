@@ -13,7 +13,7 @@ spec:
   path: ./kubernetes/apps/kube-system/priority-classes/app
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   # Other Kustomizations dependsOn this one, so it has to report Ready only
   # once the PriorityClasses actually exist.

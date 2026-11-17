@@ -58,7 +58,7 @@ spec:
       current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: true
   interval: 1h
@@ -96,7 +96,7 @@ spec:
       TIMESCALEDB_IMAGE_TAG: 2.32.0-18-trixie
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   # wait: true makes this Kustomization Ready only once the Job has completed,
   # which is what lets blocky depend on the schema existing.

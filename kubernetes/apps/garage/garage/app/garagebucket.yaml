@@ -62,3 +62,8 @@ items:
           - id: expire-history
             expirationDays: 30
             abortIncompleteMultipartUploadDays: 1
+  # The off-cluster copy of apoci's RGW blob bucket. Written every 15 minutes by
+  # the CronJob in kubernetes/apps/apoci/apoci/storage/rclone.yaml.
+  - <<: *bucket
+    metadata: {name: apoci}
+    spec: *spec

@@ -18,6 +18,8 @@ data:
   # the bucket to the host. Rook picks its own Service's ClusterIP, so this is a
   # second, hand-written Service in front of the same RGW pods.
   CEPH_RGW_IP: 10.43.241.102
+  # Registry the cluster's own OCI artifact is pulled from. Bootstrap overrides it in bootstrap/helmfile/templates/values.yaml.gotmpl.
+  FLUX_SOURCE_REGISTRY: registry.nilsit.de
   # standby: follow rra-team's Vaultwarden. primary: take over from it.
   # Procedure: kubernetes/apps/vaultwarden/vaultwarden/README.md
   VAULTWARDEN_MODE: standby

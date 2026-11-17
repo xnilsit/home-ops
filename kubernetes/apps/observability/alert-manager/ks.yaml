@@ -21,7 +21,7 @@ spec:
     - name: ntfy
       namespace: flux-system
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: false
   interval: 30m

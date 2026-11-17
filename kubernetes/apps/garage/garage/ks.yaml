@@ -31,6 +31,9 @@ spec:
     # Gates authentik-oidc-state, whose restore Job needs these credentials
     - <<: *key
       name: tofu-state
+    # Gates apoci-storage, whose restore Job needs these credentials
+    - <<: *key
+      name: apoci
   healthCheckExprs:
     # A management handle reports Running once a storage node's Admin API
     # answers - there are no pods for it to derive readiness from. Buckets and
@@ -46,7 +49,7 @@ spec:
       current: status.phase == 'Ready'
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: true
   interval: 1h

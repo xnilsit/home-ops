@@ -10,7 +10,7 @@ spec:
   path: ./kubernetes/apps/observability/grafana/crds
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
     namespace: flux-system
   targetNamespace: observability
@@ -30,7 +30,7 @@ spec:
   path: ./kubernetes/apps/observability/grafana/app
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
     namespace: flux-system
   targetNamespace: observability
@@ -67,7 +67,7 @@ spec:
       KOPIUR_PGID: "1000"
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
     namespace: flux-system
   targetNamespace: observability
@@ -84,7 +84,7 @@ spec:
   path: ./kubernetes/apps/observability/grafana/dashboards
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
     namespace: flux-system
   targetNamespace: observability

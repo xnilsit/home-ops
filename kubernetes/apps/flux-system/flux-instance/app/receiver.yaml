@@ -2,20 +2,14 @@
 apiVersion: notification.toolkit.fluxcd.io/v1
 kind: Receiver
 metadata:
-  name: github-webhook
+  name: artifact-webhook
 spec:
-  type: github
-  events:
-    - "ping"
-    - "push"
+  # Called by .github/workflows/publish.yaml once a new artifact is pushed.
+  type: generic
   secretRef:
-    name: github-webhook-token-secret
+    name: artifact-webhook-token-secret
   resources:
     - apiVersion: source.toolkit.fluxcd.io/v1
-      kind: GitRepository
-      name: flux-system
-      namespace: flux-system
-    - apiVersion: kustomize.toolkit.fluxcd.io/v1
-      kind: Kustomization
+      kind: OCIRepository
       name: flux-system
       namespace: flux-system

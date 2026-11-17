@@ -42,7 +42,7 @@ spec:
       current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
     # Explicit: this object is created under the consuming app's namespace, not
     # in flux-system, so the source reference crosses a namespace.

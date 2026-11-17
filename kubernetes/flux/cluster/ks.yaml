@@ -13,7 +13,7 @@ spec:
   prune: true
   wait: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   decryption:
     provider: sops
@@ -31,7 +31,7 @@ spec:
   path: ./kubernetes/apps
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
     namespace: flux-system
   wait: false
