@@ -68,8 +68,18 @@ jobs:
             --revision "${GITHUB_REF_NAME}@sha1:${GITHUB_SHA}" \
             --creds "registry:${APOCI_REGISTRY_TOKEN}"
 
+  # In-cluster, straight to notification-controller: Cloudflare answers hosted
+  # runners on flux-webhook.nilsit.de with a 403.
+  notify:
+    name: Notify Flux
+    needs: publish
+    runs-on: home-ops-runner
+    permissions: {}
+    steps:
       - name: Notify Flux
         env:
           FLUX_WEBHOOK_URL: ${{ secrets.FLUX_WEBHOOK_URL }}
-        # An explicit empty body, so the request carries a Content-Length for the WAF.
-        run: curl --fail --silent --show-error --retry 3 --data "" "${FLUX_WEBHOOK_URL}"
+        run: |-
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 3 --data "" \
+            "http://webhook-receiver.flux-system.svc/${FLUX_WEBHOOK_URL#https://*/}"
