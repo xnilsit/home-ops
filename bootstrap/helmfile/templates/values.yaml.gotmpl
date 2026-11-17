@@ -4,10 +4,13 @@
   ${LIKE_THIS} has to be resolved here or it reaches the chart literally.
 
   Same two sources as kubernetes/flux/cluster/ks.yaml, in the same order, so
-  cluster-secrets wins on a key both define.
+  cluster-secrets wins on a key both define. The bootstrap-only dict in front
+  wins over both: the cluster's own registry does not exist yet, so Flux starts
+  from the federated copy until the flux-instance Kustomization swaps it back.
 */ -}}
 {{- $root := "../../../kubernetes" -}}
 {{- $vars := merge
+      (dict "FLUX_SOURCE_REGISTRY" "registry.nilsit.dev")
       (fromYaml (exec "sops" (list "decrypt" (printf "%s/flux/meta/settings/cluster-secrets.sops.yaml" $root)))).stringData
       (fromYaml (readFile (printf "%s/flux/meta/settings/cluster-settings.yaml" $root))).data -}}
 {{- $out := (fromYaml (readFile (printf "%s/apps/%s/%s/app/helmrelease.yaml" $root .Release.Namespace .Release.Name))).spec.values | toYaml -}}

@@ -1,0 +1,75 @@
+---
+name: "Publish"
+
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "kubernetes/**"
+      - "tofu/**"
+      - ".github/workflows/publish.yaml"
+  workflow_dispatch:
+
+# Queued, never cancelled: every merge has to reach the cluster, in order.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
+
+env:
+  # Federates to registry.nilsit.dev/nilsit.de/home-ops, which bootstrap pulls from.
+  ARTIFACT: registry.nilsit.de/home-ops
+
+jobs:
+  publish:
+    name: Publish Flux Artifact
+    # Hosted, so publishing does not depend on the cluster's own runners.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Flux CLI
+        uses: fluxcd/flux2/action@3fa784edd773d56630bb9f62645e08f70c2cff0a # v2.10.0
+        with:
+          version: 2.10.0
+
+      # Month without a leading zero: 2026.01 is not valid semver.
+      - name: Derive Tag
+        id: meta
+        run: |
+          set -euo pipefail
+          tag="$(date -u +%Y.%-m).${GITHUB_RUN_NUMBER}"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "Publishing ${ARTIFACT}:${tag}" >> "$GITHUB_STEP_SUMMARY"
+
+      # Only what the Flux Kustomizations and the Terraform CR read.
+      - name: Stage Artifact
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/artifact"
+          cp -r kubernetes tofu "${RUNNER_TEMP}/artifact/"
+
+      - name: Push Artifact
+        env:
+          APOCI_REGISTRY_TOKEN: ${{ secrets.APOCI_REGISTRY_TOKEN }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          flux push artifact "oci://${ARTIFACT}:${TAG}" \
+            --path "${RUNNER_TEMP}/artifact" \
+            --source "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --revision "${GITHUB_REF_NAME}@sha1:${GITHUB_SHA}" \
+            --creds "registry:${APOCI_REGISTRY_TOKEN}"
+
+      - name: Notify Flux
+        env:
+          FLUX_WEBHOOK_URL: ${{ secrets.FLUX_WEBHOOK_URL }}
+        # An explicit empty body, so the request carries a Content-Length for the WAF.
+        run: curl --fail --silent --show-error --retry 3 --data "" "${FLUX_WEBHOOK_URL}"

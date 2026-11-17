@@ -10,7 +10,7 @@ spec:
     name: tofu-controller
   interval: 1h
   values:
-    # The Terraform CRs live here, the GitRepository lives in flux-system.
+    # The Terraform CRs live here, the OCIRepository lives in flux-system.
     allowCrossNamespaceRefs: true
     priorityClassName: cluster-platform
     # Chart default 24 is sized for fleets; this cluster has one Terraform CR.

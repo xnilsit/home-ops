@@ -18,7 +18,7 @@ spec:
       namespace: kube-system
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   # wait: true so anything depending on the NetworkAttachmentDefinition CRD -
   # home-assistant does - cannot apply before the CRD is established.

@@ -7,7 +7,7 @@ metadata:
 spec:
   path: ./tofu/authentik
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
     # Cross-namespace, which is why the HelmRelease sets allowCrossNamespaceRefs.
     namespace: flux-system

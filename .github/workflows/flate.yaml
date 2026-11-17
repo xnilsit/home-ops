@@ -82,14 +82,26 @@ jobs:
             find "${RUNNER_TEMP}/flate-bin" -mindepth 1 -maxdepth 1 ! -name "${FLATE_BIN}" -exec rm -rf {} +
           fi
 
-      # base exports FLATE_BASE, which flate diff picks up as --base
+      # An empty base: the baseline is a rewritten checkout passed as
+      # --path-orig, which flate refuses alongside FLATE_BASE
       - name: Setup flate
         id: flate
         uses: home-operations/flate/action@bbb6ebc344da051752dbdb1b413860ceffcfb63d # v0.7.3
         with:
-          base: origin/${{ github.event.pull_request.base.ref }}
+          base: ""
           bindir: ${{ runner.temp }}/flate-bin/${{ hashFiles('.github/workflows/flate.yaml') }}
           cache: false
+
+      # Flux syncs the published OCI artifact, which flate cannot read from the
+      # working tree; both sides are rendered as if synced from this repository
+      - name: Point Flux At The Checkouts
+        env:
+          BASE_REF: origin/${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          git worktree add --detach "${RUNNER_TEMP}/flate-base" "${BASE_REF}"
+          .github/flate/git-source.sh .
+          .github/flate/git-source.sh "${RUNNER_TEMP}/flate-base"
 
       # The default --strip-attr set already covers the chart-bump noise
       # flux-local needed spelled out
@@ -98,10 +110,10 @@ jobs:
         run: |
           set -euo pipefail
           # flate writes nothing at all when there is no difference
-          flate diff all --path ./kubernetes --output github > diff.patch
+          flate diff all --path ./kubernetes --path-orig "${RUNNER_TEMP}/flate-base/kubernetes" --output github > diff.patch
           if [[ -s diff.patch ]]; then
             echo "changed=true" >> "${GITHUB_OUTPUT}"
-            flate diff all --path ./kubernetes --output html > diff.html
+            flate diff all --path ./kubernetes --path-orig "${RUNNER_TEMP}/flate-base/kubernetes" --output html > diff.html
           fi
 
       - name: Upload Diff

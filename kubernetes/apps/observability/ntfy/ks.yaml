@@ -30,7 +30,7 @@ spec:
       APP: *app
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: false
   interval: 1h

@@ -3,6 +3,49 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
+  name: &app apoci-storage
+  namespace: flux-system
+spec:
+  targetNamespace: apoci
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/apoci/apoci/storage
+  dependsOn:
+    # Owns the ClusterSecretStore the Garage credential is pulled through
+    - name: external-secrets-stores-garage
+      namespace: flux-system
+    # The bucket StorageClass the OBC claims through
+    - name: rook-ceph-cluster
+      namespace: flux-system
+    # The apoci GarageKey, whose Secret is pulled in here
+    - name: garage
+      namespace: flux-system
+    # Serves the S3 endpoint the rclone workloads talk to
+    - name: garage-gateway
+      namespace: flux-system
+  postBuild:
+    substitute:
+      APP: apoci
+  # wait: true so the restore Job must COMPLETE before apoci starts against the
+  # bucket.
+  prune: true
+  # force: true so an rclone image bump can re-create the Jobs below; a Job's
+  # spec.template is immutable, and a dry-run Invalid on it blocks everything
+  # that dependsOn this Kustomization.
+  force: true
+  sourceRef:
+    kind: OCIRepository
+    name: flux-system
+  wait: true
+  interval: 1h
+  # A full restore copies the whole bucket from the NAS.
+  timeout: 1h
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
   name: &app apoci
   namespace: flux-system
 spec:
@@ -17,8 +60,8 @@ spec:
       namespace: flux-system
     - name: envoy-gateway
       namespace: flux-system
-    # The bucket StorageClass the OBC claims through
-    - name: rook-ceph-cluster
+    # The blob bucket, restored before apoci reads it
+    - name: apoci-storage
       namespace: flux-system
   postBuild:
     substitute:
@@ -30,8 +73,36 @@ spec:
       namespace: apoci
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: false
+  interval: 1h
+  timeout: 10m
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app apoci-seed
+  namespace: flux-system
+spec:
+  targetNamespace: apoci
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/apoci/apoci/seed
+  dependsOn:
+    - name: apoci
+      namespace: flux-system
+  # wait: true so flux-instance, which dependsOn this, only moves the cluster
+  # source once the Job has COMPLETED.
+  prune: true
+  # force: true so an image bump can re-create the Job; its spec.template is
+  # immutable.
+  force: true
+  sourceRef:
+    kind: OCIRepository
+    name: flux-system
+  wait: true
   interval: 1h
   timeout: 10m

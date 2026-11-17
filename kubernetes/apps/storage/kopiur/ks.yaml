@@ -20,7 +20,7 @@ spec:
       namespace: flux-system
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: false
   interval: 1h
@@ -48,7 +48,7 @@ spec:
       namespace: flux-system
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   # Gates every SnapshotPolicy in the cluster: kopiur's CRDs are kstatus-shaped,
   # so a plain healthCheck on Ready means "repository connected".
@@ -106,7 +106,7 @@ spec:
       current: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'True'))
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   # wait: false, since wait: true would ignore the healthCheckExprs above.
   wait: false

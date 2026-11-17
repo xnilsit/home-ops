@@ -16,7 +16,7 @@ spec:
       namespace: flux-system
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   # Holds coraza-waf back until the bootstrap Job has filled the volume.
   wait: true

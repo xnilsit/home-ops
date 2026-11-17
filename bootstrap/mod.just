@@ -16,7 +16,7 @@ talos: talos-secret talos-apply talos-talosconfig talos-kubeconfig
 [doc('Bootstrap apps into the Talos cluster')]
 [group('bootstrap')]
 apps: apps-ready apps-namespaces apps-secrets apps-crds apps-helm
-    just log info "Cluster is bootstrapped — Flux will start syncing the Git repository"
+    just log info "Cluster is bootstrapped — Flux will start syncing the OCI artifact from registry.nilsit.dev"
 
 # The bundle is written already encrypted with the repo's age recipient, and an
 # existing bundle is left untouched, so no sops call or existence guard is needed.

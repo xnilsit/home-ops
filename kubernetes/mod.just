@@ -6,7 +6,7 @@ set script-interpreter := ['bash', '-euo', 'pipefail']
 default:
     just kube -l
 
-[doc('Force Flux to pull in changes from your Git repository')]
+[doc('Force Flux to pull in the newest published artifact')]
 [group('kube')]
 reconcile:
     flux --namespace flux-system reconcile kustomization flux-system --with-source

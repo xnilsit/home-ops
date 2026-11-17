@@ -20,15 +20,26 @@ spec:
         - helm-controller
         - notification-controller
       sync:
-        kind: GitRepository
-        url: "https://github.com/xnilsit/home-ops.git"
-        ref: "refs/heads/main"
+        kind: OCIRepository
+        # Published by .github/workflows/publish.yaml. Bootstrap points this at the federated copy on registry.nilsit.dev.
+        url: "oci://${FLUX_SOURCE_REGISTRY}/${SECRET_DOMAIN}/home-ops"
+        # Placeholder: sync.ref only takes a tag, the semver patch below replaces it.
+        ref: "latest"
         path: kubernetes/flux/cluster
       commonMetadata:
         labels:
           app.kubernetes.io/name: flux
       kustomize:
         patches:
+          - # Follow the newest YYYY.M.build artifact
+            patch: |
+              - op: replace
+                path: /spec/ref
+                value:
+                  semver: ">=2026.0.0"
+            target:
+              kind: OCIRepository
+              name: flux-system
           - # Increase the number of workers
             patch: |
               - op: add

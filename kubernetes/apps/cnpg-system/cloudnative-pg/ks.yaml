@@ -25,7 +25,7 @@ spec:
       name: clusters.postgresql.cnpg.io
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   wait: true
   interval: 1h

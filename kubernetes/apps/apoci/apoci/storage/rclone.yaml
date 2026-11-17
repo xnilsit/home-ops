@@ -1,0 +1,152 @@
+---
+# apoci's blobs live in the RGW bucket the OBC above claims, while its database
+# sits on the shared CNPG cluster, which restores itself from backup. RGW is
+# in-cluster, so a rebootstrap loses the blobs - hence a copy on Garage and a
+# restore that runs before apoci starts.
+#
+# Blobs are content-addressed and never rewritten, so size alone tells two
+# copies apart. The .restore-in-progress marker sits outside the sha256/ prefix
+# apoci lists, and keeps the sync off a half-restored bucket.
+apiVersion: v1
+kind: List
+items:
+  # ── restore: Garage -> RGW, only when RGW is empty or a restore was cut off ──
+  - apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: apoci-storage-restore
+    spec:
+      backoffLimit: 6
+      # No ttlSecondsAfterFinished: this Job is Flux-owned, so a garbage-collected
+      # one is recreated and re-runs on the next reconcile. Harmless here only
+      # because the guard below makes a re-run a no-op.
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: apoci-storage-restore
+        spec:
+          restartPolicy: OnFailure
+          securityContext: &podSecurity
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - <<: &container
+                name: rclone
+                # Pulled direct, not through registry.${SECRET_DOMAIN}: this runs before apoci exists.
+                image: mirror.gcr.io/rclone/rclone:1.76.0@sha256:7cbeec24a44f206067597c0368be4de90ae19a64d5113c7d1938bd737a81e466
+                command:
+                  - "/bin/sh"
+                  - "-c"
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+                  capabilities:
+                    drop:
+                      - "ALL"
+                resources:
+                  requests:
+                    cpu: 50m
+                  limits:
+                    memory: 512Mi
+              args:
+                - |
+                  set -eu
+                  marker=".restore-in-progress"
+                  if rclone lsf rgw:apoci --max-depth 1 | grep -qx "sha256/" \
+                      && ! rclone lsf rgw:apoci --max-depth 1 --files-only | grep -qxF "$${marker}"; then
+                    echo "RGW already holds blobs; refusing to restore over them"
+                    exit 0
+                  fi
+                  echo "RGW holds no complete blob set; restoring from Garage"
+                  rclone touch "rgw:apoci/$${marker}" --s3-no-check-bucket
+                  rclone copy garage:apoci rgw:apoci \
+                    --size-only \
+                    --transfers 8 \
+                    --s3-no-check-bucket \
+                    --stats 30s \
+                    --stats-one-line
+                  rclone deletefile "rgw:apoci/$${marker}"
+              env: &rcloneEnv
+                - name: RCLONE_CONFIG_RGW_TYPE
+                  value: s3
+                - name: RCLONE_CONFIG_RGW_PROVIDER
+                  value: Ceph
+                - name: RCLONE_CONFIG_RGW_ENDPOINT
+                  value: http://rook-ceph-rgw-ceph-objectstore.rook-ceph.svc:80
+                - name: RCLONE_CONFIG_RGW_REGION
+                  value: us-east-1
+                - name: RCLONE_CONFIG_RGW_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef: {name: apoci, key: AWS_ACCESS_KEY_ID}
+                - name: RCLONE_CONFIG_RGW_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef: {name: apoci, key: AWS_SECRET_ACCESS_KEY}
+                - name: RCLONE_CONFIG_GARAGE_TYPE
+                  value: s3
+                # Garage is not a known rclone provider; Other keeps it off
+                # request shapes only RGW accepts.
+                - name: RCLONE_CONFIG_GARAGE_PROVIDER
+                  value: Other
+                - name: RCLONE_CONFIG_GARAGE_ENDPOINT
+                  value: "http://garage.garage.svc.cluster.local:3900"
+                # Garage rejects a SigV4 scope with the wrong region outright.
+                - name: RCLONE_CONFIG_GARAGE_REGION
+                  value: eu-central-1
+                - name: RCLONE_CONFIG_GARAGE_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef: {name: garage-apoci, key: AWS_ACCESS_KEY_ID}
+                - name: RCLONE_CONFIG_GARAGE_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef: {name: garage-apoci, key: AWS_SECRET_ACCESS_KEY}
+  # ── sync: RGW -> Garage, every 15 minutes ───────────────────────────────────
+  - apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      name: apoci-storage-sync
+    spec:
+      # Clear of the CNPG backup windows at 03:30 and 04:00.
+      schedule: "7-59/15 * * * *"
+      timeZone: "${TIMEZONE}"
+      concurrencyPolicy: Forbid
+      successfulJobsHistoryLimit: 1
+      failedJobsHistoryLimit: 3
+      jobTemplate:
+        spec:
+          backoffLimit: 2
+          template:
+            metadata:
+              labels:
+                app.kubernetes.io/name: apoci-storage-sync
+            spec:
+              restartPolicy: OnFailure
+              securityContext: *podSecurity
+              containers:
+                - <<: *container
+                  args:
+                    - |
+                      set -eu
+                      marker=".restore-in-progress"
+                      listing="$(rclone lsf rgw:apoci --max-depth 1)"
+                      if ! printf '%s\n' "$${listing}" | grep -qx "sha256/"; then
+                        echo "RGW holds no blobs; refusing to sync"
+                        exit 1
+                      fi
+                      if printf '%s\n' "$${listing}" | grep -qxF "$${marker}"; then
+                        echo "A restore is in progress; refusing to sync"
+                        exit 1
+                      fi
+                      # sync, so blobs apoci's GC dropped leave Garage too.
+                      # --max-delete fails the run instead of mirroring a mass
+                      # deletion; sync by hand once one is confirmed as intended.
+                      rclone sync rgw:apoci garage:apoci \
+                        --size-only \
+                        --fast-list \
+                        --max-delete 100 \
+                        --exclude "/$${marker}" \
+                        --s3-no-check-bucket \
+                        --stats 30s \
+                        --stats-one-line
+                  env: *rcloneEnv

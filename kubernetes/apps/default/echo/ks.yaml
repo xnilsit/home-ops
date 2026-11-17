@@ -28,7 +28,7 @@ spec:
       namespace: default
   prune: true
   sourceRef:
-    kind: GitRepository
+    kind: OCIRepository
     name: flux-system
   # wait: false, since wait: true would ignore the healthChecks above.
   wait: false

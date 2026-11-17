@@ -97,3 +97,15 @@ items:
         name: garage-tofu-state
       bucketPermissions:
         - {bucketRef: {name: tofu-state}, read: true, write: true}
+  - <<: *key
+    metadata: {name: apoci}
+    spec:
+      clusterRef: {name: garage}
+      neverExpires: true
+      secretTemplate:
+        <<: *template
+        # read as well as write: the restore Job copies Garage -> RGW when a
+        # rebootstrap leaves the RGW bucket empty.
+        name: garage-apoci
+      bucketPermissions:
+        - {bucketRef: {name: apoci}, read: true, write: true}

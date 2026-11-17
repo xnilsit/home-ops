@@ -147,6 +147,13 @@ spec:
             ui:
               enabled: true
 
+            gc:
+              retention:
+                perRepo:
+                  # The cluster's Flux artifact, one tag per publish.
+                  - repo: home-ops
+                    keepLastN: 30
+
             # Pulled as registry.${SECRET_DOMAIN}/<name>/<repo>:<tag>. private
             # makes the registry token a requirement before anything is fetched.
             upstreams:
@@ -245,6 +252,21 @@ spec:
             namespace: network
             sectionName: https
         rules:
-          - backendRefs:
+          - backendRefs: &backend
               - identifier: app
                 port: *port
+          # apoci's UI CSP omits connect-src and img-src, so the htmx search and the icons are blocked.
+          - backendRefs: *backend
+            matches:
+              - path:
+                  type: Exact
+                  value: /
+              - path:
+                  type: PathPrefix
+                  value: /ui/
+            filters:
+              - type: ResponseHeaderModifier
+                responseHeaderModifier:
+                  set:
+                    - name: Content-Security-Policy
+                      value: "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; img-src 'self' data:"
