@@ -1,5 +1,5 @@
 ---
-# Runner, listener, controller, job and buildkitd pods: DNS, API server, apoci and public IPv4 only.
+# Runner, listener, controller, job and buildkitd pods: DNS, API server, apoci, the Flux Receiver and public IPv4 only.
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -41,6 +41,15 @@ spec:
       toPorts:
         - ports:
             - port: "10443"
+              protocol: TCP
+    # The Publish workflow's call to the Flux Receiver.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: flux-system
+            app: notification-controller
+      toPorts:
+        - ports:
+            - port: "9292"
               protocol: TCP
     # "world" alone would include the LAN, so carve private ranges out.
     - toCIDRSet:
