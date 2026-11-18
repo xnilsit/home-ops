@@ -251,12 +251,6 @@
       enabled: false,
     },
     {
-      description: "node-healthcheck-operator v5.x tags are rebuilt from upstream main and their old digests are deleted",
-      matchDatasources: ["docker"],
-      matchPackageNames: ["quay.io/medik8s/node-healthcheck-operator"],
-      allowedVersions: "<5",
-    },
-    {
       description: "paperless-ngx's gotenberg-client still calls the Gotenberg 8 API (pdfa field, /forms/pdfengines/merge), which Gotenberg 9 refuses",
       matchDatasources: ["docker"],
       matchPackageNames: ["/gotenberg/gotenberg$/"],
