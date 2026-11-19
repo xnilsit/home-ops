@@ -337,7 +337,7 @@ local plugin_pins = {
   -- renovate: datasource=git-refs depName=https://github.com/NMAC427/guess-indent.nvim branch=main
   ['nmac427/guess-indent.nvim'] = { commit = '84a4987ff36798c2fc1169cbaff67960aed9776f' },
   -- renovate: datasource=git-refs depName=https://github.com/lewis6991/gitsigns.nvim branch=main
-  ['lewis6991/gitsigns.nvim'] = { commit = 'dc7698f932792a764d3db95fedee26c38e728355' },
+  ['lewis6991/gitsigns.nvim'] = { commit = 'c0862d382a35b7b45757d8d151a6a634c09bf3ce' },
   -- renovate: datasource=git-refs depName=https://github.com/folke/which-key.nvim branch=main
   ['folke/which-key.nvim'] = { commit = '3aab2147e74890957785941f0c1ad87d0a44c15a' },
   -- renovate: datasource=git-refs depName=https://github.com/folke/tokyonight.nvim branch=main
@@ -347,7 +347,7 @@ local plugin_pins = {
   -- renovate: datasource=git-refs depName=https://github.com/nvim-lua/plenary.nvim branch=master
   ['nvim-lua/plenary.nvim'] = { commit = '74b06c6c75e4eeb3108ec01852001636d85a932b' },
   -- renovate: datasource=git-refs depName=https://github.com/nvim-mini/mini.nvim branch=main
-  ['nvim-mini/mini.nvim'] = { commit = 'e199196f5ed6b085743da6a808e6c8510698cdce' },
+  ['nvim-mini/mini.nvim'] = { commit = '22619434ccca787cdb34406c97f0e395d4debadc' },
   -- renovate: datasource=github-tags depName=lukas-reineke/indent-blankline.nvim
   ['lukas-reineke/indent-blankline.nvim'] = { tag = 'v3.10.1' },
   -- renovate: datasource=git-refs depName=https://github.com/mason-org/mason.nvim branch=main
@@ -373,7 +373,7 @@ local plugin_pins = {
   -- renovate: datasource=git-refs depName=https://github.com/debugloop/telescope-undo.nvim branch=main
   ['debugloop/telescope-undo.nvim'] = { commit = '928d0c2dc9606e01e2cc547196f48d2eaecf58e5' },
   -- renovate: datasource=git-refs depName=https://github.com/nvim-treesitter/nvim-treesitter branch=main
-  ['nvim-treesitter/nvim-treesitter'] = { commit = 'b706d642dd20d0922e7e92365dc73617f0fdb4ea' },
+  ['nvim-treesitter/nvim-treesitter'] = { commit = '37e52c733ada9d8d544d53a763140ef1ba404353' },
   -- renovate: datasource=git-refs depName=https://github.com/nvim-treesitter/nvim-treesitter-textobjects branch=main
   ['nvim-treesitter/nvim-treesitter-textobjects'] = { commit = '5c7b0263797dfd1bd6202f2b219f3b53a80b2187' },
   -- renovate: datasource=git-refs depName=https://github.com/nvim-treesitter/nvim-treesitter-context branch=master
@@ -391,9 +391,9 @@ local plugin_pins = {
   -- renovate: datasource=git-refs depName=https://github.com/gbprod/yanky.nvim branch=main
   ['gbprod/yanky.nvim'] = { commit = 'edcbe0f6d693b9e7860626094f886a2d79cfe63b' },
   -- renovate: datasource=git-refs depName=https://github.com/neovim/nvim-lspconfig branch=master
-  ['neovim/nvim-lspconfig'] = { commit = 'e1c6a5a45d95ad22cf55c874db2ff8ab969556f0' },
+  ['neovim/nvim-lspconfig'] = { commit = '4648fd8ba5c678d7e2db75ae44ffac269bb589d8' },
   -- renovate: datasource=git-refs depName=https://github.com/mason-org/mason-lspconfig.nvim branch=main
-  ['mason-org/mason-lspconfig.nvim'] = { commit = '97ccf96bb2e7adb5f82975068bd4c7307d2afa8a' },
+  ['mason-org/mason-lspconfig.nvim'] = { commit = '761d376b5fbe6b21f659432ffadc1205c660176c' },
   -- renovate: datasource=git-refs depName=https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim branch=main
   ['WhoIsSethDaniel/mason-tool-installer.nvim'] = { commit = '443f1ef8b5e6bf47045cb2217b6f748a223cf7dc' },
   -- renovate: datasource=git-refs depName=https://github.com/towolf/vim-helm branch=master
