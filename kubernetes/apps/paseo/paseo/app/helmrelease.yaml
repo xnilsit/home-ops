@@ -24,7 +24,7 @@ spec:
             image:
               repository: registry.nilsit.de/nilsit.de/paseo
               # Rebuilt under the same tag by .github/workflows/paseo-image.yaml, the digest selects the build.
-              tag: 0.16.1@sha256:eb07ed58cc939db196892a63f3f28553de4e69ab787ad49e4170ff49caeb403f
+              tag: 0.16.2@sha256:51ed43f3e255d8fd197abeb1095dc96ee5292ebdd54cdcf22290ccc1c43bd2e5
             env:
               PASEO_HOSTNAMES: &host "paseo.${SECRET_DOMAIN}"
               # Voice models are re-downloadable, so they stay off the backed-up volume.
