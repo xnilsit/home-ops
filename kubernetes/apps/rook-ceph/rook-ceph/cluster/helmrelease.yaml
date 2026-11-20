@@ -96,6 +96,12 @@ spec:
           bdev_enable_discard: "true" # quote
           bdev_async_discard_threads: "1" # quote
           osd_class_update_on_start: "false" # quote
+          # Pools Ceph creates itself (e.g. RGW's default.rgw.*) land on the
+          # flash class instead of the class-less replicated_rule. This is a rule
+          # ID: 3 is replicated_flash, created by hand (ceph osd crush rule
+          # create-replicated replicated_flash default host flash). If that rule
+          # is ever recreated, its ID changes and this must follow.
+          osd_pool_default_crush_rule: "3" # quote
           # Caps the mon hunt tick at 15s, under the 30s ping timeout.
           mon_client_hunt_interval_max_multiple: "5" # quote
           # PG budget on 3 OSDs. Every pool is bounded - the RGW pools pinned at
