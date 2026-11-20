@@ -24,3 +24,32 @@ provisioning:
     match: disk.model == "WD_BLACK SN770 1TB"
   minSize: 800GB
   grow: true
+---
+# USB HDD dock, slot 1 -> /dev/disk/by-partlabel/r-hdd-01 (Rook OSD on a
+# local PV, see kubernetes/apps/rook-ceph/rook-ceph/cluster/hdd-osd-volumes.yaml).
+# Pinned to the drive's serial so a swapped or reordered disk is never
+# partitioned by accident. Check the value with
+# `talosctl -n kube-srv-03 get disks -o yaml`. Many USB bridges leave
+# `serial` empty or report the bridge's serial (the same for both bays). If
+# so, match on the drive's WWN instead: disk.wwid == "naa.5000...".
+# Talos only partitions free space, so a used disk needs
+# `talosctl -n kube-srv-03 wipe disk <dev>` first.
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: hdd-01
+provisioning:
+  diskSelector:
+    # 2TB HDD; swap the serial when it is replaced with a >=4TB drive
+    match: disk.transport == "usb" && disk.serial == "<KUBE_SRV_03_HDD_01_SERIAL>"
+  # Floor only: with no maxSize the partition fills the disk
+  minSize: 1TB
+  # Slot 2 (4TB HDD). Leave this commented out until the drive is installed:
+  # an unmatched volume can keep volumes declared after it from provisioning.
+  # ---
+  # apiVersion: v1alpha1
+  # kind: RawVolumeConfig
+  # name: hdd-02
+  # provisioning:
+  #   diskSelector:
+  #     match: disk.transport == "usb" && disk.serial == "<KUBE_SRV_03_HDD_02_SERIAL>"
+  #   minSize: 1TB

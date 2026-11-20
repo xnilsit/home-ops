@@ -9,3 +9,4 @@ resources:
   - ./httproute.yaml
   - ./storageclass.yaml
   - ./storageclass-cephfs-shallow.yaml
+  - ./hdd-osd-volumes.yaml

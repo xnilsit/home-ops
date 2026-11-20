@@ -1,0 +1,183 @@
+---
+# Local block PVs for the USB HDD OSDs, one per drive.
+#
+# ceph-volume's inventory rejects any disk on a USB bus (ID_BUS=usb, rook#14699,
+# no override), so Rook's host-device path (storage.nodes) never turns these
+# drives into OSDs. OSDs on PVCs skip that inventory and run
+# `ceph-volume raw prepare` directly, so the HDDs come in through the
+# storageClassDeviceSet "hdd" in helmrelease.yaml, which claims these PVs.
+#
+# The chain for each drive: Talos RawVolumeConfig hdd-0N selects the drive by
+# serial (talos/patches/node/<node>/30-volumes.yaml) and labels its partition
+# r-hdd-0N. The PV below points at that partlabel on that node, and the
+# device set's PVC binds it.
+#
+# The device set's count must equal the number of PVs here. Otherwise a PVC
+# stays Pending, or one binds a slot whose drive is missing.
+#
+# Capacity is informational only: the OSD takes the whole partition and Ceph
+# weights it by its real size. The PVC asks for 1Ti, so any slot qualifies.
+#
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ceph-osd-hdd-local
+provisioner: kubernetes.io/no-provisioner
+# Lets the scheduler pick the PV on the node the OSD prepare pod lands on.
+volumeBindingMode: WaitForFirstConsumer
+# A deleted OSD PVC must never free the PV for another claim with the old
+# OSD's data on it; replacing a drive is a manual, deliberate step.
+reclaimPolicy: Retain
+---
+# kube-srv-01, dock slot 1: 2TB HDD, serial <KUBE_SRV_01_HDD_01_SERIAL>
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hdd-kube-srv-01-01
+spec:
+  storageClassName: ceph-osd-hdd-local
+  volumeMode: Block
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  capacity:
+    storage: 1800Gi
+  local:
+    path: /dev/disk/by-partlabel/r-hdd-01
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - kube-srv-01
+---
+# kube-srv-02, dock slot 1: 2TB HDD, serial <KUBE_SRV_02_HDD_01_SERIAL>
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hdd-kube-srv-02-01
+spec:
+  storageClassName: ceph-osd-hdd-local
+  volumeMode: Block
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  capacity:
+    storage: 1800Gi
+  local:
+    path: /dev/disk/by-partlabel/r-hdd-01
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - kube-srv-02
+---
+# kube-srv-03, dock slot 1: 2TB HDD, serial <KUBE_SRV_03_HDD_01_SERIAL>
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hdd-kube-srv-03-01
+spec:
+  storageClassName: ceph-osd-hdd-local
+  volumeMode: Block
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  capacity:
+    storage: 1800Gi
+  local:
+    path: /dev/disk/by-partlabel/r-hdd-01
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - kube-srv-03
+              # Slot 2 (4TB HDDs): uncomment once the drives are installed and Talos has
+              # created r-hdd-02, then raise the device set's count in helmrelease.yaml to 6.
+              # ---
+              # # kube-srv-01, dock slot 2: 4TB HDD, serial <KUBE_SRV_01_HDD_02_SERIAL>
+              # # yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+              # apiVersion: v1
+              # kind: PersistentVolume
+              # metadata:
+              #   name: hdd-kube-srv-01-02
+              # spec:
+              #   storageClassName: ceph-osd-hdd-local
+              #   volumeMode: Block
+              #   accessModes:
+              #     - ReadWriteOnce
+              #   persistentVolumeReclaimPolicy: Retain
+              #   capacity:
+              #     storage: 3600Gi
+              #   local:
+              #     path: /dev/disk/by-partlabel/r-hdd-02
+              #   nodeAffinity:
+              #     required:
+              #       nodeSelectorTerms:
+              #         - matchExpressions:
+              #             - key: kubernetes.io/hostname
+              #               operator: In
+              #               values:
+              #                 - kube-srv-01
+              # ---
+              # # kube-srv-02, dock slot 2: 4TB HDD, serial <KUBE_SRV_02_HDD_02_SERIAL>
+              # # yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+              # apiVersion: v1
+              # kind: PersistentVolume
+              # metadata:
+              #   name: hdd-kube-srv-02-02
+              # spec:
+              #   storageClassName: ceph-osd-hdd-local
+              #   volumeMode: Block
+              #   accessModes:
+              #     - ReadWriteOnce
+              #   persistentVolumeReclaimPolicy: Retain
+              #   capacity:
+              #     storage: 3600Gi
+              #   local:
+              #     path: /dev/disk/by-partlabel/r-hdd-02
+              #   nodeAffinity:
+              #     required:
+              #       nodeSelectorTerms:
+              #         - matchExpressions:
+              #             - key: kubernetes.io/hostname
+              #               operator: In
+              #               values:
+              #                 - kube-srv-02
+              # ---
+              # # kube-srv-03, dock slot 2: 4TB HDD, serial <KUBE_SRV_03_HDD_02_SERIAL>
+              # # yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+              # apiVersion: v1
+              # kind: PersistentVolume
+              # metadata:
+              #   name: hdd-kube-srv-03-02
+              # spec:
+              #   storageClassName: ceph-osd-hdd-local
+              #   volumeMode: Block
+              #   accessModes:
+              #     - ReadWriteOnce
+              #   persistentVolumeReclaimPolicy: Retain
+              #   capacity:
+              #     storage: 3600Gi
+              #   local:
+              #     path: /dev/disk/by-partlabel/r-hdd-02
+              #   nodeAffinity:
+              #     required:
+              #       nodeSelectorTerms:
+              #         - matchExpressions:
+              #             - key: kubernetes.io/hostname
+              #               operator: In
+              #               values:
+              #                 - kube-srv-03
