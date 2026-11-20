@@ -187,16 +187,28 @@ spec:
         useAllNodes: false
         useAllDevices: false
         # devicePathFilter: "/dev/disk/by-id/(ata-SAMSUNG_MZ7KM|ata-SSDSC2KG480G8R_PHY|ata-SAMSUNG_MZ7LH)*" # List these with: `talosctl get disks` then get name of disk and do `talosctl get disk diskname -o yaml` and check spec.symlinks
+        # SATA and NVMe flash share one custom device class, "flash": a CRUSH
+        # rule takes a single class, and with osd.0 as the only nvme OSD a
+        # pool pinned to either "ssd" or "nvme" would have fewer than 3 hosts.
+        # deviceClass here only applies when an OSD is created; the existing
+        # OSDs were relabelled by hand (ceph osd crush set-device-class), which
+        # sticks because osd_class_update_on_start is false.
         nodes:
           - name: "kube-srv-01"
             devices:
               - name: "/dev/disk/by-partlabel/r-osd-01" # Samsung PM963 1.92TB SATA
+                config:
+                  deviceClass: flash
           - name: "kube-srv-02"
             devices:
               - name: "/dev/disk/by-partlabel/r-osd-01" # Samsung PM983 1.92TB NVME
+                config:
+                  deviceClass: flash
           - name: "kube-srv-03"
             devices:
               - name: "/dev/disk/by-partlabel/r-osd-01" # Samsung PM963 1.92TB SATA
+                config:
+                  deviceClass: flash
         config:
           osdsPerDevice: "1"
       resources:
@@ -251,10 +263,31 @@ spec:
           requests:
             cpu: 100m
             memory: 100Mi
+    # Every pool is pinned to a device class. A pool on the class-less
+    # replicated_rule would spread onto any HDD OSD, and the pg_autoscaler
+    # refuses to scale while class-less and class-pinned rules overlap.
+    # enableCrushUpdates lets Rook swap the rule of an existing pool (to
+    # <pool>_host_flash); without it Rook only applies deviceClass at creation.
     cephBlockPools:
+      # Ceph creates .mgr itself on the class-less rule; this CR takes it over.
+      - name: builtin-mgr
+        spec:
+          name: .mgr
+          failureDomain: host
+          deviceClass: flash
+          enableCrushUpdates: true
+          replicated:
+            size: 3
+            requireSafeReplicaSize: true
+          parameters:
+            compression_mode: none
+        storageClass:
+          enabled: false
       - name: ceph-blockpool
         spec:
           failureDomain: host
+          deviceClass: flash
+          enableCrushUpdates: true
           replicated:
             size: 3
         storageClass:
@@ -294,6 +327,8 @@ spec:
         spec:
           metadataPool:
             failureDomain: host
+            deviceClass: flash
+            enableCrushUpdates: true
             replicated:
               size: 3
             parameters:
@@ -303,6 +338,8 @@ spec:
           dataPools:
             - name: data0
               failureDomain: host
+              deviceClass: flash
+              enableCrushUpdates: true
               replicated:
                 size: 3
               parameters:
@@ -355,6 +392,8 @@ spec:
           # host loss leaves the pool degraded with nowhere to backfill.
           metadataPool:
             failureDomain: host
+            deviceClass: flash
+            enableCrushUpdates: true
             replicated:
               size: 3
             parameters:
@@ -374,6 +413,8 @@ spec:
               pg_autoscale_mode: "off"
           dataPool:
             failureDomain: host
+            deviceClass: flash
+            enableCrushUpdates: true
             replicated:
               size: 3
             parameters:
