@@ -25,7 +25,7 @@ spec:
             # O(1) - nginx creates everything below these as www-data.
             image:
               repository: &image docker.io/lancachenet/monolithic
-              tag: &tag latest@sha256:155817065b13cc427aa0014acc34bbb389591400d7639c95abcfcfb2230ad7f0
+              tag: &tag latest@sha256:f4e56b92d0ed7b36ad663adfc6d86d0f33e3412f0238712c4cdae4047761a3fe
             command:
               - /bin/sh
               - -c
