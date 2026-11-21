@@ -10,7 +10,7 @@
 # The builder stage IS the operand image, so the extension is compiled against
 # the exact PostgreSQL major, Debian release and architecture it will run on.
 # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql
-ARG BASE=ghcr.io/cloudnative-pg/postgresql:18-minimal-trixie@sha256:0675340b02be838319b9b6f323c206693e519dcd62ec729d539be9f46bb7a2f9
+ARG BASE=ghcr.io/cloudnative-pg/postgresql:19-minimal-trixie@sha256:28f6604b4e142cadd8b0154ae82a5541e321d6f33b27fc5a054ced3dde53e6e8
 
 FROM ${BASE} AS builder
 
