@@ -1,6 +1,6 @@
 # Paseo daemon with Claude Code and the CLIs agents need against home-ops.
 # renovate: datasource=docker depName=ghcr.io/getpaseo/paseo
-ARG BASE=ghcr.io/getpaseo/paseo:0.16.2@sha256:44e9f10a192478e4906b37dbf097f555d48e9683194797f80a4f4bb132409a9a
+ARG BASE=ghcr.io/getpaseo/paseo:0.17.0@sha256:58c114780d9e84e435f437c90dbc14e8caa5714d01b3837fe8a8139ad6728924
 
 # Neovim with its plugins, LSPs and parsers prebuilt, the final image has neither compilers nor a writable rootfs.
 # Same base as the final stage: Mason's Python venvs link /usr/bin/python3.
