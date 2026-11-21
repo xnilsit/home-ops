@@ -26,6 +26,9 @@ locals {
     "oxicloud-admin" = {}
     # Seerr requests, without the rest of the media stack.
     "media" = {}
+    # Silo login; the -admin one maps to Silo's admin role.
+    "silo"       = {}
+    "silo-admin" = {}
     # Matrix login; members get @<username> on the homeserver on first login.
     "matrix" = {}
     # Grimoire login. `grimoire` is the role and permissions object the

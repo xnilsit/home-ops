@@ -268,6 +268,12 @@
       matchPackageNames: ["ghcr.io/cloudnative-pg/postgresql"],
       allowedVersions: "<19",
     },
+    {
+      description: "Silo tags pre-release builds build-N, which plain docker versioning cannot order. Each is a major, so none auto-merges",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["/silo-server/silo-server$/"],
+      versioning: "regex:^build-(?<major>\\d+)$",
+    },
     // ---------------------------------------------------------------------
     // Digests
     // ---------------------------------------------------------------------
