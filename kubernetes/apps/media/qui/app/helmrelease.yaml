@@ -1,0 +1,118 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: qui
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: qui
+  interval: 1h
+  values:
+    controllers:
+      qui:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # SQLite on an RWO volume.
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: registry.nilsit.de/ghcr.io/autobrr/qui
+              tag: v1.36.0@sha256:ecfd0f508f951f038b590f4fcfd33177d2ce0a8d4d33d86864b0d96e917caf59
+            env:
+              # Authentik in front via components/oidc.
+              QUI__AUTH_DISABLED: "true"
+              QUI__I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA: "true"
+              # Pod networks only, so envoy and in-cluster clients.
+              QUI__AUTH_DISABLED_ALLOWED_CIDRS: 10.42.0.0/16,fd2e:9a41:6b8c:4200::/56
+              QUI__HOST: 0.0.0.0
+              QUI__PORT: &port 7476
+              QUI__METRICS_ENABLED: "true"
+              QUI__METRICS_HOST: 0.0.0.0
+              QUI__METRICS_PORT: &metricsPort 9074
+              TZ: ${TIMEZONE}
+            envFrom:
+              - secretRef:
+                  name: qui-secret
+            probes:
+              liveness:
+                enabled: true
+                spec:
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: *port
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              startup:
+                enabled: true
+                spec:
+                  failureThreshold: 30
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+                memory: 128Mi
+              limits:
+                memory: 1Gi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        # Also what kopiur's mover reads the volume as.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    service:
+      app:
+        ports:
+          http:
+            port: *port
+          metrics:
+            port: *metricsPort
+    serviceMonitor:
+      app:
+        endpoints:
+          - port: metrics
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            client:
+              oauth2:
+                token-url: ${AUTHENTIK_URL}/application/o/token/
+                client-id: home-ops-gatus-probe
+                client-secret: $${GATUS_PROBE_CLIENT_SECRET}
+                scopes: ["openid", "profile"]
+        hostnames:
+          - "qui.${SECRET_DOMAIN}"
+        parentRefs:
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+    persistence:
+      config:
+        # Provisioned by components/kopiur/backup through its Restore populator.
+        existingClaim: qui
+      # Hardlinks and orphan scans across the torrent data.
+      media:
+        existingClaim: media
+      tmp:
+        type: emptyDir

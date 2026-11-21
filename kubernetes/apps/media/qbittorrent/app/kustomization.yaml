@@ -1,0 +1,24 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  # Provisions the /config PVC (named ${APP}) and snapshots it to the NAS.
+  - ../../../../components/kopiur/backup
+  - ../../../../components/oidc
+  - ../../../../components/oidc-probe
+resources:
+  # AirVPN WireGuard credentials and forwarded port, from the client area config generator.
+  - ./secret.sops.yaml
+  - ./ocirepository.yaml
+  - ./helmrelease.yaml
+configMapGenerator:
+  - name: qbittorrent-scripts
+    files:
+      - upload-limit.sh=./resources/upload-limit.sh
+generatorOptions:
+  # Mounted by name from the HelmRelease.
+  disableNameSuffixHash: true
+  annotations:
+    # The script's ${...} are shell expansions.
+    kustomize.toolkit.fluxcd.io/substitute: disabled
