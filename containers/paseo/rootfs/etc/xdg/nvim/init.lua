@@ -307,7 +307,7 @@ local tools = {
   -- renovate: datasource=github-releases depName=artempyanykh/marksman versioning=loose
   { 'marksman', version = '2026-02-08' },
   -- renovate: datasource=github-releases depName=astral-sh/ruff
-  { 'ruff', version = '0.17.5' },
+  { 'ruff', version = '0.17.6' },
   -- renovate: datasource=npm depName=typescript-language-server
   { 'typescript-language-server', version = '6.1.0' },
   -- renovate: datasource=github-releases depName=tekumara/typos-vscode
@@ -347,7 +347,7 @@ local plugin_pins = {
   -- renovate: datasource=git-refs depName=https://github.com/nvim-lua/plenary.nvim branch=master
   ['nvim-lua/plenary.nvim'] = { commit = '74b06c6c75e4eeb3108ec01852001636d85a932b' },
   -- renovate: datasource=git-refs depName=https://github.com/nvim-mini/mini.nvim branch=main
-  ['nvim-mini/mini.nvim'] = { commit = '22619434ccca787cdb34406c97f0e395d4debadc' },
+  ['nvim-mini/mini.nvim'] = { commit = 'b8a0af521530f8ee68c738657429eab59de6a2ae' },
   -- renovate: datasource=github-tags depName=lukas-reineke/indent-blankline.nvim
   ['lukas-reineke/indent-blankline.nvim'] = { tag = 'v3.10.1' },
   -- renovate: datasource=git-refs depName=https://github.com/mason-org/mason.nvim branch=main
