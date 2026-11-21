@@ -39,15 +39,15 @@ RUN set -eux; \
 FROM ${BASE}
 
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
-ARG CLAUDE_CODE_VERSION=2.1.328
+ARG CLAUDE_CODE_VERSION=2.1.330
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
 ARG KUBECTL_VERSION=v1.37.2
 # renovate: datasource=github-releases depName=fluxcd/flux2
-ARG FLUX_VERSION=v2.10.0
+ARG FLUX_VERSION=v2.10.1
 # renovate: datasource=github-releases depName=cli/cli
 ARG GH_VERSION=v2.105.0
 # renovate: datasource=github-releases depName=jdx/mise
-ARG MISE_VERSION=v2026.11.10
+ARG MISE_VERSION=v2026.11.11
 # renovate: datasource=npm depName=@opencode/cli
 ARG OPENCODE_VERSION=2.3.2
 # renovate: datasource=npm depName=opencode-with-claude
