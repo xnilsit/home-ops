@@ -228,9 +228,10 @@ spec:
         # the local PVs and the reasoning live in ./hdd-osd-volumes.yaml.
         storageClassDeviceSets:
           - name: hdd
-            # Must equal the number of PVs in ./hdd-osd-volumes.yaml: 3 now,
-            # 6 once each dock's second slot is filled.
-            count: 3
+            # Must equal the number of PVs in ./hdd-osd-volumes.yaml: 4 now
+            # (both slots on kube-srv-03), 6 once every dock's second slot is
+            # filled.
+            count: 4
             # Local disks: the OSD stays on the node that holds the drive and
             # takes that node as its CRUSH host.
             portable: false

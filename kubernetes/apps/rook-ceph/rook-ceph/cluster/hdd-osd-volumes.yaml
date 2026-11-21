@@ -8,7 +8,7 @@
 # storageClassDeviceSet "hdd" in helmrelease.yaml, which claims these PVs.
 #
 # The chain for each drive: Talos RawVolumeConfig hdd-0N selects the drive by
-# serial (talos/patches/node/<node>/30-volumes.yaml) and labels its partition
+# serial or WWN (talos/patches/node/<node>/30-volumes.yaml) and labels its partition
 # r-hdd-0N. The PV below points at that partlabel on that node, and the
 # device set's PVC binds it.
 #
@@ -30,7 +30,7 @@ volumeBindingMode: WaitForFirstConsumer
 # OSD's data on it; replacing a drive is a manual, deliberate step.
 reclaimPolicy: Retain
 ---
-# kube-srv-01, dock slot 1: 2TB HDD, serial <KUBE_SRV_01_HDD_01_SERIAL>
+# kube-srv-01, dock slot 1: Seagate ST32000542AS 2TB, serial 5XW00JKV
 # yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
 apiVersion: v1
 kind: PersistentVolume
@@ -55,7 +55,7 @@ spec:
               values:
                 - kube-srv-01
 ---
-# kube-srv-02, dock slot 1: 2TB HDD, serial <KUBE_SRV_02_HDD_01_SERIAL>
+# kube-srv-02, dock slot 1: Seagate ST32000542AS 2TB, serial 5XW02GVB
 # yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
 apiVersion: v1
 kind: PersistentVolume
@@ -80,7 +80,7 @@ spec:
               values:
                 - kube-srv-02
 ---
-# kube-srv-03, dock slot 1: 2TB HDD, serial <KUBE_SRV_03_HDD_01_SERIAL>
+# kube-srv-03, dock slot 1: Samsung HD204UI 2TB, serial S2H7JD2ZA01281
 # yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
 apiVersion: v1
 kind: PersistentVolume
@@ -104,8 +104,34 @@ spec:
               operator: In
               values:
                 - kube-srv-03
-              # Slot 2 (4TB HDDs): uncomment once the drives are installed and Talos has
-              # created r-hdd-02, then raise the device set's count in helmrelease.yaml to 6.
+---
+# kube-srv-03, dock slot 2: Seagate IronWolf Pro ST4000NE001 4TB, serial WS251D9V
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hdd-kube-srv-03-02
+spec:
+  storageClassName: ceph-osd-hdd-local
+  volumeMode: Block
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  capacity:
+    storage: 3600Gi
+  local:
+    path: /dev/disk/by-partlabel/r-hdd-02
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - kube-srv-03
+              # Slot 2 on kube-srv-01/02 (4TB HDDs): uncomment once the drives are installed
+              # and Talos has created r-hdd-02, then raise the device set's count in
+              # helmrelease.yaml to match.
               # ---
               # # kube-srv-01, dock slot 2: 4TB HDD, serial <KUBE_SRV_01_HDD_02_SERIAL>
               # # yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
@@ -156,28 +182,3 @@ spec:
               #               operator: In
               #               values:
               #                 - kube-srv-02
-              # ---
-              # # kube-srv-03, dock slot 2: 4TB HDD, serial <KUBE_SRV_03_HDD_02_SERIAL>
-              # # yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
-              # apiVersion: v1
-              # kind: PersistentVolume
-              # metadata:
-              #   name: hdd-kube-srv-03-02
-              # spec:
-              #   storageClassName: ceph-osd-hdd-local
-              #   volumeMode: Block
-              #   accessModes:
-              #     - ReadWriteOnce
-              #   persistentVolumeReclaimPolicy: Retain
-              #   capacity:
-              #     storage: 3600Gi
-              #   local:
-              #     path: /dev/disk/by-partlabel/r-hdd-02
-              #   nodeAffinity:
-              #     required:
-              #       nodeSelectorTerms:
-              #         - matchExpressions:
-              #             - key: kubernetes.io/hostname
-              #               operator: In
-              #               values:
-              #                 - kube-srv-03

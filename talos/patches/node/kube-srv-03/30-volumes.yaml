@@ -27,11 +27,12 @@ provisioning:
 ---
 # USB HDD dock, slot 1 -> /dev/disk/by-partlabel/r-hdd-01 (Rook OSD on a
 # local PV, see kubernetes/apps/rook-ceph/rook-ceph/cluster/hdd-osd-volumes.yaml).
-# Pinned to the drive's serial so a swapped or reordered disk is never
-# partitioned by accident. Check the value with
-# `talosctl -n kube-srv-03 get disks -o yaml`. Many USB bridges leave
-# `serial` empty or report the bridge's serial (the same for both bays). If
-# so, match on the drive's WWN instead: disk.wwid == "naa.5000...".
+# Pinned to the drive's own WWN so a swapped or reordered disk is never
+# partitioned by accident. The dock's ASMedia 2115 bridge leaves
+# disk.serial empty and reports the same fake disk.wwid
+# (naa.5000000000000001) for both bays, but the drive's real WWN still shows
+# up as a /dev/disk/by-id/wwn-* symlink. Check it with
+# `talosctl -n kube-srv-03 get disks -o yaml`.
 # Talos only partitions free space, so a used disk needs
 # `talosctl -n kube-srv-03 wipe disk <dev>` first.
 apiVersion: v1alpha1
@@ -39,17 +40,18 @@ kind: RawVolumeConfig
 name: hdd-01
 provisioning:
   diskSelector:
-    # 2TB HDD; swap the serial when it is replaced with a >=4TB drive
-    match: disk.transport == "usb" && disk.serial == "<KUBE_SRV_03_HDD_01_SERIAL>"
+    # Samsung HD204UI 2TB, serial S2H7JD2ZA01281; swap the WWN when it is
+    # replaced with a >=4TB drive
+    match: disk.transport == "usb" && "/dev/disk/by-id/wwn-0x50024e900430a34f" in disk.symlinks
   # Floor only: with no maxSize the partition fills the disk
   minSize: 1TB
-  # Slot 2 (4TB HDD). Leave this commented out until the drive is installed:
-  # an unmatched volume can keep volumes declared after it from provisioning.
-  # ---
-  # apiVersion: v1alpha1
-  # kind: RawVolumeConfig
-  # name: hdd-02
-  # provisioning:
-  #   diskSelector:
-  #     match: disk.transport == "usb" && disk.serial == "<KUBE_SRV_03_HDD_02_SERIAL>"
-  #   minSize: 1TB
+---
+# USB HDD dock, slot 2 -> /dev/disk/by-partlabel/r-hdd-02
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: hdd-02
+provisioning:
+  diskSelector:
+    # Seagate IronWolf Pro ST4000NE001 4TB, serial WS251D9V
+    match: disk.transport == "usb" && "/dev/disk/by-id/wwn-0x5000c5007445b4b3" in disk.symlinks
+  minSize: 1TB
