@@ -1,0 +1,21 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/objectbucket.io/objectbucketclaim_v1alpha1.json
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: ${APP}-artwork
+spec:
+  # Silo's public store: artwork, trickplay, markers and subtitles, read by clients through presigned URLs.
+  bucketName: ${APP}-artwork
+  # Retain: a deleted claim costs a manual cleanup, not every uploaded image.
+  storageClassName: ceph-bucket-retain
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/objectbucket.io/objectbucketclaim_v1alpha1.json
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: ${APP}-private
+spec:
+  # Silo's operational store: avatars, diagnostics and kept subtitle tracks, shared by every API replica.
+  bucketName: ${APP}-private
+  storageClassName: ceph-bucket-retain

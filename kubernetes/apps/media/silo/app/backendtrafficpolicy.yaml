@@ -1,0 +1,43 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/gateway.envoyproxy.io/backendtrafficpolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: silo
+spec:
+  # Inherits the rest of BackendTrafficPolicy/envoy in envoy-gateway/app/envoy.yaml.
+  # JSONMerge, not StrategicMerge: the latter appends rate limit rules to the
+  # gateway's, so its 1200/min would still apply; JSONMerge replaces the list.
+  mergeType: JSONMerge
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: silo
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: silo-jf
+  # A playback session lives on the API replica that started it, so a client
+  # must stick to one pod. SourceIP rather than a cookie: TV and Jellyfin apps keep none.
+  loadBalancer:
+    type: ConsistentHash
+    consistentHash:
+      type: SourceIP
+  # HLS fetches a segment every few seconds per stream, on top of browsing.
+  rateLimit:
+    type: Global
+    global:
+      rules:
+        - clientSelectors:
+            - sourceCIDR:
+                type: Distinct
+                value: 0.0.0.0/0
+          limit:
+            requests: 6000
+            unit: Minute
+        - clientSelectors:
+            - sourceCIDR:
+                type: Distinct
+                value: ::/0
+          limit:
+            requests: 6000
+            unit: Minute

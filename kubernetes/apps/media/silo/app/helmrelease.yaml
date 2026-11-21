@@ -1,0 +1,470 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: silo
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: silo
+  interval: 1h
+  # A transcode node drains its streams for up to SILO_NODE_DRAIN_TIMEOUT before it stops.
+  timeout: 30m
+  values:
+    controllers:
+      silo:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # A StatefulSet for the ordinal: only pod 0 reads the plugin declaration.
+        type: statefulset
+        replicas: 2
+        strategy: RollingUpdate
+        statefulset:
+          podManagementPolicy: Parallel
+        podDisruptionBudget:
+          maxUnavailable: 1
+        pod:
+          # Silo fails readiness, then finishes in-flight requests.
+          terminationGracePeriodSeconds: 120
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/controller: silo
+        containers:
+          app:
+            image: &image
+              repository: registry.nilsit.de/ghcr.io/silo-server/silo-server
+              tag: build-2900@sha256:7787198cc5a4acb954bed8d2a533e325465f34195f878d033e80a795dc6c3806
+            # Bypasses the image's s6 init, which only starts the bundled PostgreSQL and Redis and needs root.
+            command:
+              - "/bin/sh"
+              - "-c"
+            # Silo allows one plugin provisioning writer; a second replica with the file reports a refusal.
+            args:
+              - |
+                case "$${POD_NAME}" in
+                  *-0) export SILO_PLUGINS_FILE=/run/silo-config/plugins.yaml ;;
+                esac
+                exec silo
+            env:
+              MODE: api
+              PORT: &port 8080
+              JF_PORT: &jfPort 8096
+              TZ: ${TIMEZONE}
+              # npm's cache, for the jellyfin-web install.
+              HOME: /tmp
+              POD_NAME:
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              SECRET_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: silo-secret
+                    key: SECRET_KEY
+              # Direct, not through a pooler: Silo holds session-level advisory locks.
+              DATABASE_URL:
+                valueFrom:
+                  secretKeyRef:
+                    name: silo-postgres-app
+                    key: uri
+              DRAGONFLY_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: silo-dragonfly-auth
+                    key: password
+              REDIS_URL:
+                value: redis://:$(DRAGONFLY_PASSWORD)@silo-dragonfly:6379
+                dependsOn: DRAGONFLY_PASSWORD
+              SILO_PUBLIC_URL: https://silo.${SECRET_DOMAIN}
+              SILO_JELLYFIN_PUBLIC_URL: https://silo-jf.${SECRET_DOMAIN}
+              # Envoy's pod CIDRs, so X-Forwarded-For names the client.
+              SILO_TRUSTED_PROXIES: 10.42.0.0/16,fd2e:9a41:6b8c:4200::/56
+              SILO_SIGNUP_ENABLED: "false"
+              SILO_AUDIOBOOKSHELF_ENABLED: "false"
+              # mDNS does not cross the pod network.
+              SILO_LAN_DISCOVERY: "false"
+              # The database is archived by barman.
+              SILO_BACKUP_ENABLED: "false"
+              # Client connections end at Envoy, so there is nothing to tune.
+              SILO_NET_TCP_CONGESTION: "off"
+              SILO_NET_TCP_SEND_BUFFER: "off"
+              SILO_METRICS_LISTEN: ":9091"
+              SILO_TRANSCODE_NODES_FILE: /run/silo-config/transcode-nodes.yaml
+              OIDC_CLIENT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: silo-oidc
+                    key: client-secret
+              # Recorded on first write; changing these later needs a storage transition.
+              SILO_ARTWORK_STORAGE: s3
+              # Also the host of the presigned URLs clients fetch from, for both buckets.
+              SILO_S3_PUBLIC_ENDPOINT: &s3 https://rgw.${SECRET_DOMAIN}
+              SILO_S3_PUBLIC_REGION: &region us-east-1
+              SILO_S3_PUBLIC_PATH_STYLE: "true"
+              SILO_S3_PUBLIC_BUCKET:
+                valueFrom:
+                  configMapKeyRef:
+                    name: &artwork silo-artwork
+                    key: BUCKET_NAME
+              SILO_S3_PUBLIC_ACCESS_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: *artwork
+                    key: AWS_ACCESS_KEY_ID
+              SILO_S3_PUBLIC_SECRET_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: *artwork
+                    key: AWS_SECRET_ACCESS_KEY
+              SILO_S3_PRIVATE_ENDPOINT: *s3
+              SILO_S3_PRIVATE_REGION: *region
+              SILO_S3_PRIVATE_PATH_STYLE: "true"
+              SILO_S3_PRIVATE_BUCKET:
+                valueFrom:
+                  configMapKeyRef:
+                    name: &private silo-private
+                    key: BUCKET_NAME
+              SILO_S3_PRIVATE_ACCESS_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: *private
+                    key: AWS_ACCESS_KEY_ID
+              SILO_S3_PRIVATE_SECRET_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: *private
+                    key: AWS_SECRET_ACCESS_KEY
+            probes:
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/v1/health
+                    port: *port
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              # Fails while the replica shuts down, so Envoy stops sending it new requests.
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/v1/ready
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              # Migrations run before the listener opens, with a 20 minute budget.
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/v1/health
+                    port: *port
+                  periodSeconds: 10
+                  failureThreshold: 130
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 200m
+                memory: 512Mi
+              limits:
+                memory: 4Gi
+
+      transcode-intel: &transcode
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # Stable pod names, which the declared node URLs and keys are keyed on.
+        type: statefulset
+        replicas: 2
+        strategy: RollingUpdate
+        statefulset:
+          podManagementPolicy: Parallel
+          serviceName:
+            identifier: transcode-intel
+        pod:
+          # Covers SILO_NODE_DRAIN_TIMEOUT plus the shutdown after it.
+          terminationGracePeriodSeconds: 360
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/controller: transcode-intel
+        containers:
+          app:
+            image: *image
+            command:
+              - "silo"
+            env: &transcodeEnv
+              MODE: transcode
+              PORT: *port
+              TZ: ${TIMEZONE}
+              HOME: /tmp
+              SILO_CORE_URL: http://silo.media.svc.cluster.local:8080
+              POD_NAME:
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              SILO_NODE_KEY_FILE:
+                value: /run/silo-node-keys/$(POD_NAME)
+                dependsOn: POD_NAME
+              SILO_NODE_DRAIN_TIMEOUT: 5m
+              SILO_NODE_HW_ACCEL: qsv
+              SILO_NODE_HW_DEVICE: /dev/dri/renderD128
+            probes: &transcodeProbes
+              # The listener opens only once the node has read its configuration from the API.
+              liveness: &transcodeProbe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/v1/health
+                    port: *port
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              readiness: *transcodeProbe
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/v1/health
+                    port: *port
+                  periodSeconds: 10
+                  failureThreshold: 60
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                memory: 4Gi
+                # QSV. Also what places the pod: only the Intel nodes advertise it.
+                gpu.intel.com/i915: 1
+
+      transcode-amd:
+        <<: *transcode
+        statefulset:
+          podManagementPolicy: Parallel
+          serviceName:
+            identifier: transcode-amd
+        pod:
+          terminationGracePeriodSeconds: 360
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/controller: transcode-amd
+        containers:
+          app:
+            image: *image
+            command:
+              - "silo"
+            env:
+              <<: *transcodeEnv
+              SILO_NODE_HW_ACCEL: vaapi
+            probes: *transcodeProbes
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                memory: 4Gi
+                # VA-API. Also what places the pod: only the AMD nodes advertise it.
+                squat.ai/dri: 1
+
+    defaultPodOptions:
+      # Pins Silo's own S3 traffic to envoy-internal: k8s-gateway also answers with
+      # envoy-external, whose WAF would inspect every upload from this pod.
+      hostAliases:
+        - ip: 192.168.1.150
+          hostnames:
+            - "rgw.${SECRET_DOMAIN}"
+      securityContext:
+        runAsNonRoot: true
+        # Reads the media as Jellyfin does. The Intel plugin hands the render
+        # node to this uid; the AMD one is world-readable.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+
+    configMaps:
+      config:
+        data:
+          # Mounted on pod 0 only, by the start command above.
+          plugins.yaml: |
+            apiVersion: 1
+            plugins:
+              silo.auth.oidc:
+                catalog: silo
+                version: "0.1.2"
+                config:
+                  display_name:
+                    value: authentik
+                  connection:
+                    issuer_url: ${AUTHENTIK_URL}/application/o/home-ops-silo/
+                    client_id: home-ops-silo
+                    client_secret:
+                      fromEnv: OIDC_CLIENT_SECRET
+                    # Lets Silo re-check group membership every 12h.
+                    request_offline_access: true
+                    # authentik does not report it; its provider default.
+                    refresh_token_lifetime: 30d
+                  access:
+                    allowed_groups: "silo\nsilo-admin"
+                    admin_groups: silo-admin
+                auth_binding:
+                  capability_id: oidc
+                  enabled: true
+                  auto_provision: true
+                  callback: stable
+          # Ids 1-4 are fixed by the keys in secret.sops.yaml.
+          transcode-nodes.yaml: |
+            apiVersion: 1
+            nodes:
+              intel-0:
+                url: http://silo-transcode-intel-0.silo-transcode-intel.media.svc.cluster.local:8080
+                key: {fromFile: /run/silo-node-keys/silo-transcode-intel-0}
+              intel-1:
+                url: http://silo-transcode-intel-1.silo-transcode-intel.media.svc.cluster.local:8080
+                key: {fromFile: /run/silo-node-keys/silo-transcode-intel-1}
+              amd-0:
+                url: http://silo-transcode-amd-0.silo-transcode-amd.media.svc.cluster.local:8080
+                key: {fromFile: /run/silo-node-keys/silo-transcode-amd-0}
+              amd-1:
+                url: http://silo-transcode-amd-1.silo-transcode-amd.media.svc.cluster.local:8080
+                key: {fromFile: /run/silo-node-keys/silo-transcode-amd-1}
+
+    service:
+      app:
+        forceRename: silo
+        controller: silo
+        ports:
+          http:
+            port: *port
+            primary: true
+          jellyfin:
+            port: *jfPort
+          metrics:
+            port: 9091
+      # Headless, for the stable per-pod names the API reaches each node at.
+      transcode-intel:
+        forceRename: silo-transcode-intel
+        controller: transcode-intel
+        clusterIP: None
+        # A draining node still serves its streams.
+        publishNotReadyAddresses: true
+        ports:
+          http:
+            port: *port
+      transcode-amd:
+        forceRename: silo-transcode-amd
+        controller: transcode-amd
+        clusterIP: None
+        publishNotReadyAddresses: true
+        ports:
+          http:
+            port: *port
+
+    serviceMonitor:
+      app:
+        service:
+          identifier: app
+        endpoints:
+          - port: metrics
+      transcode-intel:
+        service:
+          identifier: transcode-intel
+        endpoints:
+          - port: http
+      transcode-amd:
+        service:
+          identifier: transcode-amd
+        endpoints:
+          - port: http
+
+    route:
+      app:
+        forceRename: silo
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /api/v1/health
+        hostnames:
+          - "silo.${SECRET_DOMAIN}"
+        # Not behind components/oidc: the TV and mobile apps cannot follow a
+        # gateway redirect. Silo signs in through its OIDC plugin.
+        parentRefs:
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+      # Jellyfin-compatible API, for clients such as Findroid and Infuse.
+      jellyfin:
+        forceRename: silo-jf
+        hostnames:
+          - "silo-jf.${SECRET_DOMAIN}"
+        parentRefs:
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *jfPort
+
+    persistence:
+      # Plugins and the jellyfin-web install; Silo downloads both again on start.
+      config:
+        type: emptyDir
+        advancedMounts:
+          silo:
+            app:
+              - path: /config/silo
+      silo-config:
+        type: configMap
+        identifier: config
+        advancedMounts:
+          silo:
+            app:
+              - path: /run/silo-config
+                readOnly: true
+      node-keys:
+        type: secret
+        name: silo-transcode-keys
+        globalMounts:
+          - path: /run/silo-node-keys
+            readOnly: true
+      media:
+        existingClaim: media
+        globalMounts:
+          - path: /mnt/media
+            readOnly: true
+      # Transcode segments and prepared downloads, beside each other under /tmp.
+      tmp:
+        type: emptyDir
+        sizeLimit: 50Gi
+        globalMounts:
+          - path: /tmp

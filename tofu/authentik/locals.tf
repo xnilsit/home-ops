@@ -98,6 +98,23 @@ locals {
       ]
     }
 
+    # No components/oidc: the TV and Jellyfin-compatible apps cannot follow a
+    # gateway redirect, so Silo signs in through its OIDC plugin.
+    silo = {
+      display_name = "Silo"
+      description  = "Movies and series."
+      hostnames    = ["silo.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/Silo-Server/silo-server@main/assets/icon.png"
+      # silo-admin is also the plugin's admin_groups.
+      groups = ["silo", "silo-admin"]
+      # The plugin reads groups and profile claims from the id token.
+      include_claims_in_id_token = true
+      gateway_callback           = false
+      extra_redirect_uris = [
+        "https://silo.${var.domain}/api/v2/auth/oauth/callback",
+      ]
+    }
+
     oxicloud = {
       display_name = "OxiCloud"
       description  = "Files, calendars and contacts."
