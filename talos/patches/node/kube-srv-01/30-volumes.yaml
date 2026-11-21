@@ -24,3 +24,35 @@ provisioning:
     match: disk.model == "WD_BLACK SN770 1TB"
   minSize: 800GB
   grow: true
+---
+# USB HDD dock, slot 1 -> /dev/disk/by-partlabel/r-hdd-01 (Rook OSD on a
+# local PV, see kubernetes/apps/rook-ceph/rook-ceph/cluster/hdd-osd-volumes.yaml).
+# Pinned to the drive's own WWN so a swapped or reordered disk is never
+# partitioned by accident. The dock's ASMedia 2115 bridge leaves
+# disk.serial empty and reports the same fake disk.wwid
+# (naa.5000000000000001) for both bays, but the drive's real WWN still shows
+# up as a /dev/disk/by-id/wwn-* symlink. Check it with
+# `talosctl -n kube-srv-01 get disks -o yaml`.
+# Talos only partitions free space, so a used disk needs
+# `talosctl -n kube-srv-01 wipe disk <dev>` first.
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: hdd-01
+provisioning:
+  diskSelector:
+    # Seagate ST32000542AS 2TB, serial 5XW00JKV; swap the WWN when it is
+    # replaced with a >=4TB drive
+    match: disk.transport == "usb" && "/dev/disk/by-id/wwn-0x5000c5001662b1eb" in disk.symlinks
+  # Floor only: with no maxSize the partition fills the disk
+  minSize: 1TB
+  # Slot 2 (4TB HDD). Leave this commented out until the drive is installed:
+  # an unmatched volume can keep volumes declared after it from provisioning.
+  # ---
+  # # USB HDD dock, slot 2 -> /dev/disk/by-partlabel/r-hdd-02
+  # apiVersion: v1alpha1
+  # kind: RawVolumeConfig
+  # name: hdd-02
+  # provisioning:
+  #   diskSelector:
+  #     match: disk.transport == "usb" && "/dev/disk/by-id/wwn-<KUBE_SRV_01_HDD_02_WWN>" in disk.symlinks
+  #   minSize: 1TB
