@@ -441,14 +441,6 @@ locals {
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/qui.svg"
       groups       = ["home-ops"]
     }
-    # Seerr keeps its own Jellyfin-backed login behind this one.
-    seerr = {
-      display_name = "Seerr"
-      description  = "Movie and series requests."
-      hostnames    = ["seerr.${var.domain}"]
-      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/seerr.svg"
-      groups       = ["home-ops", "media"]
-    }
 
     # The ceph dashboard keeps its own admin password as break-glass: while its
     # OAuth2 SSO is on, local login is broken, so recovering from an authentik

@@ -24,8 +24,6 @@ locals {
     # OxiCloud login; the -admin one maps to OxiCloud's admin role.
     "oxicloud"       = {}
     "oxicloud-admin" = {}
-    # Seerr requests, without the rest of the media stack.
-    "media" = {}
     # Silo login; the -admin one maps to Silo's admin role.
     "silo"       = {}
     "silo-admin" = {}
