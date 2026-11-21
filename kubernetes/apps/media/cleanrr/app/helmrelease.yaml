@@ -1,0 +1,93 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cleanrr
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: cleanrr
+  interval: 1h
+  values:
+    controllers:
+      cleanrr:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # Stateless.
+        strategy: RollingUpdate
+        containers:
+          app:
+            image:
+              repository: registry.nilsit.de/ghcr.io/zariel/cleanrr
+              tag: v0.3.0@sha256:a74f5055dcd287aa4003070bbc77d1581f4bb326c1e48cc29402ce67ae25a480
+            env:
+              CLEANRR_LISTEN_ADDR: 0.0.0.0:8080
+              CLEANRR_MINIMUM_AGE: 5m
+              CLEANRR_SERVERS__RADARR__URL: http://radarr.media.svc.cluster.local:7878
+              CLEANRR_SERVERS__RADARR__API_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: radarr-secret
+                    key: RADARR__AUTH__APIKEY
+              CLEANRR_SERVERS__SONARR__URL: http://sonarr.media.svc.cluster.local:8989
+              CLEANRR_SERVERS__SONARR__API_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: sonarr-secret
+                    key: SONARR__AUTH__APIKEY
+              TZ: ${TIMEZONE}
+            probes:
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health/live
+                    port: &port 8080
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health/ready
+                    port: *port
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health/startup
+                    port: *port
+                  failureThreshold: 30
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+                memory: 32Mi
+              limits:
+                memory: 128Mi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+    service:
+      app:
+        ports:
+          http:
+            port: *port
+    serviceMonitor:
+      app:
+        endpoints:
+          - port: http

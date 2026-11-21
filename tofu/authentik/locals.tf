@@ -365,6 +365,74 @@ locals {
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/zigbee2mqtt.svg"
       groups       = ["home-ops"]
     }
+    # ── the media stack ───────────────────────────────────────────────────────
+    # Each pairs with the components/oidc component in kubernetes/apps/media.
+    # The apps run with their own auth off, so this is their only login.
+    sonarr = {
+      display_name = "Sonarr"
+      description  = "TV series."
+      hostnames    = ["sonarr.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/sonarr.svg"
+      groups       = ["home-ops"]
+    }
+    radarr = {
+      display_name = "Radarr"
+      description  = "Movies."
+      hostnames    = ["radarr.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/radarr.svg"
+      groups       = ["home-ops"]
+    }
+    prowlarr = {
+      display_name = "Prowlarr"
+      description  = "Indexers."
+      hostnames    = ["prowlarr.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/prowlarr.svg"
+      groups       = ["home-ops"]
+    }
+    bazarr = {
+      display_name = "Bazarr"
+      description  = "Subtitles."
+      hostnames    = ["bazarr.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/bazarr.svg"
+      groups       = ["home-ops"]
+    }
+    qbittorrent = {
+      display_name = "qBittorrent"
+      description  = "Torrent client."
+      hostnames    = ["qbittorrent.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/qbittorrent.svg"
+      groups       = ["home-ops"]
+    }
+    sabnzbd = {
+      display_name = "SABnzbd"
+      description  = "Usenet client."
+      hostnames    = ["sabnzbd.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/sabnzbd.svg"
+      groups       = ["home-ops"]
+    }
+    autobrr = {
+      display_name = "autobrr"
+      description  = "IRC announce automation."
+      hostnames    = ["autobrr.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/autobrr.svg"
+      groups       = ["home-ops"]
+    }
+    qui = {
+      display_name = "qui"
+      description  = "qBittorrent dashboard."
+      hostnames    = ["qui.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/qui.svg"
+      groups       = ["home-ops"]
+    }
+    # Seerr keeps its own Jellyfin-backed login behind this one.
+    seerr = {
+      display_name = "Seerr"
+      description  = "Movie and series requests."
+      hostnames    = ["seerr.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/seerr.svg"
+      groups       = ["home-ops", "media"]
+    }
+
     # The ceph dashboard keeps its own admin password as break-glass: while its
     # OAuth2 SSO is on, local login is broken, so recovering from an authentik
     # outage means `ceph dashboard sso disable` first.

@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.34.0/persistentvolumeclaim-v1.json
+# Downloads and library in one CephFS subvolume, so imports are hardlinks and
+# renames rather than copies. Not backed up: everything on it is re-downloadable.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media
+  annotations:
+    # The class reclaims on delete; a pruned claim would take the library with it.
+    kustomize.toolkit.fluxcd.io/prune: disabled
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1536Gi
+  storageClassName: ceph-filesystem-hdd

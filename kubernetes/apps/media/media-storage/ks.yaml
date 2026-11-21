@@ -1,0 +1,25 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/kustomization-kustomize-v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app media-storage
+  namespace: flux-system
+spec:
+  targetNamespace: media
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/media/media-storage/app
+  dependsOn:
+    # ceph-filesystem-hdd
+    - name: rook-ceph-cluster
+      namespace: flux-system
+  prune: true
+  sourceRef:
+    kind: OCIRepository
+    name: flux-system
+  # Waits for the PVC to bind.
+  wait: true
+  interval: 1h
+  timeout: 5m
