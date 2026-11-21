@@ -5,6 +5,7 @@ kind: Kustomization
 resources:
   - ./media-storage/ks.yaml
   - ./prowlarr/ks.yaml
+  - ./flaresolverr/ks.yaml
   - ./sonarr/ks.yaml
   - ./radarr/ks.yaml
   - ./bazarr/ks.yaml
