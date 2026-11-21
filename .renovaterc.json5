@@ -262,6 +262,12 @@
       matchPackageNames: ["/apache/tika$/"],
       allowedVersions: "<4",
     },
+    {
+      description: "PostgreSQL majors are a planned per-cluster pg_upgrade: the timescaledb, pgvector and vchord images are built per major, and vaultwarden-postgres replicates rra.team, which has to move first",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["ghcr.io/cloudnative-pg/postgresql"],
+      allowedVersions: "<19",
+    },
     // ---------------------------------------------------------------------
     // Digests
     // ---------------------------------------------------------------------
