@@ -175,12 +175,14 @@ spec:
               allowPrivilegeEscalation: false
               readOnlyRootFilesystem: true
               capabilities: {drop: ["ALL"]}
+            # Marker detection, subtitle extraction and fallback transcodes run
+            # as software ffmpeg children in this container.
             resources:
               requests:
                 cpu: 200m
-                memory: 512Mi
+                memory: 1Gi
               limits:
-                memory: 4Gi
+                memory: 8Gi
 
       transcode-intel: &transcode
         annotations:
