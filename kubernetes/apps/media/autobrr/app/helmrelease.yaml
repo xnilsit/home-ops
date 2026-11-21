@@ -45,13 +45,10 @@ spec:
                   periodSeconds: 30
                   timeoutSeconds: 5
                   failureThreshold: 5
+              # TCP: the kubelet probes from the node IP, outside the auth-disabled allowlist.
               readiness:
                 enabled: true
-                custom: true
                 spec:
-                  httpGet:
-                    path: /api/healthz/readiness
-                    port: *port
                   timeoutSeconds: 5
                   failureThreshold: 5
               startup:
