@@ -34,6 +34,19 @@ spec:
             resources:
               limits:
                 memory: 32Mi
+          # Applied on every start, so a change in the UI lasts until the next restart.
+          upload-limit:
+            image: *image
+            command:
+              - "sh"
+              - "/scripts/upload-limit.sh"
+            env:
+              # 1 Mbit/s.
+              UP_LIMIT_KIB: "122"
+            securityContext: *securityContext
+            resources:
+              limits:
+                memory: 32Mi
           # Native sidecar: every packet of the pod leaves through the AirVPN
           # tunnel, and its firewall drops anything else while the tunnel is down.
           gluetun:
@@ -101,7 +114,6 @@ spec:
                     name: qbittorrent-vpn
                     key: FIREWALL_VPN_INPUT_PORTS
               TZ: ${TIMEZONE}
-            # TCP: the API answers 403 until the cluster subnets bypass the WebUI login.
             probes:
               liveness:
                 enabled: true
@@ -109,9 +121,15 @@ spec:
                   periodSeconds: 30
                   timeoutSeconds: 5
                   failureThreshold: 5
+              # The image's default config skips the WebUI login for RFC 1918
+              # sources, which covers the kubelet, envoy and the other apps.
               readiness:
                 enabled: true
+                custom: true
                 spec:
+                  httpGet:
+                    path: /api/v2/app/version
+                    port: *port
                   timeoutSeconds: 5
                   failureThreshold: 5
               startup:
@@ -170,8 +188,18 @@ spec:
         existingClaim: qbittorrent
         advancedMounts:
           qbittorrent:
+            upload-limit:
+              - path: /config
             app:
               - path: /config
+      scripts:
+        type: configMap
+        name: qbittorrent-scripts
+        advancedMounts:
+          qbittorrent:
+            upload-limit:
+              - path: /scripts
+                readOnly: true
       media:
         existingClaim: media
         advancedMounts:
