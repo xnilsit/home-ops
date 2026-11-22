@@ -11,6 +11,7 @@ resources:
   - ./slskd/ks.yaml
   - ./soulsync/ks.yaml
   - ./navidrome/ks.yaml
+  - ./media-files/ks.yaml
   - ./bazarr/ks.yaml
   - ./qbittorrent/ks.yaml
   - ./sabnzbd/ks.yaml

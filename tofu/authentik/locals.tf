@@ -9,6 +9,7 @@ locals {
   #                 user record out of it
   #   include_claims_in_id_token
   #                 only for an app that reads the id token itself
+  #   app_group     the dashboard heading; unset puts it under name_prefix
   apps = {
     # ── apps that speak OIDC themselves ───────────────────────────────────────
     # No components/oidc here: a gateway-level SecurityPolicy 302s the Immich
@@ -102,6 +103,7 @@ locals {
     # gateway redirect, so Silo signs in through its OIDC plugin.
     silo = {
       display_name = "Silo"
+      app_group    = "media"
       description  = "Movies and series."
       hostnames    = ["silo.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/Silo-Server/silo-server@main/assets/icon.png"
@@ -119,6 +121,7 @@ locals {
     # UI from the soulsync-oidc Secret.
     soulsync = {
       display_name = "SoulSync"
+      app_group    = "media"
       description  = "Music downloads and playlist sync."
       hostnames    = ["soulsync.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/png/soulsync.png"
@@ -133,10 +136,28 @@ locals {
       ]
     }
 
+    # SFTPGo's web client over the whole media volume; it signs in through its
+    # own OIDC. Every account it creates has full read/write on /media.
+    "media-files" = {
+      display_name = "Media Files"
+      app_group    = "media"
+      description  = "Browse and manage the media library."
+      hostnames    = ["media-files.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/sftpgo.svg"
+      groups       = ["home-ops"]
+      # SFTPGo reads preferred_username from the id token only.
+      include_claims_in_id_token = true
+      gateway_callback           = false
+      extra_redirect_uris = [
+        "https://media-files.${var.domain}/web/oidc/redirect",
+      ]
+    }
+
     # Only a dashboard tile. No components/oidc: Subsonic apps cannot follow a
     # gateway redirect, and Navidrome has no OIDC, so it keeps its own login.
     navidrome = {
       display_name     = "Navidrome"
+      app_group        = "media"
       description      = "Music streaming."
       hostnames        = ["navidrome.${var.domain}"]
       icon             = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/navidrome.svg"
@@ -416,6 +437,7 @@ locals {
     # The apps run with their own auth off, so this is their only login.
     sonarr = {
       display_name = "Sonarr"
+      app_group    = "media"
       description  = "TV series."
       hostnames    = ["sonarr.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/sonarr.svg"
@@ -423,6 +445,7 @@ locals {
     }
     radarr = {
       display_name = "Radarr"
+      app_group    = "media"
       description  = "Movies."
       hostnames    = ["radarr.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/radarr.svg"
@@ -433,6 +456,7 @@ locals {
     # the gate.
     slskd = {
       display_name     = "slskd"
+      app_group        = "media"
       description      = "Soulseek client."
       hostnames        = ["slskd.${var.domain}"]
       icon             = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/slskd.svg"
@@ -441,6 +465,7 @@ locals {
     }
     prowlarr = {
       display_name = "Prowlarr"
+      app_group    = "media"
       description  = "Indexers."
       hostnames    = ["prowlarr.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/prowlarr.svg"
@@ -448,6 +473,7 @@ locals {
     }
     bazarr = {
       display_name = "Bazarr"
+      app_group    = "media"
       description  = "Subtitles."
       hostnames    = ["bazarr.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/bazarr.svg"
@@ -455,6 +481,7 @@ locals {
     }
     qbittorrent = {
       display_name = "qBittorrent"
+      app_group    = "media"
       description  = "Torrent client."
       hostnames    = ["qbittorrent.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/qbittorrent.svg"
@@ -462,6 +489,7 @@ locals {
     }
     sabnzbd = {
       display_name = "SABnzbd"
+      app_group    = "media"
       description  = "Usenet client."
       hostnames    = ["sabnzbd.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/sabnzbd.svg"
@@ -469,6 +497,7 @@ locals {
     }
     autobrr = {
       display_name = "autobrr"
+      app_group    = "media"
       description  = "IRC announce automation."
       hostnames    = ["autobrr.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/autobrr.svg"
@@ -476,6 +505,7 @@ locals {
     }
     qui = {
       display_name = "qui"
+      app_group    = "media"
       description  = "qBittorrent dashboard."
       hostnames    = ["qui.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/qui.svg"

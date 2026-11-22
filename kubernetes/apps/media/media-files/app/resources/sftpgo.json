@@ -1,0 +1,35 @@
+{
+  "version": 17,
+  "event_actions": [
+    {
+      "name": "media-files-account",
+      "type": 13,
+      "description": "Create or update the account on every login, with full access to /media",
+      "options": {
+        "idp_config": {
+          "mode": 0,
+          "template_user": "{\"username\":\"{{.Name}}\",\"status\":1,\"home_dir\":\"/media\",\"permissions\":{\"/\":[\"*\"]},\"filters\":{\"web_client\":[\"shares-disabled\",\"mfa-disabled\",\"password-change-disabled\",\"password-reset-disabled\",\"api-key-auth-change-disabled\",\"publickey-change-disabled\",\"tls-cert-change-disabled\",\"info-change-disabled\"]}}"
+        }
+      }
+    }
+  ],
+  "event_rules": [
+    {
+      "name": "media-files-idp-login",
+      "status": 1,
+      "trigger": 7,
+      "conditions": {
+        "idp_login_event": 1
+      },
+      "actions": [
+        {
+          "name": "media-files-account",
+          "order": 1,
+          "relation_options": {
+            "execute_sync": true
+          }
+        }
+      ]
+    }
+  ]
+}
