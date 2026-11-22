@@ -347,7 +347,7 @@ local plugin_pins = {
   -- renovate: datasource=git-refs depName=https://github.com/nvim-lua/plenary.nvim branch=master
   ['nvim-lua/plenary.nvim'] = { commit = '74b06c6c75e4eeb3108ec01852001636d85a932b' },
   -- renovate: datasource=git-refs depName=https://github.com/nvim-mini/mini.nvim branch=main
-  ['nvim-mini/mini.nvim'] = { commit = 'b8a0af521530f8ee68c738657429eab59de6a2ae' },
+  ['nvim-mini/mini.nvim'] = { commit = '24cf4ad5840f0d092e3d8296b17eaf7026bf27f3' },
   -- renovate: datasource=github-tags depName=lukas-reineke/indent-blankline.nvim
   ['lukas-reineke/indent-blankline.nvim'] = { tag = 'v3.10.1' },
   -- renovate: datasource=git-refs depName=https://github.com/mason-org/mason.nvim branch=main
@@ -373,7 +373,7 @@ local plugin_pins = {
   -- renovate: datasource=git-refs depName=https://github.com/debugloop/telescope-undo.nvim branch=main
   ['debugloop/telescope-undo.nvim'] = { commit = '928d0c2dc9606e01e2cc547196f48d2eaecf58e5' },
   -- renovate: datasource=git-refs depName=https://github.com/nvim-treesitter/nvim-treesitter branch=main
-  ['nvim-treesitter/nvim-treesitter'] = { commit = '37e52c733ada9d8d544d53a763140ef1ba404353' },
+  ['nvim-treesitter/nvim-treesitter'] = { commit = '52773f0d13a0c11d0c3ef33c14ab6ecc1c17148b' },
   -- renovate: datasource=git-refs depName=https://github.com/nvim-treesitter/nvim-treesitter-textobjects branch=main
   ['nvim-treesitter/nvim-treesitter-textobjects'] = { commit = '5c7b0263797dfd1bd6202f2b219f3b53a80b2187' },
   -- renovate: datasource=git-refs depName=https://github.com/nvim-treesitter/nvim-treesitter-context branch=master

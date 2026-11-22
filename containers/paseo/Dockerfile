@@ -1,6 +1,6 @@
 # Paseo daemon with Claude Code and the CLIs agents need against home-ops.
 # renovate: datasource=docker depName=ghcr.io/getpaseo/paseo
-ARG BASE=ghcr.io/getpaseo/paseo:0.17.0@sha256:58c114780d9e84e435f437c90dbc14e8caa5714d01b3837fe8a8139ad6728924
+ARG BASE=ghcr.io/getpaseo/paseo:0.17.3@sha256:1c978cc8e0ed1d94d8177617cca604d8d09953dacfe99a681967c32069080901
 
 # Neovim with its plugins, LSPs and parsers prebuilt, the final image has neither compilers nor a writable rootfs.
 # Same base as the final stage: Mason's Python venvs link /usr/bin/python3.
@@ -47,7 +47,7 @@ ARG FLUX_VERSION=v2.10.1
 # renovate: datasource=github-releases depName=cli/cli
 ARG GH_VERSION=v2.105.0
 # renovate: datasource=github-releases depName=jdx/mise
-ARG MISE_VERSION=v2026.11.11
+ARG MISE_VERSION=v2026.11.12
 # renovate: datasource=npm depName=@opencode/cli
 ARG OPENCODE_VERSION=2.3.2
 # renovate: datasource=npm depName=opencode-with-claude
@@ -60,7 +60,7 @@ ARG SIMPLE_ENGLISH_COMMIT=300432a9e4c473229a7049ab61b8ca2522d9214c
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VERSION=v4.3.2
 # renovate: datasource=git-refs depName=https://github.com/ohmyzsh/ohmyzsh branch=master
-ARG OHMYZSH_COMMIT=c0140703a53eb0d22be44f7bac318d0baacc927c
+ARG OHMYZSH_COMMIT=87aa1a9b892a3b150f93c53b577a2ec67e617f30
 # renovate: datasource=git-refs depName=https://github.com/djui/alias-tips branch=master
 ARG ALIAS_TIPS_COMMIT=41cb143ccc3b8cc444bf20257276cb43275f65c4
 
