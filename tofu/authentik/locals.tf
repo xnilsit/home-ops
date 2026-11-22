@@ -428,12 +428,16 @@ locals {
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/radarr.svg"
       groups       = ["home-ops"]
     }
+    # Only a dashboard tile. No components/oidc: the oauth2 filter strips the
+    # bearer token slskd's web UI authenticates with, so slskd's own login is
+    # the gate.
     slskd = {
-      display_name = "slskd"
-      description  = "Soulseek client."
-      hostnames    = ["slskd.${var.domain}"]
-      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/slskd.svg"
-      groups       = ["home-ops"]
+      display_name     = "slskd"
+      description      = "Soulseek client."
+      hostnames        = ["slskd.${var.domain}"]
+      icon             = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/slskd.svg"
+      groups           = ["home-ops"]
+      gateway_callback = false
     }
     prowlarr = {
       display_name = "Prowlarr"

@@ -4,10 +4,10 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 components:
   # Provisions the /app PVC (named ${APP}) and snapshots it to the NAS.
+  # No components/oidc: the web UI sends its own JWT as a bearer token, which
+  # the oauth2 filter strips and passThroughAuthHeader would divert into the
+  # jwt filter. slskd's own login, with the generated password, is the gate.
   - ../../../../components/kopiur/backup
-  # No ../../../../components/oidc-probe: the web UI sends its own JWT as a
-  # bearer token, which passThroughAuthHeader would divert into the jwt filter.
-  - ../../../../components/oidc
 resources:
   # AirVPN WireGuard credentials and forwarded port, and the Soulseek account.
   - ./secret.sops.yaml
