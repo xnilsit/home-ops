@@ -15,7 +15,7 @@ resources:
 configMapGenerator:
   - name: qbittorrent-scripts
     files:
-      - upload-limit.sh=./resources/upload-limit.sh
+      - speed-limits.sh=./resources/speed-limits.sh
 generatorOptions:
   # Mounted by name from the HelmRelease.
   disableNameSuffixHash: true
