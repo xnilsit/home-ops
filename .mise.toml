@@ -34,7 +34,7 @@ sops = "3.13.3"
 talosctl = "1.14.6"                     # pinned to the cluster version, aqua "latest" picks newest by date
 yamlfmt = "0.21.0"
 yq = "4.54.3"
-zizmor = "1.32.0"
+zizmor = "1.33.0"
 popeye = "0.22.1"
 
 [hooks]
