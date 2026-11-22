@@ -73,7 +73,9 @@ spec:
                     name: *oidcSecret
                     key: client-secret
               SFTPGO_HTTPD__BINDINGS__0__OIDC__USERNAME_FIELD: preferred_username
-              SFTPGO_HTTPD__BINDINGS__0__OIDC__SCOPES: openid,profile,email,grimoire_role
+              # offline_access for a refresh token: without one SFTPGo ends the
+              # session when authentik's access token expires, mid-upload or not.
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__SCOPES: openid,profile,email,grimoire_role,offline_access
               # Handed to the grimoire-account action, which names the user's group after it.
               SFTPGO_HTTPD__BINDINGS__0__OIDC__CUSTOM_FIELDS: grimoire_role
               # Groups and the IdP login rule. Mode 0 updates them on every start.
