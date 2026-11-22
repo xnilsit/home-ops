@@ -257,8 +257,8 @@ locals {
       display_name = "Oni"
       hostnames    = ["oni.${var.domain}"]
       # 192.168.0.200:5000 is Synology DSM.
-      icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/synology.svg"
-      groups = ["home-ops"]
+      icon                       = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/synology.svg"
+      groups                     = ["home-ops"]
       sub_mode                   = "user_username"
       include_claims_in_id_token = true
       gateway_callback           = false
@@ -397,6 +397,13 @@ locals {
       description  = "Movies."
       hostnames    = ["radarr.${var.domain}"]
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/radarr.svg"
+      groups       = ["home-ops"]
+    }
+    lidarr = {
+      display_name = "Lidarr"
+      description  = "Music."
+      hostnames    = ["lidarr.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/lidarr.svg"
       groups       = ["home-ops"]
     }
     prowlarr = {
