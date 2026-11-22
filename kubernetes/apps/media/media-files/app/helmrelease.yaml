@@ -73,7 +73,9 @@ spec:
                     name: *oidcSecret
                     key: client-secret
               SFTPGO_HTTPD__BINDINGS__0__OIDC__USERNAME_FIELD: preferred_username
-              SFTPGO_HTTPD__BINDINGS__0__OIDC__SCOPES: openid,profile,email
+              # offline_access for a refresh token: without one SFTPGo ends the
+              # session when authentik's access token expires, mid-upload or not.
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__SCOPES: openid,profile,email,offline_access
               # The IdP login rule. Mode 0 updates it on every start.
               SFTPGO_LOADDATA_FROM: /config/sftpgo.json
               SFTPGO_LOADDATA_MODE: "0"
@@ -100,9 +102,12 @@ spec:
             resources:
               requests:
                 cpu: 20m
-                memory: 64Mi
+                memory: 128Mi
+              # Bulk uploads fill the CephFS write cache, which counts against the
+              # limit; at 512Mi that OOM-killed the pod, taking every in-memory
+              # session with it.
               limits:
-                memory: 512Mi
+                memory: 2Gi
     defaultPodOptions:
       securityContext:
         runAsNonRoot: true
