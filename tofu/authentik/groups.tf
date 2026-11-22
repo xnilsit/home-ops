@@ -27,6 +27,10 @@ locals {
     # Silo login; the -admin one maps to Silo's admin role.
     "silo"       = {}
     "silo-admin" = {}
+    # SoulSync login, and the Navidrome tile. SoulSync has no group-to-role
+    # mapping, so -admin only marks who should be made admin by hand.
+    "soulsync"       = {}
+    "soulsync-admin" = {}
     # Matrix login; members get @<username> on the homeserver on first login.
     "matrix" = {}
     # Grimoire login. `grimoire` is the role and permissions object the
