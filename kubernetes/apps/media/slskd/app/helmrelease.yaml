@@ -177,11 +177,11 @@ spec:
     route:
       app:
         annotations:
-          # Behind components/oidc without oidc-probe, so a bare probe would
-          # only see the login redirect.
-          gatus.home-operations.com/enabled: "false"
+          gatus.home-operations.com/endpoint: |
+            path: /health
         hostnames:
           - "slskd.${SECRET_DOMAIN}"
+        # Not behind components/oidc: see the note in ../kustomization.yaml.
         parentRefs:
           - name: envoy-internal
             namespace: network

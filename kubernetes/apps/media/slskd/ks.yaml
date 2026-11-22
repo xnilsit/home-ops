@@ -18,12 +18,6 @@ spec:
     # The API key and web UI password are minted by the password ClusterGenerator
     - name: external-secrets-generators
       namespace: flux-system
-    # Writes the slskd-oidc Secret the oidc component reads
-    - name: authentik-oidc
-      namespace: flux-system
-    # Owns the tofu-controller ClusterSecretStore
-    - name: external-secrets-stores
-      namespace: flux-system
     - name: envoy-gateway
       namespace: flux-system
     # The /config PVC is provisioned through kopiur's Restore populator
@@ -34,27 +28,15 @@ spec:
   postBuild:
     substitute:
       APP: *app
-      OIDC_HOST: slskd.${SECRET_DOMAIN}
-      OIDC_ROUTE: *app
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease
       name: *app
       namespace: media
-    - apiVersion: gateway.envoyproxy.io/v1alpha1
-      kind: SecurityPolicy
-      name: slskd-oidc
-      namespace: media
-  healthCheckExprs:
-    - apiVersion: gateway.envoyproxy.io/v1alpha1
-      kind: SecurityPolicy
-      failed: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'False'))
-      current: status.ancestors.exists(a, a.conditions.exists(c, c.type == 'Accepted' && c.status == 'True'))
   prune: true
   sourceRef:
     kind: OCIRepository
     name: flux-system
-  # wait: false, since wait: true would ignore the healthCheckExprs above.
   wait: false
   interval: 1h
   timeout: 10m
