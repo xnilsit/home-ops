@@ -46,6 +46,9 @@ spec:
     # The bucket StorageClass the OBCs claim through, and ceph-filesystem
     - name: rook-ceph-cluster
       namespace: flux-system
+    # The transcode nodes' prepared downloads
+    - name: local-path-provisioner
+      namespace: flux-system
   postBuild:
     substitute:
       APP: *app
