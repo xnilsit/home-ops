@@ -119,6 +119,8 @@ spec:
               # A few slots, so each peer gets a usable ~1 Mbit/s of the cap
               # rather than many stalled transfers.
               SLSKD_UPLOAD_SLOTS: "5"
+              # 50 Mbit/s, in KiB/s; the same cap as qbittorrent.
+              SLSKD_DOWNLOAD_SPEED_LIMIT: "6104"
               SLSKD_NO_VERSION_CHECK: "true"
               # The single-file bundle extracts its native libraries here, and
               # the image's /.net is on the read-only root.
