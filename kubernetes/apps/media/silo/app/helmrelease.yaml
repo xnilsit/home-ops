@@ -225,6 +225,13 @@ spec:
               SILO_NODE_DRAIN_TIMEOUT: 5m
               SILO_NODE_HW_ACCEL: qsv
               SILO_NODE_HW_DEVICE: /dev/dri/renderD128
+              # One directory per node: each node lists its directory to the API,
+              # which treats files it did not record for that node as orphans.
+              SILO_NODE_DOWNLOAD_ARTIFACT_DIR:
+                value: /var/cache/silo-downloads/$(POD_NAME)
+                dependsOn: POD_NAME
+              # 4 x 50 GiB stays under the 85% fill ceiling of the shared volume.
+              SILO_NODE_DOWNLOAD_ARTIFACT_MAX_BYTES: "53687091200"
             probes: &transcodeProbes
               # The listener opens only once the node has read its configuration from the API.
               liveness: &transcodeProbe
@@ -463,7 +470,22 @@ spec:
         globalMounts:
           - path: /mnt/media
             readOnly: true
-      # Transcode segments and prepared downloads, beside each other under /tmp.
+      # Prepared (remuxed or transcoded) downloads, kept for 72h after the last
+      # device fetches them, so they outlive a node restart.
+      downloads:
+        type: persistentVolumeClaim
+        forceRename: silo-downloads
+        accessMode: ReadWriteMany
+        storageClass: ceph-filesystem
+        size: 250Gi
+        advancedMounts:
+          transcode-intel:
+            app:
+              - path: /var/cache/silo-downloads
+          transcode-amd:
+            app:
+              - path: /var/cache/silo-downloads
+      # Transcode segments, and downloads the API prepares when no node can.
       tmp:
         type: emptyDir
         sizeLimit: 50Gi
