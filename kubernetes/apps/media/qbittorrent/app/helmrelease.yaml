@@ -41,8 +41,8 @@ spec:
               - "sh"
               - "/scripts/speed-limits.sh"
             env:
-              # 1 Mbit/s.
-              UP_LIMIT_KIB: "122"
+              # 5 Mbit/s.
+              UP_LIMIT_KIB: "610"
               # 50 Mbit/s.
               DL_LIMIT_KIB: "6104"
             securityContext: *securityContext
