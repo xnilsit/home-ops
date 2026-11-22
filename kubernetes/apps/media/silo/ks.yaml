@@ -43,7 +43,7 @@ spec:
       namespace: flux-system
     - name: envoy-gateway
       namespace: flux-system
-    # The bucket StorageClass the OBCs claim through
+    # The bucket StorageClass the OBCs claim through, and ceph-filesystem
     - name: rook-ceph-cluster
       namespace: flux-system
   postBuild:
