@@ -55,6 +55,9 @@ spec:
       DRAGONFLY_REPLICAS: "2"
       # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql
       PG_IMAGE_TAG: 18.7-minimal-trixie
+      # OOM-killed at the 1Gi default under Silo's heavy query load.
+      PG_MEMORY_LIMIT: 2Gi
+      PG_MEMORY_REQUEST: 512Mi
       # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/pgvector versioning=regex:^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-(?<build>\d+)-18-trixie$
       PGVECTOR_IMAGE_TAG: 0.8.7-202611201143-18-trixie
   healthChecks:
