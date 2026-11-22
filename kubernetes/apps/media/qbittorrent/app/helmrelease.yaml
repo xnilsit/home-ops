@@ -35,14 +35,16 @@ spec:
               limits:
                 memory: 32Mi
           # Applied on every start, so a change in the UI lasts until the next restart.
-          upload-limit:
+          speed-limits:
             image: *image
             command:
               - "sh"
-              - "/scripts/upload-limit.sh"
+              - "/scripts/speed-limits.sh"
             env:
-              # 1 Mbit/s.
-              UP_LIMIT_KIB: "122"
+              # 5 Mbit/s.
+              UP_LIMIT_KIB: "610"
+              # 50 Mbit/s.
+              DL_LIMIT_KIB: "6104"
             securityContext: *securityContext
             resources:
               limits:
@@ -188,7 +190,7 @@ spec:
         existingClaim: qbittorrent
         advancedMounts:
           qbittorrent:
-            upload-limit:
+            speed-limits:
               - path: /config
             app:
               - path: /config
@@ -197,7 +199,7 @@ spec:
         name: qbittorrent-scripts
         advancedMounts:
           qbittorrent:
-            upload-limit:
+            speed-limits:
               - path: /scripts
                 readOnly: true
       media:
