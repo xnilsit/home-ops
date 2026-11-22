@@ -11,6 +11,13 @@ variable "name_prefix" {
   type = string
 }
 
+variable "app_group" {
+  # Only the dashboard heading; slug, client_id and issuer keep name_prefix.
+  description = "The dashboard heading the tile sits under. Null means name_prefix."
+  type        = string
+  default     = null
+}
+
 variable "display_name" {
   type = string
 }

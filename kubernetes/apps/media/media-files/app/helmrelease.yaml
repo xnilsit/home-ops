@@ -1,0 +1,168 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: media-files
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: media-files
+  interval: 1h
+  values:
+    controllers:
+      media-files:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        initContainers:
+          # The OIDC button's label is only in the UI translations; relabel it
+          # in a copy of the static files the app then serves. -slim for its
+          # shell; the sftpgo Renovate group moves both tags together.
+          static:
+            image:
+              repository: registry.nilsit.de/ghcr.io/drakkan/sftpgo
+              tag: v2.7.6-slim@sha256:fd1f7e2d5b8809e9856f74a2ec336b7a1bf38cd44f8334a3aa72bb5b55cccf43
+            command:
+              - "sh"
+              - "-ec"
+            args:
+              - |
+                cp -r /usr/share/sftpgo/static/. /static/
+                sed -i -E 's/("signin_openid": )"[^"]*"/\1"Sign in with ${AUTHENTIK_URL#https://}"/' \
+                  /static/locales/*/translation.json
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 64Mi
+        containers:
+          app:
+            image:
+              repository: registry.nilsit.de/ghcr.io/drakkan/sftpgo
+              tag: v2.7.6-distroless-slim@sha256:483f4ff2e6b6c659b7ec5b4beaa11506665fde1a4528cdeb6b4f4b624c0fff6e
+            env:
+              TZ: ${TIMEZONE}
+              SFTPGO_HTTPD__STATIC_FILES_PATH: /static
+              # Web client only: no SFTP, no WebAdmin, no REST API.
+              SFTPGO_SFTPD__BINDINGS__0__PORT: "0"
+              SFTPGO_HTTPD__BINDINGS__0__PORT: &port 8080
+              SFTPGO_HTTPD__BINDINGS__0__ENABLE_WEB_ADMIN: "false"
+              SFTPGO_HTTPD__BINDINGS__0__ENABLE_REST_API: "false"
+              # 8: the web client's password form.
+              SFTPGO_HTTPD__BINDINGS__0__DISABLED_LOGIN_METHODS: "8"
+              SFTPGO_HTTPD__BINDINGS__0__BRANDING__WEB_CLIENT__NAME: &name Media Files
+              SFTPGO_HTTPD__BINDINGS__0__BRANDING__WEB_CLIENT__SHORT_NAME: *name
+              # Envoy's x-forwarded-* are trusted from pods only; X-Forwarded-Proto
+              # is what marks the session cookies Secure.
+              SFTPGO_HTTPD__BINDINGS__0__PROXY_ALLOWED: 10.42.0.0/16,fd2e:9a41:6b8c:4200::/56
+              SFTPGO_HTTPD__BINDINGS__0__CLIENT_IP_PROXY_HEADER: X-Forwarded-For
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__CONFIG_URL: ${AUTHENTIK_URL}/application/o/home-ops-media-files/
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__REDIRECT_BASE_URL: https://media-files.${SECRET_DOMAIN}
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__CLIENT_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: &oidcSecret media-files-oidc
+                    key: client-id
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__CLIENT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: *oidcSecret
+                    key: client-secret
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__USERNAME_FIELD: preferred_username
+              SFTPGO_HTTPD__BINDINGS__0__OIDC__SCOPES: openid,profile,email
+              # The IdP login rule. Mode 0 updates it on every start.
+              SFTPGO_LOADDATA_FROM: /config/sftpgo.json
+              SFTPGO_LOADDATA_MODE: "0"
+              SFTPGO_DATA_PROVIDER__CREATE_DEFAULT_ADMIN: "true"
+              SFTPGO_DEFAULT_ADMIN_USERNAME: admin
+              SFTPGO_DEFAULT_ADMIN_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: media-files-admin
+                    key: password
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              readiness: *probes
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 20m
+                memory: 64Mi
+              limits:
+                memory: 512Mi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        # The media apps' uid, so whatever is uploaded or moved here stays
+        # theirs to read, rename and delete.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    persistence:
+      data:
+        type: configMap
+        name: media-files-data
+        globalMounts:
+          - path: /config
+            readOnly: true
+      media:
+        existingClaim: media
+        globalMounts:
+          - path: /media
+      # The bolt data provider. Accounts are rebuilt at each login and the rule
+      # at each start, so nothing here needs to survive a restart.
+      state:
+        type: emptyDir
+        globalMounts:
+          - path: /var/lib/sftpgo
+      srv:
+        type: emptyDir
+        globalMounts:
+          - path: /srv/sftpgo
+      # The relabelled copy of the static files.
+      static:
+        type: emptyDir
+        globalMounts:
+          - path: /static
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+    service:
+      app:
+        controller: media-files
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /healthz
+        hostnames:
+          - "media-files.${SECRET_DOMAIN}"
+        # Not behind components/oidc: SFTPGo signs in through its own OIDC.
+        parentRefs:
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port

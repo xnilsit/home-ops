@@ -74,7 +74,7 @@ resource "authentik_application" "this" {
 
   # The dashboard heading this tile sits under. NOT access control - that is
   # authentik_policy_binding below.
-  group = var.name_prefix
+  group = coalesce(var.app_group, var.name_prefix)
 
   # A user in ANY bound group gets in. "all" would demand membership in every
   # bound group at once.

@@ -10,6 +10,7 @@ module "app" {
   sub_mode     = try(each.value.sub_mode, "hashed_user_id")
   icon         = try(each.value.icon, "")
   hidden       = try(each.value.hidden, false)
+  app_group    = try(each.value.app_group, null)
 
   # Name to id via groups.tf, so a typo in locals.tf fails at plan time rather
   # than producing an application nobody can reach. Keyed by name, because the
