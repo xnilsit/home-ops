@@ -215,43 +215,6 @@ spec:
               labelSelector:
                 matchLabels:
                   app.kubernetes.io/controller: transcode-intel
-        # TODO: remove with the downloads-old volume once every node has copied.
-        # Copies this node's files from the old shared CephFS volume. Each lands
-        # under a temporary name first, so an interrupted copy is retried whole.
-        initContainers:
-          copy-downloads:
-            image: *image
-            command:
-              - "/bin/sh"
-              - "-c"
-            args:
-              - |
-                set -eu
-                src=/var/cache/silo-downloads-old/$POD_NAME
-                dst=/var/cache/silo-downloads
-                [ -d "$src" ] || exit 0
-                rm -f "$dst"/.*.copying
-                for f in "$src"/*; do
-                  [ -f "$f" ] || continue
-                  name=$(basename "$f")
-                  case "$name" in *.part) continue ;; esac
-                  [ -e "$dst/$name" ] && continue
-                  cp -p "$f" "$dst/.$name.copying"
-                  mv "$dst/.$name.copying" "$dst/$name"
-                  echo "copied $name"
-                done
-            env:
-              POD_NAME:
-                valueFrom:
-                  fieldRef:
-                    fieldPath: metadata.name
-            securityContext: *securityContext
-            resources:
-              requests:
-                cpu: 50m
-                memory: 64Mi
-              limits:
-                memory: 256Mi
         containers:
           app:
             image: *image
@@ -515,22 +478,6 @@ spec:
         globalMounts:
           - path: /mnt/media
             readOnly: true
-      # TODO: remove with copy-downloads; deleting it deletes the CephFS volume.
-      downloads-old:
-        type: persistentVolumeClaim
-        forceRename: silo-downloads
-        accessMode: ReadWriteMany
-        storageClass: ceph-filesystem
-        size: 250Gi
-        advancedMounts:
-          transcode-intel:
-            copy-downloads:
-              - path: /var/cache/silo-downloads-old
-                readOnly: true
-          transcode-amd:
-            copy-downloads:
-              - path: /var/cache/silo-downloads-old
-                readOnly: true
       # Transcode segments, and downloads the API prepares when no node can.
       tmp:
         type: emptyDir
