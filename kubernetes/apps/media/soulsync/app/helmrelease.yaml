@@ -1,0 +1,144 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: soulsync
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: soulsync
+  interval: 1h
+  values:
+    controllers:
+      soulsync:
+        # SQLite on an RWO volume.
+        strategy: Recreate
+        initContainers:
+          # Created as uid 1000 ahead of the subPath mounts below; a subPath the
+          # kubelet has to create itself ends up root-owned.
+          dirs:
+            image: &image
+              # Straight from ghcr.io: at well over a gigabyte (ffmpeg, Deno,
+              # yt-dlp) it risks registry.nilsit.de's 30s timeout, as silo did.
+              repository: ghcr.io/nezreka/soulsync
+              tag: 3.6.9@sha256:f6f9d7be4fad30c078bbb9b90a75491f04ed1ba50354ca55c5fde94f1d037768
+            command:
+              - "mkdir"
+              - "-p"
+              - "/pvc/config"
+              - "/pvc/data"
+              - "/pvc/Playlists"
+              - "/media/library/music"
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              limits:
+                memory: 32Mi
+        containers:
+          app:
+            image: *image
+            env:
+              SOULSYNC_CONFIG_PATH: /app/config/config.json
+              TZ: ${TIMEZONE}
+            probes:
+              liveness:
+                enabled: true
+                spec:
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/startup-status
+                    port: &port 8008
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              startup:
+                enabled: true
+                spec:
+                  failureThreshold: 60
+            securityContext:
+              allowPrivilegeEscalation: false
+              # The app writes all over /app (Staging, Stream, storage, ...),
+              # which the image hands to its uid 1000.
+              readOnlyRootFilesystem: false
+              capabilities: {drop: ["ALL"]}
+            resources:
+              requests:
+                cpu: 100m
+                memory: 512Mi
+              limits:
+                memory: 4Gi
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        # The image's own soulsync user, so its entrypoint skips the usermod.
+        # Also what kopiur's mover reads the volume as.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    service:
+      app:
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            path: /api/startup-status
+        hostnames:
+          - "soulsync.${SECRET_DOMAIN}"
+        # Not behind components/oidc: SoulSync signs in through its own OIDC,
+        # and the Subsonic API under /rest serves music apps that cannot follow
+        # a gateway redirect. The Spotify OAuth callback lands here too.
+        parentRefs:
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+    persistence:
+      config:
+        # Provisioned by components/kopiur/backup through its Restore populator.
+        existingClaim: soulsync
+        advancedMounts:
+          soulsync:
+            dirs:
+              - path: /pvc
+            app:
+              - path: /app/config
+                subPath: config
+              # The music, video, audiobook and player databases.
+              - path: /app/data
+                subPath: data
+              # Mirrored playlists; the image keeps them in the container otherwise.
+              - path: /app/Playlists
+                subPath: Playlists
+      # Reads the download clients' folders under the paths they report, and
+      # files into /media/library/music, on the same volume so moves are renames.
+      media:
+        existingClaim: media
+        advancedMounts:
+          soulsync:
+            dirs:
+              - path: /media
+            app:
+              - path: /media
+      logs:
+        type: emptyDir
+        advancedMounts:
+          soulsync:
+            app:
+              - path: /app/logs

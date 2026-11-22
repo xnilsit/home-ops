@@ -3,25 +3,23 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: lidarr
+  name: navidrome
 spec:
   chartRef:
     kind: OCIRepository
-    name: lidarr
+    name: navidrome
   interval: 1h
   values:
     controllers:
-      lidarr:
-        annotations:
-          reloader.stakater.com/auto: "true"
+      navidrome:
         # SQLite on an RWO volume.
         strategy: Recreate
         initContainers:
-          # Lidarr can only pick a root folder that already exists.
+          # The music folder has to exist before the app's read-only mount scans it.
           library-dir:
             image: &image
-              repository: registry.nilsit.de/ghcr.io/home-operations/lidarr
-              tag: 3.2.1.5196@sha256:ecbcc0dc629576ccba4af6d54de2fd0ac83b175f3c4fccf3024c44a2d01dbc7f
+              repository: registry.nilsit.de/ghcr.io/navidrome/navidrome
+              tag: 0.64.2@sha256:38dc2727bfcfd5ede290f8ada114fc90368146f265ae4701ddddbcbe2a44ee52
             command:
               - "mkdir"
               - "-p"
@@ -37,18 +35,19 @@ spec:
           app:
             image: *image
             env:
-              LIDARR__APP__INSTANCENAME: Lidarr
-              LIDARR__APP__THEME: dark
-              # Authentik in front via components/oidc.
-              LIDARR__AUTH__METHOD: External
-              LIDARR__AUTH__REQUIRED: Enabled
-              LIDARR__LOG__DBENABLED: "False"
-              LIDARR__LOG__LEVEL: info
-              LIDARR__SERVER__PORT: &port 8686
+              ND_PORT: &port 4533
+              ND_DATAFOLDER: /data
+              ND_MUSICFOLDER: /media/library/music
+              # Transcodes and resized artwork, rebuilt on demand; kept out of the backup.
+              ND_CACHEFOLDER: /cache
+              ND_LOGLEVEL: info
+              ND_ENABLEINSIGHTSCOLLECTOR: "false"
+              # SoulSync and slskd write from other pods, which inotify on CephFS
+              # never sees. SoulSync asks for a scan after each import; this
+              # schedule catches anything else.
+              ND_SCANNER_WATCHERWAIT: "0"
+              ND_SCANNER_SCHEDULE: "@every 1h"
               TZ: ${TIMEZONE}
-            envFrom:
-              - secretRef:
-                  name: lidarr-secret
             probes:
               liveness:
                 enabled: true
@@ -95,14 +94,11 @@ spec:
       app:
         annotations:
           gatus.home-operations.com/endpoint: |
-            client:
-              oauth2:
-                token-url: ${AUTHENTIK_URL}/application/o/token/
-                client-id: home-ops-gatus-probe
-                client-secret: $${GATUS_PROBE_CLIENT_SECRET}
-                scopes: ["openid", "profile"]
+            path: /ping
         hostnames:
-          - "lidarr.${SECRET_DOMAIN}"
+          - "navidrome.${SECRET_DOMAIN}"
+        # Not behind components/oidc: Subsonic apps cannot follow a gateway
+        # redirect, and Navidrome has no OIDC of its own. It keeps its own login.
         parentRefs:
           - name: envoy-internal
             namespace: network
@@ -114,8 +110,21 @@ spec:
     persistence:
       config:
         # Provisioned by components/kopiur/backup through its Restore populator.
-        existingClaim: lidarr
+        existingClaim: navidrome
+        globalMounts:
+          - path: /data
       media:
         existingClaim: media
+        advancedMounts:
+          navidrome:
+            library-dir:
+              - path: /media
+            app:
+              - path: /media
+                readOnly: true
+      cache:
+        type: emptyDir
+        globalMounts:
+          - path: /cache
       tmp:
         type: emptyDir

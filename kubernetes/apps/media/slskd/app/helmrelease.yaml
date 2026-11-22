@@ -1,0 +1,215 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: slskd
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: slskd
+  interval: 1h
+  values:
+    controllers:
+      slskd:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # SQLite on an RWO volume.
+        strategy: Recreate
+        initContainers:
+          downloads-dir:
+            image: &image
+              repository: registry.nilsit.de/ghcr.io/slskd/slskd
+              tag: 0.26.2@sha256:d0963a3e5b16facd295bf4f2156dad0182f246b1b21a032cae12f5494c694843
+            command:
+              - "mkdir"
+              - "-p"
+              - "/media/downloads/soulseek/incomplete"
+              - "/media/downloads/soulseek/complete"
+              - "/media/library/music"
+            securityContext: &securityContext
+              runAsNonRoot: true
+              runAsUser: 1000
+              runAsGroup: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: {drop: ["ALL"]}
+            resources:
+              limits:
+                memory: 32Mi
+          # Native sidecar: every packet of the pod leaves through the AirVPN
+          # tunnel, and its firewall drops anything else while the tunnel is down.
+          # A WireGuard device of its own, apart from qbittorrent's.
+          gluetun:
+            image:
+              repository: registry.nilsit.de/ghcr.io/qdm12/gluetun
+              tag: v3.41.3@sha256:fa19cc76b2af13d57a8d3dc3066f2ada061b1c761b8aecf989b3877c0486e027
+            restartPolicy: Always
+            env:
+              VPN_SERVICE_PROVIDER: airvpn
+              VPN_TYPE: wireguard
+              # The Talos kernel ships WireGuard, so no /dev/net/tun is needed.
+              WIREGUARD_IMPLEMENTATION: kernelspace
+              SERVER_COUNTRIES: Germany
+              # The web UI and API, for envoy, SoulSync and the kubelet probes.
+              FIREWALL_INPUT_PORTS: &port 5030
+              TZ: ${TIMEZONE}
+            # WireGuard keys, address, and FIREWALL_VPN_INPUT_PORTS: the port
+            # forwarded in the AirVPN client area, opened on the tunnel.
+            envFrom:
+              - secretRef:
+                  name: slskd-vpn
+            probes:
+              # Holds slskd back until the tunnel is up.
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  exec: &healthcheck
+                    command:
+                      - "/gluetun-entrypoint"
+                      - "healthcheck"
+                  periodSeconds: 5
+                  timeoutSeconds: 5
+                  failureThreshold: 60
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  exec: *healthcheck
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+            securityContext:
+              # Root with NET_ADMIN for the WireGuard link, routes and iptables.
+              runAsNonRoot: false
+              runAsUser: 0
+              runAsGroup: 0
+              allowPrivilegeEscalation: false
+              capabilities: {add: ["NET_ADMIN"]}
+            resources:
+              requests:
+                cpu: 10m
+                memory: 64Mi
+              limits:
+                memory: 256Mi
+        containers:
+          app:
+            image: *image
+            env:
+              SLSKD_HTTP_PORT: *port
+              # Listens on the forwarded port, so peers can connect in.
+              SLSKD_SLSK_LISTEN_PORT:
+                valueFrom:
+                  secretKeyRef:
+                    name: slskd-vpn
+                    key: FIREWALL_VPN_INPUT_PORTS
+              SLSKD_USERNAME: admin
+              # Incomplete next to complete, on one volume: slskd can report a
+              # transfer done before a cross-mount move has finished.
+              SLSKD_DOWNLOADS_DIR: /media/downloads/soulseek/complete
+              SLSKD_INCOMPLETE_DIR: /media/downloads/soulseek/incomplete
+              # Soulseek bans clients that share nothing.
+              SLSKD_SHARED_DIR: /media/library/music
+              # 5 Mbit/s, in KiB/s; the same cap as qbittorrent.
+              SLSKD_UPLOAD_SPEED_LIMIT: "610"
+              SLSKD_NO_VERSION_CHECK: "true"
+              # The single-file bundle extracts its native libraries here, and
+              # the image's /.net is on the read-only root.
+              DOTNET_BUNDLE_EXTRACT_BASE_DIR: /tmp/.net
+              TZ: ${TIMEZONE}
+            envFrom:
+              # SLSKD_API_KEY, SLSKD_PASSWORD and SLSKD_JWT_KEY.
+              - secretRef:
+                  name: slskd-secret
+              # SLSKD_SLSK_USERNAME and SLSKD_SLSK_PASSWORD.
+              - secretRef:
+                  name: slskd-soulseek
+            probes:
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet: &health
+                    path: /health
+                    port: *port
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet: *health
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet: *health
+                  periodSeconds: 5
+                  failureThreshold: 60
+            securityContext: *securityContext
+            resources:
+              requests:
+                cpu: 50m
+                memory: 256Mi
+              limits:
+                memory: 2Gi
+    defaultPodOptions:
+      # gluetun's resolver, so lookups go through the tunnel too.
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - 127.0.0.1
+      securityContext:
+        # Pod-wide non-root is set per container: gluetun runs as root.
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+    service:
+      app:
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        annotations:
+          # Behind components/oidc without oidc-probe, so a bare probe would
+          # only see the login redirect.
+          gatus.home-operations.com/enabled: "false"
+        hostnames:
+          - "slskd.${SECRET_DOMAIN}"
+        parentRefs:
+          - name: envoy-internal
+            namespace: network
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+    persistence:
+      config:
+        # Provisioned by components/kopiur/backup through its Restore populator.
+        # SLSKD_APP_DIR: slskd.yml, the databases and the logs.
+        existingClaim: slskd
+        advancedMounts:
+          slskd:
+            app:
+              - path: /app
+      media:
+        existingClaim: media
+        advancedMounts:
+          slskd:
+            downloads-dir:
+              - path: /media
+            app:
+              - path: /media
+      tmp:
+        type: emptyDir
+        advancedMounts:
+          slskd:
+            app:
+              - path: /tmp

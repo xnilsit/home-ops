@@ -115,6 +115,35 @@ locals {
       ]
     }
 
+    # No components/oidc: SoulSync runs its own OIDC sign-in, configured in its
+    # UI from the soulsync-oidc Secret.
+    soulsync = {
+      display_name = "SoulSync"
+      description  = "Music downloads and playlist sync."
+      hostnames    = ["soulsync.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/png/soulsync.png"
+      # Who gets in. SoulSync maps no group to a role: admin is the profile the
+      # admin connects by hand, and sign-ups are request-only unless allowed.
+      groups = ["soulsync", "soulsync-admin"]
+      # SoulSync reads preferred_username and groups from the id token.
+      include_claims_in_id_token = true
+      gateway_callback           = false
+      extra_redirect_uris = [
+        "https://soulsync.${var.domain}/api/auth/oidc/callback",
+      ]
+    }
+
+    # Only a dashboard tile. No components/oidc: Subsonic apps cannot follow a
+    # gateway redirect, and Navidrome has no OIDC, so it keeps its own login.
+    navidrome = {
+      display_name     = "Navidrome"
+      description      = "Music streaming."
+      hostnames        = ["navidrome.${var.domain}"]
+      icon             = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/navidrome.svg"
+      groups           = ["soulsync", "soulsync-admin"]
+      gateway_callback = false
+    }
+
     oxicloud = {
       display_name = "OxiCloud"
       description  = "Files, calendars and contacts."
@@ -399,11 +428,11 @@ locals {
       icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/radarr.svg"
       groups       = ["home-ops"]
     }
-    lidarr = {
-      display_name = "Lidarr"
-      description  = "Music."
-      hostnames    = ["lidarr.${var.domain}"]
-      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/lidarr.svg"
+    slskd = {
+      display_name = "slskd"
+      description  = "Soulseek client."
+      hostnames    = ["slskd.${var.domain}"]
+      icon         = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/slskd.svg"
       groups       = ["home-ops"]
     }
     prowlarr = {

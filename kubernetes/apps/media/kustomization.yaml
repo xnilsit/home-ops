@@ -8,7 +8,9 @@ resources:
   - ./flaresolverr/ks.yaml
   - ./sonarr/ks.yaml
   - ./radarr/ks.yaml
-  - ./lidarr/ks.yaml
+  - ./slskd/ks.yaml
+  - ./soulsync/ks.yaml
+  - ./navidrome/ks.yaml
   - ./bazarr/ks.yaml
   - ./qbittorrent/ks.yaml
   - ./sabnzbd/ks.yaml
