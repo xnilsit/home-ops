@@ -49,7 +49,24 @@ spec:
                 sed -i -e 's|^direct_unpack *=.*$|direct_unpack = 1|' /config/sabnzbd.ini
                 old=/media/downloads/usenet/incomplete
                 if [ -n "$(ls -A "$old")" ]; then
-                  cp -a "$old/." /incomplete/
+                  total=$(du -sm "$old" | cut -f1)
+                  echo "copying ${total} MiB from $old"
+                  cp -a "$old/." /incomplete/ &
+                  pid=$!
+                  start=$(date +%s); last_t=$start; last_mb=$(du -sm /incomplete | cut -f1)
+                  while kill -0 "$pid" 2>/dev/null; do
+                    sleep 10
+                    now=$(date +%s); mb=$(du -sm /incomplete | cut -f1)
+                    rate=$(( (mb - last_mb) / (now - last_t) ))
+                    avg=$(( mb / (now - start) ))
+                    eta=$(( avg > 0 ? (total - mb) / avg : 0 ))
+                    printf '%s / %s MiB (%s%%)  %s MiB/s now, %s MiB/s avg  ETA %dm%02ds\n' \
+                      "$mb" "$total" "$(( mb * 100 / (total > 0 ? total : 1) ))" \
+                      "$rate" "$avg" "$(( eta / 60 ))" "$(( eta % 60 ))"
+                    last_t=$now; last_mb=$mb
+                  done
+                  wait "$pid"
+                  echo "copied in $(( $(date +%s) - start ))s, clearing $old"
                   find "$old" -mindepth 1 -delete
                 fi
             securityContext: *securityContext
