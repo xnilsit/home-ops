@@ -60,5 +60,4 @@ spec:
   # wait: false, since wait: true would ignore the healthCheckExprs above.
   wait: false
   interval: 1h
-  # Matches the HelmRelease timeout, for the incomplete-dir copy.
-  timeout: 1h
+  timeout: 10m

@@ -9,9 +9,6 @@ spec:
     kind: OCIRepository
     name: sabnzbd
   interval: 1h
-  # The incomplete-dir init container can spend a while copying a large
-  # backlog off CephFS; the 5m default would mark the upgrade failed.
-  timeout: 1h
   values:
     controllers:
       sabnzbd:
@@ -35,55 +32,19 @@ spec:
             resources:
               limits:
                 memory: 32Mi
-          # Moves whatever is left in the old CephFS incomplete folder onto the
-          # local volume, which the app mounts over that same path. Jobs pickle
-          # their absolute paths, so download_dir must not change. Also enables
-          # direct unpack, which unpacks while the job is still downloading.
-          incomplete-dir:
+          # Direct unpack: unpacks while the job is still downloading.
+          direct-unpack:
             image: *image
-            dependsOn: downloads-dir
             command:
-              - "sh"
-              - "-euc"
-              - |
-                sed -i -e 's|^direct_unpack *=.*$|direct_unpack = 1|' /config/sabnzbd.ini
-                old=/media/downloads/usenet/incomplete
-                if [ -n "$(ls -A "$old")" ]; then
-                  total=$(du -sm "$old" | cut -f1)
-                  echo "copying $total MiB from $old"
-                  # Per file, skipping ones already copied at the same size, so a
-                  # restart resumes. Not "cp -a $old/.": that also sets times on
-                  # the root-owned /incomplete and fails after the full copy.
-                  (
-                    cd "$old"
-                    find . -mindepth 1 -type d | while IFS= read -r d; do mkdir -p "/incomplete/$d"; done
-                    find . -type f | while IFS= read -r f; do
-                      if [ ! -f "/incomplete/$f" ] || [ "$(stat -c %s "$f")" != "$(stat -c %s "/incomplete/$f")" ]; then
-                        cp -a "$f" "/incomplete/$f"
-                      fi
-                    done
-                  ) &
-                  pid=$!
-                  start=$(date +%s); last_t=$start; last_mb=$(du -sm /incomplete | cut -f1)
-                  while kill -0 "$pid" 2>/dev/null; do
-                    sleep 10
-                    now=$(date +%s); mb=$(du -sm /incomplete | cut -f1)
-                    rate=$(( (mb - last_mb) / (now - last_t) ))
-                    avg=$(( mb / (now - start) ))
-                    eta=$(( avg > 0 ? (total - mb) / avg : 0 ))
-                    printf '%s / %s MiB (%s%%)  %s MiB/s now, %s MiB/s avg  ETA %dm%02ds\n' \
-                      "$mb" "$total" "$(( mb * 100 / (total > 0 ? total : 1) ))" \
-                      "$rate" "$avg" "$(( eta / 60 ))" "$(( eta % 60 ))"
-                    last_t=$now; last_mb=$mb
-                  done
-                  wait "$pid"
-                  echo "copied in $(( $(date +%s) - start ))s, clearing $old"
-                  find "$old" -mindepth 1 -delete
-                fi
+              - "sed"
+              - "-i"
+              - "-e"
+              - "s|^direct_unpack *=.*$|direct_unpack = 1|"
+              - "/config/sabnzbd.ini"
             securityContext: *securityContext
             resources:
               limits:
-                memory: 256Mi
+                memory: 32Mi
         containers:
           app:
             image: *image
@@ -176,10 +137,11 @@ spec:
         # local-path does not enforce it; the queued post-processing backlog
         # keeps its RARs here, so leave headroom.
         size: 400Gi
+        # Mounted over download_dir on the media PVC: downloads, par2 and the
+        # RAR reads stay on local SSD, and only the unpacked write hits the HDD
+        # pool. complete_dir stays on CephFS for hardlinked imports.
         advancedMounts:
           sabnzbd:
-            incomplete-dir:
-              - path: /incomplete
             app:
               - path: /media/downloads/usenet/incomplete
       tmp:
