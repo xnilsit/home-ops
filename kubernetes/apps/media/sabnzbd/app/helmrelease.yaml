@@ -51,7 +51,18 @@ spec:
                 if [ -n "$(ls -A "$old")" ]; then
                   total=$(du -sm "$old" | cut -f1)
                   echo "copying $total MiB from $old"
-                  cp -a "$old/." /incomplete/ &
+                  # Per file, skipping ones already copied at the same size, so a
+                  # restart resumes. Not "cp -a $old/.": that also sets times on
+                  # the root-owned /incomplete and fails after the full copy.
+                  (
+                    cd "$old"
+                    find . -mindepth 1 -type d | while IFS= read -r d; do mkdir -p "/incomplete/$d"; done
+                    find . -type f | while IFS= read -r f; do
+                      if [ ! -f "/incomplete/$f" ] || [ "$(stat -c %s "$f")" != "$(stat -c %s "/incomplete/$f")" ]; then
+                        cp -a "$f" "/incomplete/$f"
+                      fi
+                    done
+                  ) &
                   pid=$!
                   start=$(date +%s); last_t=$start; last_mb=$(du -sm /incomplete | cut -f1)
                   while kill -0 "$pid" 2>/dev/null; do
