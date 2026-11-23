@@ -29,6 +29,11 @@ spec:
       retries: -1
   upgrade:
     cleanupOnFail: true
+    # Rook paces OSD restarts itself, waiting for clean PGs between each, and
+    # on the HDDs that takes far longer than the timeout. Waiting on the
+    # CephCluster made Helm time out mid-rollout and roll back, which reverted
+    # the OSDs Rook had already updated.
+    disableWait: true
     remediation:
       retries: 3
   values:
@@ -138,11 +143,6 @@ spec:
           mon_clock_drift_allowed: "0.1" # quote
           # Rook doesn't derive this from the pod limit; the 2GiB default autotunes past it.
           mon_memory_target: "1073741824" # quote
-        # The ratio default (0.8x the 4Gi limit) would grow the caches; pin the
-        # old 2.4Gi so the extra limit is headroom. Mass CephFS deletes spike
-        # osd.5/osd.6 (the only HDD on their hosts) well past the target.
-        "osd/class:hdd":
-          osd_memory_target: "2576980377" # quote
         mds:
           # Trickle deletes: a 54GB rm OOM-killed osd.5 and osd.6 at once and
           # took every hdd0 PG inactive. Defaults are 64 files / 0.5 ops per PG.
@@ -248,14 +248,16 @@ spec:
             encrypted: false
             resources:
               # 3 OSDs per 32GB srv node once both slots are filled; the flash
-              # OSD keeps 5Gi. osd_memory_target is pinned at 2.4Gi in
-              # cephConfig ("osd/class:hdd"), leaving 1.6Gi of headroom: at 3Gi
-              # the ~600Mi left over was not enough for delete storms.
+              # OSD keeps 5Gi. Ceph sets osd_memory_target to
+              # min(request, 0.8x limit) at env level, above the mon config, so
+              # the request is what pins it: 2.5Gi target under a 4Gi limit.
+              # At request = limit = 3Gi the ~600Mi left over was not enough
+              # for CephFS delete storms.
               limits:
-                memory: &hddOsdMemory 4Gi
+                memory: 4Gi
               requests:
                 cpu: 100m
-                memory: *hddOsdMemory
+                memory: 2560Mi
             volumeClaimTemplates:
               - metadata:
                   name: data
