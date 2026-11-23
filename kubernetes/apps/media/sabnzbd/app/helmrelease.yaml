@@ -32,14 +32,16 @@ spec:
             resources:
               limits:
                 memory: 32Mi
-          # Direct unpack: unpacks while the job is still downloading.
+          # Off: unpacking alongside post-processing puts two unrar writers on
+          # the HDD pool, and its writeback stalls the downloader in the same
+          # cgroup even though downloads land on the local volume.
           direct-unpack:
             image: *image
             command:
               - "sed"
               - "-i"
               - "-e"
-              - "s|^direct_unpack *=.*$|direct_unpack = 1|"
+              - "s|^direct_unpack *=.*$|direct_unpack = 0|"
               - "/config/sabnzbd.ini"
             securityContext: *securityContext
             resources:
