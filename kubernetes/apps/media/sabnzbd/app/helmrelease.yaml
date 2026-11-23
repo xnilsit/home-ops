@@ -9,6 +9,9 @@ spec:
     kind: OCIRepository
     name: sabnzbd
   interval: 1h
+  # The incomplete-dir init container can spend a while copying a large
+  # backlog off CephFS; the 5m default would mark the upgrade failed.
+  timeout: 1h
   values:
     controllers:
       sabnzbd:
@@ -32,6 +35,27 @@ spec:
             resources:
               limits:
                 memory: 32Mi
+          # Moves whatever is left in the old CephFS incomplete folder onto the
+          # local volume, which the app mounts over that same path. Jobs pickle
+          # their absolute paths, so download_dir must not change. Also enables
+          # direct unpack, which unpacks while the job is still downloading.
+          incomplete-dir:
+            image: *image
+            dependsOn: downloads-dir
+            command:
+              - "sh"
+              - "-euc"
+              - |
+                sed -i -e 's|^direct_unpack *=.*$|direct_unpack = 1|' /config/sabnzbd.ini
+                old=/media/downloads/usenet/incomplete
+                if [ -n "$(ls -A "$old")" ]; then
+                  cp -a "$old/." /incomplete/
+                  find "$old" -mindepth 1 -delete
+                fi
+            securityContext: *securityContext
+            resources:
+              limits:
+                memory: 256Mi
         containers:
           app:
             image: *image
@@ -71,6 +95,10 @@ spec:
               limits:
                 memory: 4Gi
     defaultPodOptions:
+      # The incomplete volume is node-local. kube-wrk-01 has the largest
+      # local-path disk (RAID1 SATA SSD) and keeps unrar off the Ceph nodes.
+      nodeSelector:
+        kubernetes.io/hostname: kube-wrk-01
       securityContext:
         runAsNonRoot: true
         # Also what kopiur's mover reads the volume as.
@@ -111,5 +139,20 @@ spec:
         existingClaim: sabnzbd
       media:
         existingClaim: media
+      incomplete:
+        type: persistentVolumeClaim
+        # The chart would name a lone PVC "sabnzbd", the config claim's name.
+        forceRename: sabnzbd-incomplete
+        storageClass: local-path
+        accessMode: ReadWriteOnce
+        # local-path does not enforce it; the queued post-processing backlog
+        # keeps its RARs here, so leave headroom.
+        size: 400Gi
+        advancedMounts:
+          sabnzbd:
+            incomplete-dir:
+              - path: /incomplete
+            app:
+              - path: /media/downloads/usenet/incomplete
       tmp:
         type: emptyDir

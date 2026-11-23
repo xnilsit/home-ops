@@ -31,6 +31,9 @@ spec:
       namespace: flux-system
     - name: rook-ceph-cluster
       namespace: flux-system
+    # The node-local incomplete volume
+    - name: local-path-provisioner
+      namespace: flux-system
   postBuild:
     substitute:
       APP: *app
@@ -57,4 +60,5 @@ spec:
   # wait: false, since wait: true would ignore the healthCheckExprs above.
   wait: false
   interval: 1h
-  timeout: 10m
+  # Matches the HelmRelease timeout, for the incomplete-dir copy.
+  timeout: 1h
