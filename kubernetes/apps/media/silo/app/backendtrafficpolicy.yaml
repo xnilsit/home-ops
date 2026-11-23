@@ -22,6 +22,11 @@ spec:
     type: ConsistentHash
     consistentHash:
       type: SourceIP
+  # A paused browser stops reading a direct-play stream. Envoy's 5m default
+  # would reset it; matches SILO_STREAM_WRITE_STALL_TIMEOUT in helmrelease.yaml.
+  timeout:
+    http:
+      streamIdleTimeout: 1h
   # HLS fetches a segment every few seconds per stream, on top of browsing.
   rateLimit:
     type: Global
