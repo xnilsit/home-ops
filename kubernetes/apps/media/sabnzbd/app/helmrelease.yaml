@@ -50,7 +50,7 @@ spec:
                 old=/media/downloads/usenet/incomplete
                 if [ -n "$(ls -A "$old")" ]; then
                   total=$(du -sm "$old" | cut -f1)
-                  echo "copying ${total} MiB from $old"
+                  echo "copying $total MiB from $old"
                   cp -a "$old/." /incomplete/ &
                   pid=$!
                   start=$(date +%s); last_t=$start; last_mb=$(du -sm /incomplete | cut -f1)
