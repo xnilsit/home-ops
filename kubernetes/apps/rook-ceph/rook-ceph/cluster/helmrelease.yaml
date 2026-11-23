@@ -29,6 +29,11 @@ spec:
       retries: -1
   upgrade:
     cleanupOnFail: true
+    # Rook paces OSD restarts itself, waiting for clean PGs between each, and
+    # on the HDDs that takes far longer than the timeout. Waiting on the
+    # CephCluster made Helm time out mid-rollout and roll back, which reverted
+    # the OSDs Rook had already updated.
+    disableWait: true
     remediation:
       retries: 3
   values:
