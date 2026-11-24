@@ -32,3 +32,16 @@ spec:
     image:
       repository: registry.nilsit.de/ghcr.io/prometheus-community/smartctl-exporter
       tag: v0.15.0@sha256:a76e08dbf5db4781fefd1ed81c65ad46ae8d2849dae6b6d3acebcde2fc4e59d6
+  postRenderers:
+    # The chart mounts the host /dev at /hostdev, but smartctl scans the
+    # container's /dev, a snapshot taken at container start. Disks hotplugged
+    # later (the USB HDD docks) were never found until the pod restarted.
+    # The chart hardcodes the mount path.
+    - kustomize:
+        patches:
+          - target:
+              kind: DaemonSet
+            patch: |-
+              - op: replace
+                path: /spec/template/spec/containers/0/volumeMounts/0/mountPath
+                value: /dev
