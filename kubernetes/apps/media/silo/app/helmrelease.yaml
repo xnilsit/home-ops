@@ -39,7 +39,7 @@ spec:
             image: &image
               # Straight from ghcr.io: registry.nilsit.de's 30s timeout aborts pulls of this image.
               repository: ghcr.io/silo-server/silo-server
-              tag: build-3019@sha256:575fb4dcd9406d2fe958526fe45f0aa7fe395c8c36cacb57ea341b99c436078d
+              tag: build-3023@sha256:084dfc63476abdc0814e3b6927a095ccc566cb26fb32da2924ef3ef2bc8f0b34
             # Bypasses the image's s6 init, which only starts the bundled PostgreSQL and Redis and needs root.
             command:
               - "/bin/sh"
