@@ -97,8 +97,9 @@ spec:
               SILO_METRICS_LISTEN: ":9091"
               # A paused browser stops reading a direct-play stream; the 180s
               # default reaps it and the web player stops. Matches the
-              # streamIdleTimeout in backendtrafficpolicy.yaml.
-              SILO_STREAM_WRITE_STALL_TIMEOUT: "3600"
+              # streamIdleTimeout in backendtrafficpolicy.yaml. Kept above the
+              # 15m playback.paused_session_timeout_minutes admin setting.
+              SILO_STREAM_WRITE_STALL_TIMEOUT: "1200"
               SILO_TRANSCODE_NODES_FILE: /run/silo-config/transcode-nodes.yaml
               OIDC_CLIENT_SECRET:
                 valueFrom:

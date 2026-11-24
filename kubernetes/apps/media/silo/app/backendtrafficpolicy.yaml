@@ -24,9 +24,10 @@ spec:
       type: SourceIP
   # A paused browser stops reading a direct-play stream. Envoy's 5m default
   # would reset it; matches SILO_STREAM_WRITE_STALL_TIMEOUT in helmrelease.yaml.
+  # Silo ends paused sessions itself after 15m (admin setting), so 20m covers it.
   timeout:
     http:
-      streamIdleTimeout: 1h
+      streamIdleTimeout: 20m
   # HLS fetches a segment every few seconds per stream, on top of browsing.
   rateLimit:
     type: Global
