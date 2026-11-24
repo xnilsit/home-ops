@@ -45,14 +45,13 @@ provisioning:
     match: disk.transport == "usb" && "/dev/disk/by-id/wwn-0x5000c500168ead5a" in disk.symlinks
   # Floor only: with no maxSize the partition fills the disk
   minSize: 1TB
-  # Slot 2 (4TB HDD). Leave this commented out until the drive is installed:
-  # an unmatched volume can keep volumes declared after it from provisioning.
-  # ---
-  # # USB HDD dock, slot 2 -> /dev/disk/by-partlabel/r-hdd-02
-  # apiVersion: v1alpha1
-  # kind: RawVolumeConfig
-  # name: hdd-02
-  # provisioning:
-  #   diskSelector:
-  #     match: disk.transport == "usb" && "/dev/disk/by-id/wwn-<KUBE_SRV_02_HDD_02_WWN>" in disk.symlinks
-  #   minSize: 1TB
+---
+# USB HDD dock, slot 2 -> /dev/disk/by-partlabel/r-hdd-02
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: hdd-02
+provisioning:
+  diskSelector:
+    # Seagate IronWolf Pro ST4000NE0025 4TB, serial ZC19ZR0Y
+    match: disk.transport == "usb" && "/dev/disk/by-id/wwn-0x5000c500b4816341" in disk.symlinks
+  minSize: 1TB

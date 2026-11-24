@@ -129,56 +129,53 @@ spec:
               operator: In
               values:
                 - kube-srv-03
-              # Slot 2 on kube-srv-01/02 (4TB HDDs): uncomment once the drives are installed
-              # and Talos has created r-hdd-02, then raise the device set's count in
-              # helmrelease.yaml to match.
-              # ---
-              # # kube-srv-01, dock slot 2: 4TB HDD, serial <KUBE_SRV_01_HDD_02_SERIAL>
-              # # yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
-              # apiVersion: v1
-              # kind: PersistentVolume
-              # metadata:
-              #   name: hdd-kube-srv-01-02
-              # spec:
-              #   storageClassName: ceph-osd-hdd-local
-              #   volumeMode: Block
-              #   accessModes:
-              #     - ReadWriteOnce
-              #   persistentVolumeReclaimPolicy: Retain
-              #   capacity:
-              #     storage: 3600Gi
-              #   local:
-              #     path: /dev/disk/by-partlabel/r-hdd-02
-              #   nodeAffinity:
-              #     required:
-              #       nodeSelectorTerms:
-              #         - matchExpressions:
-              #             - key: kubernetes.io/hostname
-              #               operator: In
-              #               values:
-              #                 - kube-srv-01
-              # ---
-              # # kube-srv-02, dock slot 2: 4TB HDD, serial <KUBE_SRV_02_HDD_02_SERIAL>
-              # # yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
-              # apiVersion: v1
-              # kind: PersistentVolume
-              # metadata:
-              #   name: hdd-kube-srv-02-02
-              # spec:
-              #   storageClassName: ceph-osd-hdd-local
-              #   volumeMode: Block
-              #   accessModes:
-              #     - ReadWriteOnce
-              #   persistentVolumeReclaimPolicy: Retain
-              #   capacity:
-              #     storage: 3600Gi
-              #   local:
-              #     path: /dev/disk/by-partlabel/r-hdd-02
-              #   nodeAffinity:
-              #     required:
-              #       nodeSelectorTerms:
-              #         - matchExpressions:
-              #             - key: kubernetes.io/hostname
-              #               operator: In
-              #               values:
-              #                 - kube-srv-02
+---
+# kube-srv-01, dock slot 2: Seagate IronWolf Pro ST4000NE0025 4TB, serial ZC19ZZJ5
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hdd-kube-srv-01-02
+spec:
+  storageClassName: ceph-osd-hdd-local
+  volumeMode: Block
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  capacity:
+    storage: 3600Gi
+  local:
+    path: /dev/disk/by-partlabel/r-hdd-02
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - kube-srv-01
+---
+# kube-srv-02, dock slot 2: Seagate IronWolf Pro ST4000NE0025 4TB, serial ZC19ZR0Y
+# yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hdd-kube-srv-02-02
+spec:
+  storageClassName: ceph-osd-hdd-local
+  volumeMode: Block
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  capacity:
+    storage: 3600Gi
+  local:
+    path: /dev/disk/by-partlabel/r-hdd-02
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - kube-srv-02

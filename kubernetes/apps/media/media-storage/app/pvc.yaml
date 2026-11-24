@@ -14,5 +14,5 @@ spec:
     - ReadWriteMany
   resources:
     requests:
-      storage: 1536Gi
+      storage: 3Ti
   storageClassName: ceph-filesystem-hdd
