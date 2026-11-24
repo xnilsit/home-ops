@@ -14,7 +14,7 @@ spec:
     githubConfigSecret: home-ops-runner-github-app
     # The runs-on label.
     runnerScaleSetName: home-ops-runner
-    minRunners: 3
+    minRunners: 2
     maxRunners: 6
     # Explicit so rendering skips the chart's cluster lookup.
     controllerServiceAccount:
@@ -25,6 +25,7 @@ spec:
       type: kubernetes-novolume
     template:
       spec:
+        priorityClassName: cluster-batch
         runtimeClassName: gvisor
         # Resolve external names without the cluster search list.
         dnsConfig:
@@ -75,6 +76,7 @@ spec:
             resources:
               requests:
                 cpu: 250m
+                memory: 1Gi
               limits:
                 memory: 4Gi
             volumeMounts:

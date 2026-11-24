@@ -61,6 +61,7 @@ spec:
             resources:
               requests:
                 cpu: 100m
+                memory: 2Gi
               limits:
                 memory: 8Gi
         statefulset:
@@ -72,6 +73,7 @@ spec:
               globalMounts:
                 - path: /home/user/.local/share/buildkit
     defaultPodOptions:
+      priorityClassName: cluster-batch
       # runc, not gVisor: gVisor has no nested overlayfs, and the native snapshotter
       # copies the whole rootfs per layer. ./seccompprofile.yaml narrows the kernel instead.
       affinity:
