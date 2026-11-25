@@ -210,6 +210,12 @@ spec:
 
     kubelet:
       enabled: true
+      vmScrapes:
+        cadvisor:
+          spec:
+            path: /metrics/cadvisor
+            # a node holding ~130 pods serves >16MB, over vmagent's 16MB default
+            max_scrape_size: 64MB
 
     kubeApiServer:
       enabled: true
