@@ -4,3 +4,5 @@ kind: KubeletConfig
 config:
   maxPods: 220
   serializeImagePulls: false
+  # drop images no container has used for 3 days, e.g. superseded builds
+  imageMaximumGCAge: 72h
