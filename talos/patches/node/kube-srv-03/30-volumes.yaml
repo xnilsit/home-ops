@@ -40,8 +40,8 @@ kind: RawVolumeConfig
 name: hdd-01
 provisioning:
   diskSelector:
-    # Seagate IronWolf Pro 4TB (replaced the Samsung HD204UI 2TB, which
-    # returned silently corrupted blocks)
+    # Seagate IronWolf Pro ST4000NE0025 4TB, serial ZC16TW4T (replaced the
+    # Samsung HD204UI 2TB, which returned silently corrupted blocks)
     match: disk.transport == "usb" && "/dev/disk/by-id/wwn-0x5000c500b173a17e" in disk.symlinks
   # Floor only: with no maxSize the partition fills the disk
   minSize: 1TB
