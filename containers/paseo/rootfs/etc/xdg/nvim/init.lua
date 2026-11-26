@@ -337,7 +337,7 @@ local plugin_pins = {
   -- renovate: datasource=git-refs depName=https://github.com/NMAC427/guess-indent.nvim branch=main
   ['nmac427/guess-indent.nvim'] = { commit = '84a4987ff36798c2fc1169cbaff67960aed9776f' },
   -- renovate: datasource=git-refs depName=https://github.com/lewis6991/gitsigns.nvim branch=main
-  ['lewis6991/gitsigns.nvim'] = { commit = 'b15de90f4b71ff684372a7e16cfd00bc2d917a94' },
+  ['lewis6991/gitsigns.nvim'] = { commit = '166c03131e6a3528f692dd89f37668d991f17baa' },
   -- renovate: datasource=git-refs depName=https://github.com/folke/which-key.nvim branch=main
   ['folke/which-key.nvim'] = { commit = '3aab2147e74890957785941f0c1ad87d0a44c15a' },
   -- renovate: datasource=git-refs depName=https://github.com/folke/tokyonight.nvim branch=main
@@ -349,7 +349,7 @@ local plugin_pins = {
   -- renovate: datasource=git-refs depName=https://github.com/nvim-mini/mini.nvim branch=main
   ['nvim-mini/mini.nvim'] = { commit = '24cf4ad5840f0d092e3d8296b17eaf7026bf27f3' },
   -- renovate: datasource=github-tags depName=lukas-reineke/indent-blankline.nvim
-  ['lukas-reineke/indent-blankline.nvim'] = { tag = 'v3.10.1' },
+  ['lukas-reineke/indent-blankline.nvim'] = { tag = 'v3.11.0' },
   -- renovate: datasource=git-refs depName=https://github.com/mason-org/mason.nvim branch=main
   ['mason-org/mason.nvim'] = { commit = '2a6940af80375532e5e9e7c1f2fc6319a1b7a69d' },
   -- renovate: datasource=github-releases depName=saghen/blink.cmp
@@ -391,7 +391,7 @@ local plugin_pins = {
   -- renovate: datasource=git-refs depName=https://github.com/gbprod/yanky.nvim branch=main
   ['gbprod/yanky.nvim'] = { commit = 'edcbe0f6d693b9e7860626094f886a2d79cfe63b' },
   -- renovate: datasource=git-refs depName=https://github.com/neovim/nvim-lspconfig branch=master
-  ['neovim/nvim-lspconfig'] = { commit = '7d22e678970d95d8d18494ec389c52b07111c53a' },
+  ['neovim/nvim-lspconfig'] = { commit = '76f4cafc49677a34dc8ad8142b773d78ab4a041e' },
   -- renovate: datasource=git-refs depName=https://github.com/mason-org/mason-lspconfig.nvim branch=main
   ['mason-org/mason-lspconfig.nvim'] = { commit = '761d376b5fbe6b21f659432ffadc1205c660176c' },
   -- renovate: datasource=git-refs depName=https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim branch=main
