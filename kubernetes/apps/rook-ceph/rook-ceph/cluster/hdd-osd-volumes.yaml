@@ -80,7 +80,7 @@ spec:
               values:
                 - kube-srv-02
 ---
-# kube-srv-03, dock slot 1: Seagate IronWolf Pro 4TB, WWN 0x5000c500b173a17e
+# kube-srv-03, dock slot 1: Seagate IronWolf Pro ST4000NE0025 4TB, serial ZC16TW4T
 # yaml-language-server: $schema=https://json.schemastore.org/kubernetes-definitions.json
 apiVersion: v1
 kind: PersistentVolume
