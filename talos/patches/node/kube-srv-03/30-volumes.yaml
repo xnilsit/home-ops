@@ -40,9 +40,9 @@ kind: RawVolumeConfig
 name: hdd-01
 provisioning:
   diskSelector:
-    # Samsung HD204UI 2TB, serial S2H7JD2ZA01281; swap the WWN when it is
-    # replaced with a >=4TB drive
-    match: disk.transport == "usb" && "/dev/disk/by-id/wwn-0x50024e900430a34f" in disk.symlinks
+    # Seagate IronWolf Pro 4TB (replaced the Samsung HD204UI 2TB, which
+    # returned silently corrupted blocks)
+    match: disk.transport == "usb" && "/dev/disk/by-id/wwn-0x5000c500b173a17e" in disk.symlinks
   # Floor only: with no maxSize the partition fills the disk
   minSize: 1TB
 ---
