@@ -101,6 +101,11 @@ spec:
               # 15m playback.paused_session_timeout_minutes admin setting.
               SILO_STREAM_WRITE_STALL_TIMEOUT: "1200"
               SILO_TRANSCODE_NODES_FILE: /run/silo-config/transcode-nodes.yaml
+              # Downloads the API prepares when no node can. Shared by every replica,
+              # so a file one replica prepared is there for the others to serve.
+              SILO_DOWNLOAD_ARTIFACT_DIR: /var/cache/silo-downloads
+              # 80 GiB stays under the 85% fill ceiling of the 100Gi volume.
+              SILO_DOWNLOAD_ARTIFACT_MAX_BYTES: "85899345920"
               OIDC_CLIENT_SECRET:
                 valueFrom:
                   secretKeyRef:
@@ -483,7 +488,17 @@ spec:
         globalMounts:
           - path: /mnt/media
             readOnly: true
-      # Transcode segments, and downloads the API prepares when no node can.
+      api-downloads:
+        type: persistentVolumeClaim
+        forceRename: silo-api-downloads
+        accessMode: ReadWriteMany
+        storageClass: ceph-filesystem
+        size: 100Gi
+        advancedMounts:
+          silo:
+            app:
+              - path: /var/cache/silo-downloads
+      # Transcode segments.
       tmp:
         type: emptyDir
         sizeLimit: 50Gi
