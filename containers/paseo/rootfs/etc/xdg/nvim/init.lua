@@ -347,7 +347,7 @@ local plugin_pins = {
   -- renovate: datasource=git-refs depName=https://github.com/nvim-lua/plenary.nvim branch=master
   ['nvim-lua/plenary.nvim'] = { commit = '74b06c6c75e4eeb3108ec01852001636d85a932b' },
   -- renovate: datasource=git-refs depName=https://github.com/nvim-mini/mini.nvim branch=main
-  ['nvim-mini/mini.nvim'] = { commit = '24cf4ad5840f0d092e3d8296b17eaf7026bf27f3' },
+  ['nvim-mini/mini.nvim'] = { commit = '39334e0f4dec24ef159945067e222318392a65c5' },
   -- renovate: datasource=github-tags depName=lukas-reineke/indent-blankline.nvim
   ['lukas-reineke/indent-blankline.nvim'] = { tag = 'v3.11.0' },
   -- renovate: datasource=git-refs depName=https://github.com/mason-org/mason.nvim branch=main
