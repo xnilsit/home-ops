@@ -20,7 +20,7 @@ spec:
           app:
             image:
               repository: registry.nilsit.de/ghcr.io/kyonew/dvinyl
-              tag: 4.0.0@sha256:ff7912fec5713a2133143bbdbc95d0f688c092c1e1dd728da92d2036734d8e01
+              tag: 4.0.1@sha256:759c852c8fba6a46048492f6a12755a2392decac2caf2ec43594c0b337abc638
             env:
               VINYL_PORT: &port 3099
               PROD: "true"
