@@ -60,7 +60,7 @@ ARG SIMPLE_ENGLISH_COMMIT=300432a9e4c473229a7049ab61b8ca2522d9214c
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VERSION=v4.3.2
 # renovate: datasource=git-refs depName=https://github.com/ohmyzsh/ohmyzsh branch=master
-ARG OHMYZSH_COMMIT=5c7cd916157a49ea8514c38388088776b0db26a9
+ARG OHMYZSH_COMMIT=44a5decbc48c4f1885c754eb2044d09a466e4187
 # renovate: datasource=git-refs depName=https://github.com/djui/alias-tips branch=master
 ARG ALIAS_TIPS_COMMIT=41cb143ccc3b8cc444bf20257276cb43275f65c4
 
